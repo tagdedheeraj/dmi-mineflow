@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,7 +8,7 @@ import {
   getUser as getFirestoreUser, 
   saveUser as saveFirestoreUser,
   registerAccountOnDevice
-} from '@/lib/firestore';
+} from '@/lib/firebase'; // Updated import path
 import { useToast } from '@/hooks/use-toast';
 import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
