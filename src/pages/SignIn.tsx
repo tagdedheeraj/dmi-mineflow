@@ -26,25 +26,18 @@ const SignIn: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      console.log("Submitting login form with email:", email);
       await signIn(email, password);
       // Redirect happens in the signIn function
     } catch (err: any) {
-      console.error("Sign in component error:", err);
-      
       // Display a more user-friendly error message
-      if (err.code === 'auth/invalid-credential' || 
-          err.code === 'auth/user-not-found' || 
-          err.code === 'auth/wrong-password' || 
-          err.code === 'auth/invalid-email') {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many failed login attempts. Please try again later or reset your password.');
-      } else if (err.code === 'auth/network-request-failed') {
-        setError('Network error. Please check your internet connection and try again.');
       } else {
         setError(err.message || 'Failed to sign in. Please check your credentials.');
       }
+      console.error("Sign in error:", err);
     } finally {
       setIsSubmitting(false);
     }

@@ -55,13 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("Auth state changed:", firebaseUser?.email || "No user");
       if (firebaseUser) {
         // User is signed in
         try {
           // First check if we have the user in Firestore
           const firestoreUser = await getFirestoreUser(firebaseUser.uid);
-          console.log("Firestore user:", firestoreUser);
           
           // Check if this is the admin account
           if (firebaseUser.email === ADMIN_EMAIL) {
@@ -179,12 +177,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log("AuthContext: Attempting to sign in with email:", email);
-      
       // Sign in with Firebase
       const userCredential = await signInWithEmail(email, password);
-      console.log("AuthContext: Sign in successful, user ID:", userCredential.user.uid);
-      
       const firebaseUser = userCredential.user;
       
       // Check if this is the admin account
@@ -196,7 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Fetch user from Firestore
       const firestoreUser = await getFirestoreUser(firebaseUser.uid);
-      console.log("AuthContext: Firestore user retrieved:", firestoreUser?.id || "not found");
       
       if (firestoreUser) {
         if (firestoreUser.suspended) {
@@ -246,22 +239,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
-      console.error("Sign in error details:", error);
-      
       let errorMessage = "Invalid email or password.";
       
       // Handle specific Firebase auth errors
-      if (error.code === 'auth/invalid-credential' || 
-          error.code === 'auth/user-not-found' || 
-          error.code === 'auth/wrong-password' || 
-          error.code === 'auth/invalid-email') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = "Invalid email or password. Please check your credentials and try again.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
       } else if (error.code === 'auth/user-disabled') {
         errorMessage = "This account has been disabled. Please contact support.";
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = "Network error. Please check your internet connection and try again.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -271,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: errorMessage,
         variant: "destructive",
       });
-      console.error("Sign in error in AuthContext:", error);
+      console.error("Sign in error:", error);
       throw error; // Re-throw the error so the SignIn component can handle it
     }
   };
