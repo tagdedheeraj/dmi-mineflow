@@ -14,7 +14,7 @@ import {
   updateUsdtEarnings,
   getLastEarningsUpdateDate,
   setLastEarningsUpdateDate
-} from '@/lib/supabaseStorage';
+} from '@/lib/supabase';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 

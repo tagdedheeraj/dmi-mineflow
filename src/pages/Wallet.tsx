@@ -20,7 +20,7 @@ import {
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress, updateUsdtEarnings } from '@/lib/storage';
+import { setUsdtAddress, updateUsdtEarnings } from '@/lib/supabase';
 
 const Wallet: React.FC = () => {
   const { user, updateUser } = useAuth();

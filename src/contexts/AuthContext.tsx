@@ -8,7 +8,7 @@ import {
   User,
   getDeviceId,
   registerAccountOnDevice
-} from '@/lib/supabaseStorage';
+} from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 

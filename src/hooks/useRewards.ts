@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserBalance } from '@/lib/supabaseStorage';
+import { updateUserBalance } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
 
