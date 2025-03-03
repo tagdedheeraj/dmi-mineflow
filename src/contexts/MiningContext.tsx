@@ -15,7 +15,7 @@ import {
   updateUsdtEarnings,
   getLastUsdtUpdateDate,
   updateLastUsdtUpdateDate
-} from '@/lib/firebase';
+} from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 
