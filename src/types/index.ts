@@ -25,7 +25,7 @@ export interface MiningSession {
 
 export interface ActivePlan {
   id: string;
-  purchasedAt: string;
+  purchasedAt: number; // Changed from string to number to fix TS error
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
