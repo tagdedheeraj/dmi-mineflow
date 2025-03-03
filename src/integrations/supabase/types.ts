@@ -9,7 +9,194 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      account_device_links: {
+        Row: {
+          device_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_device_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      active_plans: {
+        Row: {
+          boost_multiplier: number
+          duration: number
+          expires_at: string
+          id: string
+          plan_id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          boost_multiplier: number
+          duration: number
+          expires_at: string
+          id?: string
+          plan_id: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          boost_multiplier?: number
+          duration?: number
+          expires_at?: string
+          id?: string
+          plan_id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_registrations: {
+        Row: {
+          device_id: string
+          first_account_created_at: string
+          id: string
+        }
+        Insert: {
+          device_id: string
+          first_account_created_at?: string
+          id?: string
+        }
+        Update: {
+          device_id?: string
+          first_account_created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      earning_updates: {
+        Row: {
+          id: string
+          last_update_date: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_update_date: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_update_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earning_updates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mining_sessions: {
+        Row: {
+          created_at: string
+          earned: number
+          end_time: number
+          id: string
+          rate: number
+          start_time: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          earned: number
+          end_time: number
+          id?: string
+          rate: number
+          start_time: number
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          earned?: number
+          end_time?: number
+          id?: string
+          rate?: number
+          start_time?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mining_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          balance: number
+          created_at: string
+          device_id: string | null
+          email: string
+          full_name: string
+          id: string
+          suspended: boolean | null
+          suspended_reason: string | null
+          usdt_address: string | null
+          usdt_earnings: number | null
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          email: string
+          full_name: string
+          id: string
+          suspended?: boolean | null
+          suspended_reason?: string | null
+          usdt_address?: string | null
+          usdt_earnings?: number | null
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          suspended?: boolean | null
+          suspended_reason?: string | null
+          usdt_address?: string | null
+          usdt_earnings?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
