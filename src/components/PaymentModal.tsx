@@ -86,9 +86,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }, 1500);
   };
 
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl z-[51] m-4 max-h-[90vh] overflow-y-auto relative animate-in fade-in">
         {isSubmitted ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
