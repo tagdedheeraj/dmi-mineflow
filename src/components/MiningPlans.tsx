@@ -8,10 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
+import { updateUsdtEarnings } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
   const { updateMiningBoost } = useMining();
+  const { updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -31,6 +34,12 @@ const MiningPlans: React.FC = () => {
       title: "Plan activated!",
       description: `Your ${selectedPlan.name} has been successfully activated.`,
     });
+    
+    // Add initial daily earnings to user's USDT balance
+    const updatedUser = updateUsdtEarnings(selectedPlan.dailyEarnings);
+    if (updatedUser) {
+      updateUser(updatedUser);
+    }
     
     // Update mining boost
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);

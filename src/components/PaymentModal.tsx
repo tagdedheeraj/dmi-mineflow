@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { QrCode, ArrowLeft, Clock, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
-  // Countdown timer
   useEffect(() => {
     if (timeRemaining <= 0 || isSubmitted) return;
 
@@ -68,8 +66,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     setIsSubmitting(true);
 
-    // In a real app, you would verify the transaction here
-    // For now, we'll simulate a successful transaction
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -79,7 +75,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         description: "Your payment is being processed. Your plan will activate shortly.",
       });
 
-      // Wait 2 seconds, then close the modal and notify the parent
       setTimeout(() => {
         onComplete(transactionId);
       }, 2000);
@@ -87,8 +82,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in" style={{ overflowY: 'hidden' }}>
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         {isSubmitted ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
