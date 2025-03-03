@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ const SignIn: React.FC = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +26,7 @@ const SignIn: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Check if this is an admin login
-      if (email === 'dmi@dminetwork.us' && password === 'Kingbond@123') {
-        // Handle admin login
-        await signIn(email, password);
-        navigate('/admin-dashboard');
-      } else {
-        // Regular user login
-        await signIn(email, password);
-      }
+      await signIn(email, password);
     } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
       console.error(err);
