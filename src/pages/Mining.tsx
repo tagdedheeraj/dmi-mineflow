@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,6 @@ import Header from '@/components/Header';
 import MainnetCard from '@/components/MainnetCard';
 import MiningCard from '@/components/MiningCard';
 import MiningPlans from '@/components/MiningPlans';
-import DmiBalanceCard from '@/components/DmiBalanceCard';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
 
@@ -72,9 +70,6 @@ const Mining: React.FC = () => {
           {/* Mining Plans */}
           <MiningPlans />
           
-          {/* DMI Balance Card */}
-          <DmiBalanceCard />
-          
           {/* DMI Coin Value Card */}
           <CoinValueCard />
           
@@ -114,4 +109,3 @@ const Mining: React.FC = () => {
 };
 
 export default Mining;
-
