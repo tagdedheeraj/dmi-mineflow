@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,7 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const [pin, setPin] = useState<string>("");
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(false);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
 
   if (!user) {
     navigate('/signin');
@@ -48,6 +51,12 @@ const Profile: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
       {/* Header */}
       <Header />
+      
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        open={changePasswordModalOpen}
+        onOpenChange={setChangePasswordModalOpen}
+      />
       
       {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
@@ -122,7 +131,12 @@ const Profile: React.FC = () => {
                   <Button className="w-full" variant="outline">
                     Update Profile
                   </Button>
-                  <Button className="w-full" variant="outline">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => setChangePasswordModalOpen(true)}
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
                     Change Password
                   </Button>
                   <Button 
@@ -145,6 +159,26 @@ const Profile: React.FC = () => {
                   <h2 className="text-xl font-semibold">Security Settings</h2>
                 </div>
                 <p className="text-gray-600">Manage your security preferences and account protection.</p>
+              </div>
+              
+              {/* Password Change Option */}
+              <div className="border-t border-gray-100 pt-6 mb-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center">
+                    <Lock className="h-5 w-5 mr-3 text-gray-600" />
+                    <div>
+                      <h3 className="font-medium text-gray-900">Password</h3>
+                      <p className="text-sm text-gray-600">Change your account password</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => setChangePasswordModalOpen(true)}
+                  className="w-full"
+                >
+                  Change Password
+                </Button>
               </div>
               
               {/* PIN Setup */}

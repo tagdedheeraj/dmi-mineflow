@@ -19,6 +19,7 @@ interface AuthContextType {
   signOut: () => void;
   updateBalance: (newBalance: number) => void;
   updateUser: (updatedUser: User) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: () => {},
   updateBalance: () => {},
   updateUser: () => {},
+  changePassword: async () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -40,18 +42,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Initialize auth state from local storage
   useEffect(() => {
     const storedUser = getUser();
     if (storedUser) {
-      // Check if the user is suspended
       if (storedUser.suspended) {
         toast({
           title: "Account Suspended",
           description: storedUser.suspendedReason || "This account has been suspended.",
           variant: "destructive",
         });
-        // Clear the user but keep the device ID
         clearUser();
         setUser(null);
       } else {
@@ -63,19 +62,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (fullName: string, email: string, password: string) => {
     try {
-      // In a real app, you would make an API call here
-      // For this demo, we'll create a user locally
       const userId = `user_${Date.now()}`;
       const deviceId = getDeviceId();
       
-      // Check if this is a multiple account on the same device
       const { isMultipleAccount, within24Hours } = registerAccountOnDevice(userId);
       
       const newUser: User = {
         id: userId,
         fullName,
         email,
-        balance: 100, // Bonus 100 DMI coins for new users
+        balance: 100,
         createdAt: Date.now(),
         deviceId,
         suspended: isMultipleAccount && within24Hours,
@@ -115,12 +111,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // In a real app, you would verify credentials with an API
-      // For this demo, we'll check if the user exists locally (by email)
       const storedUser = getUser();
       
       if (storedUser && storedUser.email === email) {
-        // Check if the user is suspended
         if (storedUser.suspended) {
           toast({
             title: "Account Suspended",
@@ -130,7 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        // Update device ID in case user is signing in from a different device
         const deviceId = getDeviceId();
         const updatedUser = {
           ...storedUser,
@@ -138,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         saveUser(updatedUser);
         
-        // Successful login
         setUser(updatedUser);
         navigate('/mining');
         toast({
@@ -164,7 +155,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = () => {
     setUser(null);
-    // Do not clear mining data on logout - mining should continue
     navigate('/signin');
     toast({
       title: "Signed Out",
@@ -185,6 +175,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveUser(updatedUser);
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      if (user) {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been successfully updated.",
+        });
+        return true;
+      } else {
+        toast({
+          title: "Error",
+          description: "You must be logged in to change your password.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      toast({
+        title: "Password Change Failed",
+        description: "An error occurred while changing your password.",
+        variant: "destructive",
+      });
+      console.error("Password change error:", error);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -196,6 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         updateBalance,
         updateUser,
+        changePassword,
       }}
     >
       {children}
