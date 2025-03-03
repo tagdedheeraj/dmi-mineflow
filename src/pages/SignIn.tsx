@@ -46,11 +46,6 @@ const SignIn: React.FC = () => {
             className="h-20 w-auto mx-auto mb-6"
           />
           
-          <div className="mx-auto h-16 w-16 rounded-full bg-dmi/10 flex items-center justify-center mb-6">
-            <div className="rounded-full bg-dmi h-10 w-10 flex items-center justify-center">
-              <span className="text-white font-bold text-xl">D</span>
-            </div>
-          </div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
           <p className="mt-2 text-gray-600">
             Start mining DMI coins today
