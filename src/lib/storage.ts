@@ -1,4 +1,3 @@
-
 /**
  * Local storage service to persist user and mining data
  */
@@ -14,6 +13,9 @@ export interface User {
   deviceId?: string;
   suspended?: boolean;
   suspendedReason?: string;
+  referralCode?: string;
+  appliedReferralCode?: string;
+  referredBy?: string;
 }
 
 export interface MiningSession {

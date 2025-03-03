@@ -4,6 +4,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import AdWatchCard from './AdWatchCard';
 import HowItWorks from './HowItWorks';
 import ComingSoon from './ComingSoon';
+import ReferralSystem from './ReferralSystem';
 
 interface RewardsTabContentProps {
   activeTab: string;
@@ -42,6 +43,10 @@ const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
         
         {/* How It Works Card */}
         <HowItWorks />
+      </TabsContent>
+      
+      <TabsContent value="referrals" className="mt-4">
+        <ReferralSystem />
       </TabsContent>
       
       <TabsContent value="tasks" className="mt-4">
