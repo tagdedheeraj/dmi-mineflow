@@ -27,14 +27,13 @@ const Header: React.FC = () => {
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-dmi/90 to-dmi-dark/90 backdrop-blur-md z-50 border-b border-dmi/20 shadow-md animate-slide-down">
         <div className="max-w-screen-xl mx-auto h-full px-4 flex items-center justify-between">
-          {/* Logo and brand */}
+          {/* Logo */}
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/mining')}>
-            <div className="rounded-full bg-white/20 p-2 flex items-center justify-center">
-              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-dmi font-bold">
-                D
-              </div>
-            </div>
-            <span className="font-semibold text-white">DMI Mining</span>
+            <img 
+              src="/lovable-uploads/51c75bd9-9eaf-46e5-86a8-c39bdc1354d5.png" 
+              alt="DMI Logo" 
+              className="h-10 w-auto"
+            />
           </div>
 
           {/* Back button on mobile */}
