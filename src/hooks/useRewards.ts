@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUserBalance } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { mockUnityAds } from '@/components/rewards/UnityAds';
+import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
 
 export const useRewards = () => {
   const { user, updateUser } = useAuth();
@@ -26,8 +26,11 @@ export const useRewards = () => {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
   
-  // Initialize state on component mount
+  // Initialize Unity Ads and state on component mount
   useEffect(() => {
+    // Initialize Unity Ads
+    unityAds.initialize();
+    
     const todayKey = getTodayDateKey();
     const storedWatchedAds = localStorage.getItem(`dmi_ads_watched_${todayKey}`);
     const storedEarnings = localStorage.getItem(`dmi_ads_earnings_${todayKey}`);
@@ -92,38 +95,51 @@ export const useRewards = () => {
     // Start watching ad
     setIsWatchingAd(true);
     
-    // Simulate Unity ad display
-    mockUnityAds.show(() => {
-      // Ad completed
-      setIsWatchingAd(false);
-      setIsAdComplete(true);
-      
-      // Update user's balance (add 1 DMI coin)
-      if (user) {
-        const updatedUser = updateUserBalance(1);
-        if (updatedUser) {
-          updateUser(updatedUser);
-        }
+    // Try to use Unity Ads, fall back to mock if needed
+    try {
+      if (unityAds.isReady()) {
+        unityAds.show(onAdComplete);
+      } else {
+        console.warn('Unity Ad not ready, falling back to mock implementation');
+        mockUnityAds.show(onAdComplete);
       }
-      
-      // Update today's stats
-      setTodayAdsWatched(prev => prev + 1);
-      setTodayEarnings(prev => prev + 1);
-      
-      // Start countdown for next ad (1 minute = 60 seconds)
-      setCountdownTime(60);
-      
-      // Show success toast
-      toast({
-        title: "Reward Earned!",
-        description: "You've earned 1 DMI coin for watching the ad.",
-      });
-      
-      // Reset ad complete state after a short delay
-      setTimeout(() => {
-        setIsAdComplete(false);
-      }, 3000);
+    } catch (error) {
+      console.error('Error showing Unity Ad:', error);
+      mockUnityAds.show(onAdComplete);
+    }
+  };
+  
+  // Handle ad completion
+  const onAdComplete = () => {
+    // Ad completed
+    setIsWatchingAd(false);
+    setIsAdComplete(true);
+    
+    // Update user's balance (add 1 DMI coin)
+    if (user) {
+      const updatedUser = updateUserBalance(1);
+      if (updatedUser) {
+        updateUser(updatedUser);
+      }
+    }
+    
+    // Update today's stats
+    setTodayAdsWatched(prev => prev + 1);
+    setTodayEarnings(prev => prev + 1);
+    
+    // Start countdown for next ad (1 minute = 60 seconds)
+    setCountdownTime(60);
+    
+    // Show success toast
+    toast({
+      title: "Reward Earned!",
+      description: "You've earned 1 DMI coin for watching the ad.",
     });
+    
+    // Reset ad complete state after a short delay
+    setTimeout(() => {
+      setIsAdComplete(false);
+    }, 3000);
   };
   
   return {
