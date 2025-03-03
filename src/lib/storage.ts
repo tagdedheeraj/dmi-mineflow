@@ -1,256 +1,233 @@
+/**
+ * Local storage service to persist user and mining data
+ */
 
-import { User, MiningSession, ActivePlan, WithdrawalRequest } from "@/types";
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  balance: number;
+  createdAt: number;
+  usdtAddress?: string;
+  usdtEarnings?: number;
+  deviceId?: string;
+  suspended?: boolean;
+  suspendedReason?: string;
+}
 
-// Function to get the user from local storage
-export const getUser = (id?: string): User | null => {
-  // If no ID provided, get from localStorage
-  if (!id) {
-    id = localStorage.getItem('userId') || '';
-    if (!id) return null;
-  }
+export interface MiningSession {
+  startTime: number;
+  endTime: number;
+  rate: number;
+  earned: number;
+  status: 'active' | 'completed' | 'pending';
+}
 
-  const usersJson = localStorage.getItem('users');
-  if (!usersJson) return null;
+export interface ActivePlan {
+  id: string;
+  purchasedAt: string;
+  expiresAt: string;
+  boostMultiplier: number;
+  duration: number;
+}
 
-  const users: User[] = JSON.parse(usersJson);
-  return users.find(user => user.id === id) || null;
+export interface DeviceRegistration {
+  deviceId: string;
+  accountIds: string[];
+  firstAccountCreatedAt: number;
+}
+
+const STORAGE_KEYS = {
+  USER: 'dmi_user',
+  CURRENT_MINING: 'dmi_current_mining',
+  MINING_HISTORY: 'dmi_mining_history',
+  ACTIVE_PLANS: 'dmi_active_plans',
+  DEVICE_REGISTRATIONS: 'dmi_device_registrations',
 };
 
-// Function to add a new user to local storage
-export const addUser = (user: User): void => {
-  const users = getUsers();
-  users.push(user);
-  localStorage.setItem('users', JSON.stringify(users));
-};
-
-// Function to save a user (replaces addUser in some context files)
-export const saveUser = (user: User): void => {
-  const users = getUsers();
-  const index = users.findIndex(u => u.id === user.id);
-
-  if (index >= 0) {
-    // Update existing user
-    users[index] = user;
-  } else {
-    // Add new user
-    users.push(user);
-  }
-
-  localStorage.setItem('users', JSON.stringify(users));
-  localStorage.setItem('userId', user.id);
-};
-
-// Function to clear user session
-export const clearUser = (): void => {
-  localStorage.removeItem('userId');
-};
-
-// Function to get all users from local storage
-export const getUsers = (): User[] => {
-  const usersJson = localStorage.getItem('users');
-  return usersJson ? JSON.parse(usersJson) : [];
-};
-
-// Function to update user information in local storage
-export const updateUser = (updatedUser: User): User | null => {
-  const users = getUsers();
-  const index = users.findIndex(user => user.id === updatedUser.id);
-
-  if (index === -1) {
-    console.error('User not found');
-    return null;
-  }
-
-  users[index] = updatedUser;
-  localStorage.setItem('users', JSON.stringify(users));
-  return updatedUser;
-};
-
-// Function to update user balance
-export const updateUserBalance = (amount: number): User | null => {
-  const userId = localStorage.getItem('userId');
-  if (!userId) return null;
-
-  const user = getUser(userId);
-  if (!user) return null;
-
-  user.balance = (user.balance || 0) + amount;
-  updateUser(user);
-  return user;
-};
-
-// Function to set the USDT address for a user
-export const setUsdtAddress = (usdtAddress: string): User | null => {
-  const userId = localStorage.getItem('userId');
-  if (!userId) return null;
-
-  const user = getUser(userId);
-  if (!user) return null;
-
-  user.usdtAddress = usdtAddress;
-  updateUser(user);
-  return user;
-};
-
-// Function to update USDT earnings for a user
-export const updateUsdtEarnings = (earnings: number): User | null => {
-  const userId = localStorage.getItem('userId');
-  if (!userId) return null;
-
-  const user = getUser(userId);
-  if (!user) return null;
-
-  user.usdtEarnings = (user.usdtEarnings || 0) + earnings;
-  updateUser(user);
-  return user;
-};
-
-// Function to create a withdrawal request
-export const createWithdrawalRequest = (userId: string, amount: number, address: string): WithdrawalRequest => {
-  const withdrawalRequests = getWithdrawalRequests();
-  
-  const newRequest: WithdrawalRequest = {
-    id: Math.random().toString(36).substring(2, 15),
-    userId,
-    amount,
-    address,
-    status: 'pending',
-    createdAt: Date.now(),
-  };
-  
-  withdrawalRequests.push(newRequest);
-  localStorage.setItem('withdrawal_requests', JSON.stringify(withdrawalRequests));
-  
-  // Deduct the amount from user's USDT earnings
-  const user = getUser(userId);
-  if (user) {
-    user.usdtEarnings -= amount;
-    updateUser(user);
-  }
-  
-  return newRequest;
-};
-
-// Function to get all withdrawal requests
-export const getWithdrawalRequests = (): WithdrawalRequest[] => {
-  const requestsJson = localStorage.getItem('withdrawal_requests');
-  return requestsJson ? JSON.parse(requestsJson) : [];
-};
-
-// Function to update a withdrawal request status
-export const updateWithdrawalRequestStatus = (requestId: string, status: 'approved' | 'rejected'): WithdrawalRequest | null => {
-  const withdrawalRequests = getWithdrawalRequests();
-  const index = withdrawalRequests.findIndex(req => req.id === requestId);
-  
-  if (index === -1) return null;
-  
-  withdrawalRequests[index].status = status;
-  withdrawalRequests[index].processedAt = Date.now();
-  
-  localStorage.setItem('withdrawal_requests', JSON.stringify(withdrawalRequests));
-  return withdrawalRequests[index];
-};
-
-// Device ID management for preventing multiple accounts
+// Generate a unique device ID
 export const getDeviceId = (): string => {
-  let deviceId = localStorage.getItem('deviceId');
+  let deviceId = localStorage.getItem('dmi_device_id');
   
   if (!deviceId) {
-    deviceId = `device_${Math.random().toString(36).substring(2, 15)}`;
-    localStorage.setItem('deviceId', deviceId);
+    // Generate a unique ID for this device
+    deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('dmi_device_id', deviceId);
   }
   
   return deviceId;
 };
 
-// Check if multiple accounts are being created from same device
-export const registerAccountOnDevice = (userId: string): { isMultipleAccount: boolean; within24Hours: boolean } => {
-  const deviceId = getDeviceId();
-  const accountRegistry = localStorage.getItem('deviceAccounts') || '{}';
-  const registry: Record<string, { userIds: string[], lastRegistration: number }> = JSON.parse(accountRegistry);
-  
-  if (!registry[deviceId]) {
-    registry[deviceId] = {
-      userIds: [],
-      lastRegistration: Date.now()
-    };
-  }
-  
-  const device = registry[deviceId];
-  const isMultipleAccount = device.userIds.length > 0;
-  const within24Hours = Date.now() - device.lastRegistration < 24 * 60 * 60 * 1000;
-  
-  // Add this user ID to the device registry
-  device.userIds.push(userId);
-  device.lastRegistration = Date.now();
-  
-  localStorage.setItem('deviceAccounts', JSON.stringify(registry));
-  
-  return { isMultipleAccount, within24Hours };
+// User operations
+export const getUser = (): User | null => {
+  const userJson = localStorage.getItem(STORAGE_KEYS.USER);
+  return userJson ? JSON.parse(userJson) : null;
 };
 
-// Mining Related Functions
+export const saveUser = (user: User): void => {
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+};
+
+export const updateUserBalance = (amount: number): User | null => {
+  const user = getUser();
+  if (!user) return null;
+  
+  user.balance += amount;
+  saveUser(user);
+  return user;
+};
+
+export const setUsdtAddress = (address: string): User | null => {
+  const user = getUser();
+  if (!user) return null;
+  
+  user.usdtAddress = address;
+  saveUser(user);
+  return user;
+};
+
+export const updateUsdtEarnings = (amount: number): User | null => {
+  const user = getUser();
+  if (!user) return null;
+  
+  user.usdtEarnings = (user.usdtEarnings || 0) + amount;
+  saveUser(user);
+  return user;
+};
+
+export const clearUser = (): void => {
+  localStorage.removeItem(STORAGE_KEYS.USER);
+};
+
+// Device registration operations
+export const getDeviceRegistrations = (): DeviceRegistration[] => {
+  const registrationsJson = localStorage.getItem(STORAGE_KEYS.DEVICE_REGISTRATIONS);
+  return registrationsJson ? JSON.parse(registrationsJson) : [];
+};
+
+export const saveDeviceRegistration = (registration: DeviceRegistration): void => {
+  const registrations = getDeviceRegistrations();
+  const existingIndex = registrations.findIndex(r => r.deviceId === registration.deviceId);
+  
+  if (existingIndex >= 0) {
+    registrations[existingIndex] = registration;
+  } else {
+    registrations.push(registration);
+  }
+  
+  localStorage.setItem(STORAGE_KEYS.DEVICE_REGISTRATIONS, JSON.stringify(registrations));
+};
+
+export const registerAccountOnDevice = (userId: string): { 
+  isMultipleAccount: boolean,
+  within24Hours: boolean 
+} => {
+  const deviceId = getDeviceId();
+  const registrations = getDeviceRegistrations();
+  const deviceRegistration = registrations.find(r => r.deviceId === deviceId) || {
+    deviceId,
+    accountIds: [],
+    firstAccountCreatedAt: Date.now()
+  };
+  
+  // Add the account ID if it's not already registered
+  if (!deviceRegistration.accountIds.includes(userId)) {
+    deviceRegistration.accountIds.push(userId);
+  }
+  
+  // If this is the first account on this device, update the creation time
+  if (deviceRegistration.accountIds.length === 1) {
+    deviceRegistration.firstAccountCreatedAt = Date.now();
+  }
+  
+  saveDeviceRegistration(deviceRegistration);
+  
+  const isMultipleAccount = deviceRegistration.accountIds.length > 1;
+  const timeSinceFirstAccount = Date.now() - deviceRegistration.firstAccountCreatedAt;
+  const within24Hours = timeSinceFirstAccount < 24 * 60 * 60 * 1000;
+  
+  return {
+    isMultipleAccount,
+    within24Hours
+  };
+};
+
+// Mining operations
 export const getCurrentMining = (): MiningSession | null => {
-  const miningJson = localStorage.getItem('current_mining');
+  const miningJson = localStorage.getItem(STORAGE_KEYS.CURRENT_MINING);
   return miningJson ? JSON.parse(miningJson) : null;
 };
 
 export const saveCurrentMining = (session: MiningSession): void => {
-  localStorage.setItem('current_mining', JSON.stringify(session));
+  localStorage.setItem(STORAGE_KEYS.CURRENT_MINING, JSON.stringify(session));
 };
 
 export const clearCurrentMining = (): void => {
-  localStorage.removeItem('current_mining');
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_MINING);
+};
+
+export const getMiningHistory = (): MiningSession[] => {
+  const historyJson = localStorage.getItem(STORAGE_KEYS.MINING_HISTORY);
+  return historyJson ? JSON.parse(historyJson) : [];
 };
 
 export const addToMiningHistory = (session: MiningSession): void => {
-  const historyJson = localStorage.getItem('mining_history');
-  const history: MiningSession[] = historyJson ? JSON.parse(historyJson) : [];
+  const history = getMiningHistory();
   history.push(session);
-  localStorage.setItem('mining_history', JSON.stringify(history));
+  localStorage.setItem(STORAGE_KEYS.MINING_HISTORY, JSON.stringify(history));
 };
 
-export const checkAndUpdateMining = (): { updatedSession: MiningSession | null, earnedCoins: number } => {
-  const currentMining = getCurrentMining();
-  
-  if (!currentMining) {
-    return { updatedSession: null, earnedCoins: 0 };
-  }
-  
-  const now = Date.now();
-  
-  // If mining session is complete but not processed
-  if (now >= currentMining.endTime && currentMining.status === 'active') {
-    const earnedCoins = Math.floor((currentMining.endTime - currentMining.startTime) / (1000 * 60 * 60) * currentMining.rate);
-    
-    // Update user balance
-    updateUserBalance(earnedCoins);
-    
-    // Complete the mining session
-    const completedSession: MiningSession = {
-      ...currentMining,
-      status: 'completed',
-      earned: earnedCoins
-    };
-    
-    // Update storage
-    clearCurrentMining();
-    addToMiningHistory(completedSession);
-    
-    return { updatedSession: null, earnedCoins };
-  }
-  
-  return { updatedSession: currentMining, earnedCoins: 0 };
-};
-
-// Active Plans functions
+// Plans operations
 export const getActivePlans = (): ActivePlan[] => {
-  const plansJson = localStorage.getItem('active_plans');
-  return plansJson ? JSON.parse(plansJson) : [];
+  const plansJson = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLANS);
+  const plans = plansJson ? JSON.parse(plansJson) : [];
+  
+  // Filter out expired plans
+  const now = new Date();
+  return plans.filter((plan: ActivePlan) => new Date(plan.expiresAt) > now);
 };
 
 export const saveActivePlan = (plan: ActivePlan): void => {
   const plans = getActivePlans();
   plans.push(plan);
-  localStorage.setItem('active_plans', JSON.stringify(plans));
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+// Check if mining should be active
+export const checkAndUpdateMining = (): { 
+  updatedSession: MiningSession | null,
+  earnedCoins: number 
+} => {
+  const currentSession = getCurrentMining();
+  if (!currentSession || currentSession.status !== 'active') {
+    return { updatedSession: null, earnedCoins: 0 };
+  }
+
+  const now = Date.now();
+  
+  // If mining period has completed
+  if (now >= currentSession.endTime) {
+    // Calculate exact earnings up to the end time
+    const elapsedHours = (currentSession.endTime - currentSession.startTime) / (1000 * 60 * 60);
+    const earnedCoins = Math.floor(elapsedHours * currentSession.rate);
+    
+    // Update session
+    const completedSession: MiningSession = {
+      ...currentSession,
+      status: 'completed',
+      earned: earnedCoins
+    };
+    
+    // Clear current mining and add to history
+    clearCurrentMining();
+    addToMiningHistory(completedSession);
+    
+    // Update user balance
+    updateUserBalance(earnedCoins);
+    
+    return { updatedSession: completedSession, earnedCoins };
+  }
+  
+  // Mining is still in progress
+  return { updatedSession: currentSession, earnedCoins: 0 };
 };
