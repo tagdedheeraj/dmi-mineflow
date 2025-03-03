@@ -31,6 +31,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
+  // Scroll to top when modal opens
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      // Re-enable scrolling when modal closes
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   // Countdown timer
   useEffect(() => {
     if (timeRemaining <= 0 || isSubmitted) return;
@@ -87,8 +99,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in overflow-auto">
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl my-4">
         {isSubmitted ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
