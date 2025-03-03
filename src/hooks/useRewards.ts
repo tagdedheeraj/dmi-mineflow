@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserBalance } from '@/lib/storage';
+import { updateUserBalance } from '@/lib/supabaseStorage';
 import { useToast } from '@/hooks/use-toast';
 import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
 
@@ -110,14 +110,14 @@ export const useRewards = () => {
   };
   
   // Handle ad completion
-  const onAdComplete = () => {
+  const onAdComplete = async () => {
     // Ad completed
     setIsWatchingAd(false);
     setIsAdComplete(true);
     
     // Update user's balance (add 1 DMI coin)
     if (user) {
-      const updatedUser = updateUserBalance(1);
+      const updatedUser = await updateUserBalance(1);
       if (updatedUser) {
         updateUser(updatedUser);
       }
