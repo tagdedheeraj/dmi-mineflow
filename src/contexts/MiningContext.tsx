@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -44,7 +45,7 @@ const MiningContext = createContext<MiningContextType>({
 export const useMining = () => useContext(MiningContext);
 
 export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, updateBalance } = useAuth();
+  const { user, updateBalance, updateUser } = useAuth();
   const { toast } = useToast();
   const [currentMining, setCurrentMining] = useState<MiningSession | null>(null);
   const [miningProgress, setMiningProgress] = useState(0);
@@ -52,6 +53,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isMining, setIsMining] = useState(false);
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
+  const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   
   // Base mining rate: 1 DMI per hour
   const baseMiningRate = 1;
@@ -107,6 +109,57 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsMining(true);
     }
   }, [user]);
+
+  // Process daily USDT earnings from active plans
+  useEffect(() => {
+    if (!user || activePlans.length === 0) return;
+    
+    // Function to check and add daily USDT earnings
+    const processDailyUsdtEarnings = () => {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // If we've already processed earnings today, skip
+      if (lastUsdtEarningsUpdate === today) return;
+      
+      // Calculate total daily earnings from all active plans
+      let totalDailyEarnings = 0;
+      
+      activePlans.forEach(plan => {
+        // Skip if plan has expired
+        if (new Date() >= new Date(plan.expiresAt)) return;
+        
+        // Find plan info to get daily earnings amount
+        const planInfo = plansData.find(p => p.id === plan.id);
+        if (planInfo) {
+          totalDailyEarnings += planInfo.dailyEarnings;
+        }
+      });
+      
+      // Add earnings if we have any
+      if (totalDailyEarnings > 0) {
+        const updatedUser = updateUsdtEarnings(totalDailyEarnings);
+        if (updatedUser) {
+          updateUser(updatedUser);
+          
+          toast({
+            title: "Daily Earnings Added!",
+            description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
+          });
+        }
+      }
+      
+      // Update last processed date
+      setLastUsdtEarningsUpdate(today);
+    };
+    
+    // Process earnings immediately on component mount
+    processDailyUsdtEarnings();
+    
+    // Set up interval to check once per hour (to handle day change)
+    const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [user, activePlans, lastUsdtEarningsUpdate, updateUser, toast]);
 
   // Update mining progress regularly
   useEffect(() => {
