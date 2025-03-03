@@ -2,13 +2,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  getUser, 
-  saveUser, 
-  clearUser, 
   User,
   getDeviceId,
+} from '@/lib/storage'; // Keeping the types from storage
+import { 
+  getUser as getFirestoreUser, 
+  saveUser as saveFirestoreUser,
   registerAccountOnDevice
-} from '@/lib/storage';
+} from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -47,37 +48,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // User is signed in
-        // First check if we have the user in local storage
-        const storedUser = getUser();
-        
-        if (storedUser && storedUser.email === firebaseUser.email) {
-          if (storedUser.suspended) {
-            toast({
-              title: "Account Suspended",
-              description: storedUser.suspendedReason || "This account has been suspended.",
-              variant: "destructive",
-            });
-            clearUser();
-            signOutUser();
-            setUser(null);
+        try {
+          // First check if we have the user in Firestore
+          const firestoreUser = await getFirestoreUser(firebaseUser.uid);
+          
+          if (firestoreUser) {
+            if (firestoreUser.suspended) {
+              toast({
+                title: "Account Suspended",
+                description: firestoreUser.suspendedReason || "This account has been suspended.",
+                variant: "destructive",
+              });
+              await signOutUser();
+              setUser(null);
+            } else {
+              setUser(firestoreUser);
+            }
           } else {
-            setUser(storedUser);
+            // Create a new user profile if it doesn't exist
+            const newUser: User = {
+              id: firebaseUser.uid,
+              fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              email: firebaseUser.email || '',
+              balance: 100,
+              createdAt: Date.now(),
+              deviceId: getDeviceId(),
+            };
+            setUser(newUser);
+            await saveFirestoreUser(newUser);
           }
-        } else {
-          // Create a new user profile if it doesn't exist
-          const newUser: User = {
-            id: firebaseUser.uid,
-            fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-            email: firebaseUser.email || '',
-            balance: 100,
-            createdAt: Date.now(),
-            deviceId: getDeviceId(),
-          };
-          setUser(newUser);
-          saveUser(newUser);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load user data. Please try again later.",
+            variant: "destructive",
+          });
         }
       } else {
         // User is signed out
@@ -93,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (fullName: string, email: string, password: string) => {
     try {
       const deviceId = getDeviceId();
-      const { isMultipleAccount, within24Hours } = registerAccountOnDevice(`user_${Date.now()}`);
+      const { isMultipleAccount, within24Hours } = await registerAccountOnDevice(deviceId, `user_${Date.now()}`);
       
       if (isMultipleAccount && within24Hours) {
         toast({
@@ -109,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmail(email, password);
       const firebaseUser = userCredential.user;
       
-      // Create user profile
+      // Create user profile in Firestore
       const newUser: User = {
         id: firebaseUser.uid,
         fullName,
@@ -119,8 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deviceId,
       };
       
+      await saveFirestoreUser(newUser);
       setUser(newUser);
-      saveUser(newUser);
       
       toast({
         title: "Welcome to DMI Mining!",
@@ -144,13 +153,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmail(email, password);
       const firebaseUser = userCredential.user;
       
-      const storedUser = getUser();
+      // Fetch user from Firestore
+      const firestoreUser = await getFirestoreUser(firebaseUser.uid);
       
-      if (storedUser && storedUser.email === email) {
-        if (storedUser.suspended) {
+      if (firestoreUser) {
+        if (firestoreUser.suspended) {
           toast({
             title: "Account Suspended",
-            description: storedUser.suspendedReason || "This account has been suspended.",
+            description: firestoreUser.suspendedReason || "This account has been suspended.",
             variant: "destructive",
           });
           await signOutUser();
@@ -160,10 +170,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Update deviceId
         const deviceId = getDeviceId();
         const updatedUser = {
-          ...storedUser,
+          ...firestoreUser,
           deviceId
         };
-        saveUser(updatedUser);
+        await saveFirestoreUser(updatedUser);
         setUser(updatedUser);
       } else {
         // Create a new user profile if it doesn't exist
@@ -175,8 +185,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: Date.now(),
           deviceId: getDeviceId(),
         };
+        await saveFirestoreUser(newUser);
         setUser(newUser);
-        saveUser(newUser);
       }
       
       navigate('/mining');
@@ -213,17 +223,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateBalance = (newBalance: number) => {
+  const updateBalance = async (newBalance: number) => {
     if (user) {
       const updatedUser = { ...user, balance: newBalance };
+      await saveFirestoreUser(updatedUser);
       setUser(updatedUser);
-      saveUser(updatedUser);
     }
   };
   
   const updateUser = (updatedUser: User) => {
-    setUser(updatedUser);
-    saveUser(updatedUser);
+    saveFirestoreUser(updatedUser)
+      .then(() => {
+        setUser(updatedUser);
+      })
+      .catch(error => {
+        console.error("Error updating user:", error);
+        toast({
+          title: "Update Failed",
+          description: "Failed to update user information.",
+          variant: "destructive",
+        });
+      });
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {

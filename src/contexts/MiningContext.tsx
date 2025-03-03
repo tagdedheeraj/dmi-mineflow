@@ -1,18 +1,21 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
   MiningSession, 
-  getCurrentMining, 
-  saveCurrentMining, 
+  ActivePlan
+} from '@/lib/storage';
+import { 
+  getCurrentMining,
+  saveCurrentMining,
   clearCurrentMining,
   addToMiningHistory,
   checkAndUpdateMining,
   getActivePlans,
   saveActivePlan,
-  ActivePlan,
-  updateUsdtEarnings
-} from '@/lib/storage';
+  updateUsdtEarnings,
+  getLastUsdtUpdateDate,
+  updateLastUsdtUpdateDate
+} from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,19 +57,13 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isMining, setIsMining] = useState(false);
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   
-  // Track the last date when daily USDT earnings were processed
-  // Changed from using string to localStorage to prevent multiple updates in the same day
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   
-  // Base mining rate: 1 DMI per hour
   const baseMiningRate = 1;
   
-  // Calculate total mining rate including boosts from active plans
   const calculateTotalMiningRate = useCallback(() => {
-    // Start with base rate
     let totalRate = baseMiningRate;
     
-    // Add boosts from active plans
     activePlans.forEach(plan => {
       if (new Date() < new Date(plan.expiresAt)) {
         totalRate *= plan.boostMultiplier;
@@ -76,107 +73,119 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return totalRate;
   }, [activePlans, baseMiningRate]);
   
-  // Get miningRate using the calculated total
   const miningRate = calculateTotalMiningRate();
   
-  // Duration of mining session in milliseconds (24 hours)
   const MINING_DURATION = 24 * 60 * 60 * 1000;
 
-  // Load active plans
   useEffect(() => {
-    const plans = getActivePlans();
-    setActivePlans(plans);
-  }, []);
-
-  // Load last earnings update date from localStorage on mount
-  useEffect(() => {
-    const lastUpdateDate = localStorage.getItem('dmi_last_usdt_earnings_update');
-    if (lastUpdateDate) {
-      setLastUsdtEarningsUpdate(lastUpdateDate);
-    }
-  }, []);
-
-  // Check for existing mining session on load
-  useEffect(() => {
-    const { updatedSession, earnedCoins } = checkAndUpdateMining();
-    
-    if (earnedCoins > 0 && user) {
-      // Show notification for completed mining
-      toast({
-        title: "Mining Completed!",
-        description: `You've earned ${earnedCoins} DMI Coins.`,
-      });
+    const loadActivePlans = async () => {
+      if (!user) return;
       
-      // Update UI state
-      setCurrentMining(null);
-      setIsMining(false);
-      setMiningProgress(0);
-      setCurrentEarnings(0);
-      setTimeRemaining(0);
-    } 
-    else if (updatedSession && updatedSession.status === 'active') {
-      // Resume active mining session
-      setCurrentMining(updatedSession);
-      setIsMining(true);
-    }
+      try {
+        const plans = await getActivePlans(user.id);
+        setActivePlans(plans);
+      } catch (error) {
+        console.error("Error loading active plans:", error);
+      }
+    };
+    
+    loadActivePlans();
   }, [user]);
 
-  // Process daily USDT earnings from active plans
+  useEffect(() => {
+    const loadLastUpdateDate = async () => {
+      if (!user) return;
+      
+      try {
+        const lastUpdateDate = await getLastUsdtUpdateDate(user.id);
+        if (lastUpdateDate) {
+          setLastUsdtEarningsUpdate(lastUpdateDate);
+        }
+      } catch (error) {
+        console.error("Error loading last update date:", error);
+      }
+    };
+    
+    loadLastUpdateDate();
+  }, [user]);
+
+  useEffect(() => {
+    const checkMiningSession = async () => {
+      if (!user) return;
+      
+      try {
+        const { updatedSession, earnedCoins } = await checkAndUpdateMining(user.id);
+        
+        if (earnedCoins > 0) {
+          toast({
+            title: "Mining Completed!",
+            description: `You've earned ${earnedCoins} DMI Coins.`,
+          });
+          
+          setCurrentMining(null);
+          setIsMining(false);
+          setMiningProgress(0);
+          setCurrentEarnings(0);
+          setTimeRemaining(0);
+        } 
+        else if (updatedSession && updatedSession.status === 'active') {
+          setCurrentMining(updatedSession);
+          setIsMining(true);
+        }
+      } catch (error) {
+        console.error("Error checking mining session:", error);
+      }
+    };
+    
+    checkMiningSession();
+  }, [user, toast]);
+
   useEffect(() => {
     if (!user || activePlans.length === 0) return;
     
-    // Function to check and add daily USDT earnings
-    const processDailyUsdtEarnings = () => {
+    const processDailyUsdtEarnings = async () => {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
-      // If we've already processed earnings today, skip
       if (lastUsdtEarningsUpdate === today) return;
       
-      // Calculate total daily earnings from all active plans
       let totalDailyEarnings = 0;
       
       activePlans.forEach(plan => {
-        // Skip if plan has expired
         if (new Date() >= new Date(plan.expiresAt)) return;
         
-        // Find plan info to get daily earnings amount
         const planInfo = plansData.find(p => p.id === plan.id);
         if (planInfo) {
           totalDailyEarnings += planInfo.dailyEarnings;
         }
       });
       
-      // Add earnings if we have any
       if (totalDailyEarnings > 0) {
-        const updatedUser = updateUsdtEarnings(totalDailyEarnings);
-        if (updatedUser) {
-          updateUser(updatedUser);
-          
-          toast({
-            title: "Daily Earnings Added!",
-            description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
-          });
-          
-          // Save the update date to localStorage to ensure persistence across sessions
-          localStorage.setItem('dmi_last_usdt_earnings_update', today);
-          // Update state
-          setLastUsdtEarningsUpdate(today);
+        try {
+          const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
+          if (updatedUser) {
+            updateUser(updatedUser);
+            
+            toast({
+              title: "Daily Earnings Added!",
+              description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
+            });
+            
+            await updateLastUsdtUpdateDate(user.id, today);
+            setLastUsdtEarningsUpdate(today);
+          }
+        } catch (error) {
+          console.error("Error processing daily USDT earnings:", error);
         }
       }
     };
     
-    // Process earnings immediately on component mount or when dependencies change
     processDailyUsdtEarnings();
     
-    // Set up interval to check only once per hour (to handle day change)
-    // This prevents multiple checks within the same hour which could lead to UI updates
-    // even though no earnings were actually added
     const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
   }, [user, activePlans, lastUsdtEarningsUpdate, updateUser, toast]);
 
-  // Update mining progress regularly
   useEffect(() => {
     if (!currentMining || currentMining.status !== 'active') {
       return;
@@ -186,16 +195,13 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const now = Date.now();
       const { startTime, endTime, rate } = currentMining;
       
-      // Calculate progress percentage
       const totalDuration = endTime - startTime;
       const elapsed = now - startTime;
       const progress = Math.min((elapsed / totalDuration) * 100, 100);
       
-      // Calculate time remaining in seconds
       const remainingMs = Math.max(0, endTime - now);
       const remainingSec = Math.ceil(remainingMs / 1000);
       
-      // Calculate current earnings
       const elapsedHours = elapsed / (1000 * 60 * 60);
       const earnings = Math.floor(elapsedHours * rate);
       
@@ -203,20 +209,17 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setTimeRemaining(remainingSec);
       setCurrentEarnings(earnings);
       
-      // Check if mining has completed
       if (now >= endTime) {
         const finalEarnings = Math.floor((endTime - startTime) / (1000 * 60 * 60) * rate);
         
-        // Update mining session status
         const completedSession: MiningSession = {
           ...currentMining,
           status: 'completed',
           earned: finalEarnings
         };
         
-        // Update storage and context
-        clearCurrentMining();
-        addToMiningHistory(completedSession);
+        clearCurrentMining(currentMining.id!);
+        addToMiningHistory(user.id, completedSession);
         
         if (user) {
           updateBalance(user.balance + finalEarnings);
@@ -234,17 +237,16 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    // Update immediately
     updateProgress();
     
-    // Then update every second
     const intervalId = setInterval(updateProgress, 1000);
     
     return () => clearInterval(intervalId);
   }, [currentMining, user, updateBalance]);
 
-  // Start mining session
-  const startMining = useCallback(() => {
+  const startMining = useCallback(async () => {
+    if (!user) return;
+    
     const now = Date.now();
     
     const newSession: MiningSession = {
@@ -255,22 +257,32 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       status: 'active'
     };
     
-    saveCurrentMining(newSession);
-    setCurrentMining(newSession);
-    setIsMining(true);
-    setMiningProgress(0);
-    setCurrentEarnings(0);
-    setTimeRemaining(MINING_DURATION / 1000);
-    
-    toast({
-      title: "Mining Started",
-      description: "Your mining operation has begun. Check back in 24 hours!",
-    });
-  }, [miningRate]);
+    try {
+      await saveCurrentMining(user.id, newSession);
+      setCurrentMining(newSession);
+      setIsMining(true);
+      setMiningProgress(0);
+      setCurrentEarnings(0);
+      setTimeRemaining(MINING_DURATION / 1000);
+      
+      toast({
+        title: "Mining Started",
+        description: "Your mining operation has begun. Check back in 24 hours!",
+      });
+    } catch (error) {
+      console.error("Error starting mining:", error);
+      toast({
+        title: "Mining Failed",
+        description: "Failed to start mining. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [user, miningRate, toast]);
 
-  // Stop mining session (for demo purposes, normally would continue)
-  const stopMining = useCallback(() => {
-    if (currentMining) {
+  const stopMining = useCallback(async () => {
+    if (!user || !currentMining) return;
+    
+    try {
       const now = Date.now();
       const elapsedHours = (now - currentMining.startTime) / (1000 * 60 * 60);
       const earnedCoins = Math.floor(elapsedHours * currentMining.rate);
@@ -282,12 +294,10 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         earned: earnedCoins
       };
       
-      clearCurrentMining();
-      addToMiningHistory(completedSession);
+      await clearCurrentMining(currentMining.id!);
+      await addToMiningHistory(user.id, completedSession);
       
-      if (user) {
-        updateBalance(user.balance + earnedCoins);
-      }
+      await updateBalance(user.balance + earnedCoins);
       
       setCurrentMining(null);
       setIsMining(false);
@@ -296,43 +306,57 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         title: "Mining Stopped",
         description: `You've earned ${earnedCoins} DMI Coins.`,
       });
+    } catch (error) {
+      console.error("Error stopping mining:", error);
+      toast({
+        title: "Error",
+        description: "Failed to stop mining. Please try again.",
+        variant: "destructive",
+      });
     }
   }, [currentMining, user, updateBalance, toast]);
 
-  // Add a new plan and update mining boost
-  const updateMiningBoost = useCallback((boostMultiplier: number, duration: number, planId: string) => {
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+  const updateMiningBoost = useCallback(async (boostMultiplier: number, duration: number, planId: string) => {
+    if (!user) return;
     
-    const newPlan: ActivePlan = {
-      id: planId,
-      purchasedAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      boostMultiplier: boostMultiplier,
-      duration: duration
-    };
-    
-    // Save to storage
-    saveActivePlan(newPlan);
-    
-    // Update state
-    setActivePlans(prev => [...prev, newPlan]);
-    
-    // If there's an active mining session, update its rate
-    if (currentMining && currentMining.status === 'active') {
-      const updatedSession = {
-        ...currentMining,
-        rate: calculateTotalMiningRate(),
+    try {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      
+      const newPlan: ActivePlan = {
+        id: planId,
+        purchasedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        boostMultiplier: boostMultiplier,
+        duration: duration
       };
-      saveCurrentMining(updatedSession);
-      setCurrentMining(updatedSession);
+      
+      await saveActivePlan(user.id, newPlan);
+      
+      setActivePlans(prev => [...prev, newPlan]);
+      
+      if (currentMining && currentMining.status === 'active') {
+        const updatedSession = {
+          ...currentMining,
+          rate: calculateTotalMiningRate(),
+        };
+        await saveCurrentMining(user.id, updatedSession);
+        setCurrentMining(updatedSession);
+      }
+      
+      toast({
+        title: "Mining Boost Activated",
+        description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days.`,
+      });
+    } catch (error) {
+      console.error("Error updating mining boost:", error);
+      toast({
+        title: "Error",
+        description: "Failed to activate mining boost. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Mining Boost Activated",
-      description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days.`,
-    });
-  }, [calculateTotalMiningRate, currentMining, toast]);
+  }, [user, calculateTotalMiningRate, currentMining, toast]);
 
   return (
     <MiningContext.Provider

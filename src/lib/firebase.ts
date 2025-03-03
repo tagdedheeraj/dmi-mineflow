@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,6 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // Authentication functions
 export const signInWithEmail = (email: string, password: string) => {
@@ -32,4 +34,10 @@ export const signOutUser = () => {
   return firebaseSignOut(auth);
 };
 
-export { app, auth, analytics };
+// Firestore collection references
+export const usersCollection = collection(db, 'users');
+export const miningSessionsCollection = collection(db, 'mining_sessions');
+export const deviceRegistrationsCollection = collection(db, 'device_registrations');
+export const plansCollection = collection(db, 'plans');
+
+export { app, auth, analytics, db };
