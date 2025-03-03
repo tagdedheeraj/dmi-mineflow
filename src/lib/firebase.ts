@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
   getAuth, 
-  signInWithEmailAndPassword, 
+  signInWithEmailAndPassword as firebaseSignInWithEmail,
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut,
   AuthErrorCodes
@@ -30,9 +30,14 @@ const db = getFirestore(app);
 // Authentication functions
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    return await signInWithEmailAndPassword(auth, email, password);
+    console.log(`Attempting to sign in with email: ${email}`);
+    const userCredential = await firebaseSignInWithEmail(auth, email, password);
+    console.log("Authentication successful:", userCredential.user.uid);
+    return userCredential;
   } catch (error: any) {
     console.error("Firebase signIn error:", error);
+    // Log specific error code for debugging
+    console.error("Error code:", error.code);
     // Make sure the error object is properly passed through
     throw error;
   }
