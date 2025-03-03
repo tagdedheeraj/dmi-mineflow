@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,8 +15,8 @@ const Mining: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   
-  // Calculate the mainnet launch date (August 2025)
-  const mainnetLaunchDate = new Date('2025-08-01');
+  // Calculate the mainnet launch date (August 26, 2025)
+  const mainnetLaunchDate = new Date('2025-08-26');
   
   // Calculate days left until mainnet launch
   const calculateDaysLeft = () => {
@@ -31,8 +30,8 @@ const Mining: React.FC = () => {
   // This would typically be real current date, but we're setting it for the app
   const currentDate = new Date('2025-03-03');
   
-  // Days left until mainnet launch (defined as 175 days in requirements)
-  const daysLeft = 175;
+  // Days left until mainnet launch (adjusted for August 26 instead of August 1)
+  const daysLeft = 176;
 
   // Redirect to sign in if not authenticated
   useEffect(() => {

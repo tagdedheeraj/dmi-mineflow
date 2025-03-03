@@ -11,9 +11,10 @@ const MainnetCard: React.FC<MainnetCardProps> = ({ launchDate, daysLeft }) => {
   // Calculate progress percentage (based on 365 days countdown)
   const progressPercentage = Math.max(0, Math.min(100, ((365 - daysLeft) / 365) * 100));
   
-  // Format date to display
+  // Format date to display - ensure it shows August 26, 2025
   const formattedDate = launchDate.toLocaleString('default', { 
-    month: 'long', 
+    month: 'long',
+    day: 'numeric',
     year: 'numeric' 
   });
 
