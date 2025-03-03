@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -8,9 +7,8 @@ import {
   User,
   getDeviceId,
   registerAccountOnDevice
-} from '@/lib/supabase';
+} from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -45,61 +43,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedUser = await getUser();
-      if (storedUser) {
-        if (storedUser.suspended) {
-          toast({
-            title: "Account Suspended",
-            description: storedUser.suspendedReason || "This account has been suspended.",
-            variant: "destructive",
-          });
-          await clearUser();
-          setUser(null);
-        } else {
-          setUser(storedUser);
-        }
+    const storedUser = getUser();
+    if (storedUser) {
+      if (storedUser.suspended) {
+        toast({
+          title: "Account Suspended",
+          description: storedUser.suspendedReason || "This account has been suspended.",
+          variant: "destructive",
+        });
+        clearUser();
+        setUser(null);
+      } else {
+        setUser(storedUser);
       }
-      setLoading(false);
-    };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          const authUser = await getUser();
-          setUser(authUser);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-      }
-    );
-
-    initializeAuth();
-
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
+    }
+    setLoading(false);
   }, [toast]);
 
   const signUp = async (fullName: string, email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      const userId = `user_${Date.now()}`;
+      const deviceId = getDeviceId();
       
-      if (!data.user) {
-        throw new Error('No user returned from sign up');
-      }
-
-      const userId = data.user.id;
-      const deviceId = await getDeviceId();
-      
-      const { isMultipleAccount, within24Hours } = await registerAccountOnDevice(userId);
+      const { isMultipleAccount, within24Hours } = registerAccountOnDevice(userId);
       
       const newUser: User = {
         id: userId,
@@ -120,13 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "You cannot create more than one account from the same device within 24 hours.",
           variant: "destructive",
         });
-        await supabase.auth.signOut();
         navigate('/signin');
         return;
       }
       
-      await saveUser(newUser);
       setUser(newUser);
+      saveUser(newUser);
       
       toast({
         title: "Welcome to DMI Mining!",
@@ -134,10 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       navigate('/mining');
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Sign Up Failed",
-        description: error.message || "An error occurred during sign up.",
+        description: "An error occurred during sign up.",
         variant: "destructive",
       });
       console.error("Sign up error:", error);
@@ -146,32 +111,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      const storedUser = getUser();
       
-      const storedUser = await getUser();
-      
-      if (storedUser) {
+      if (storedUser && storedUser.email === email) {
         if (storedUser.suspended) {
           toast({
             title: "Account Suspended",
             description: storedUser.suspendedReason || "This account has been suspended.",
             variant: "destructive",
           });
-          await supabase.auth.signOut();
           return;
         }
         
-        const deviceId = await getDeviceId();
+        const deviceId = getDeviceId();
         const updatedUser = {
           ...storedUser,
           deviceId
         };
-        await saveUser(updatedUser);
+        saveUser(updatedUser);
         
         setUser(updatedUser);
         navigate('/mining');
@@ -182,22 +139,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         toast({
           title: "Sign In Failed",
-          description: "User data not found.",
+          description: "Invalid email or password.",
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Sign In Failed",
-        description: error.message || "An error occurred during sign in.",
+        description: "An error occurred during sign in.",
         variant: "destructive",
       });
       console.error("Sign in error:", error);
     }
   };
 
-  const signOut = async () => {
-    await clearUser();
+  const signOut = () => {
     setUser(null);
     navigate('/signin');
     toast({
@@ -206,36 +162,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const updateBalance = async (newBalance: number) => {
+  const updateBalance = (newBalance: number) => {
     if (user) {
       const updatedUser = { ...user, balance: newBalance };
-      await saveUser(updatedUser);
       setUser(updatedUser);
+      saveUser(updatedUser);
     }
   };
   
-  const updateUser = async (updatedUser: User) => {
-    await saveUser(updatedUser);
+  const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
+    saveUser(updatedUser);
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password Changed",
-        description: "Your password has been successfully updated.",
-      });
-      return true;
-    } catch (error: any) {
+      if (user) {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been successfully updated.",
+        });
+        return true;
+      } else {
+        toast({
+          title: "Error",
+          description: "You must be logged in to change your password.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
       toast({
         title: "Password Change Failed",
-        description: error.message || "An error occurred while changing your password.",
+        description: "An error occurred while changing your password.",
         variant: "destructive",
       });
       console.error("Password change error:", error);
