@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,7 +80,7 @@ const Mining: React.FC = () => {
           
           {/* Additional cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Coming Soon Card - Replacing Referral Program */}
+            {/* Coming Soon Card - Updated Referral Program */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-indigo-100 card-hover-effect overflow-hidden relative">
               <div className="absolute top-0 right-0 w-24 h-24 -mt-8 -mr-8 bg-indigo-100 rounded-full opacity-70"></div>
               <div className="absolute bottom-0 left-0 w-16 h-16 -mb-6 -ml-6 bg-purple-100 rounded-full opacity-50"></div>
@@ -94,13 +95,17 @@ const Mining: React.FC = () => {
               </div>
               
               <div className="relative">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mb-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mb-2">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Coming Soon
+                  Temporarily Unavailable
                 </span>
                 
                 <p className="text-sm text-gray-600 mt-1">
-                  Our referral program is being enhanced. Stay tuned for exciting rewards and bonuses!
+                  We've temporarily suspended our referral program. We're working on a new, more powerful version that will offer better rewards and more opportunities.
+                </p>
+                
+                <p className="text-sm text-gray-600 mt-2 font-medium">
+                  Stay tuned! We'll be back soon with an improved referral system.
                 </p>
                 
                 <Button 
