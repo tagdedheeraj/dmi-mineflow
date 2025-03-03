@@ -45,7 +45,7 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 animate-fade-in">
+    <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
       {/* Header */}
       <Header />
       

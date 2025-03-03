@@ -1,5 +1,4 @@
 
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,33 +16,74 @@ import Wallet from "./pages/Wallet";
 import Plans from "./pages/Plans";
 import Rewards from "./pages/Rewards";
 import NotFound from "./pages/NotFound";
+import BottomBar from "./components/BottomBar";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <MiningProvider>
-            <Routes>
-              <Route path="/" element={<Navigate to="/mining" replace />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/mining" element={<Mining />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/plans" element={<Plans />} />
-              <Route path="/rewards" element={<Rewards />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </MiningProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Helper function to determine if bottom bar should be shown
+  const shouldShowBottomBar = (path: string) => {
+    const mainRoutes = ['/mining', '/rewards', '/wallet', '/profile'];
+    return mainRoutes.includes(path);
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <MiningProvider>
+              <Routes>
+                <Route path="/" element={<Navigate to="/mining" replace />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route 
+                  path="/mining" 
+                  element={
+                    <>
+                      <Mining />
+                      <BottomBar />
+                    </>
+                  } 
+                />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <>
+                      <Profile />
+                      <BottomBar />
+                    </>
+                  } 
+                />
+                <Route 
+                  path="/wallet" 
+                  element={
+                    <>
+                      <Wallet />
+                      <BottomBar />
+                    </>
+                  } 
+                />
+                <Route path="/plans" element={<Plans />} />
+                <Route 
+                  path="/rewards" 
+                  element={
+                    <>
+                      <Rewards />
+                      <BottomBar />
+                    </>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </MiningProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
