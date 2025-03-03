@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,8 @@ import {
   HelpCircle, 
   Mail, 
   FileText,
-  ExternalLink
+  ExternalLink,
+  IdCard
 } from 'lucide-react';
 
 const Profile: React.FC = () => {
@@ -61,9 +61,10 @@ const Profile: React.FC = () => {
         </Button>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="kyc">KYC</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
           
@@ -202,6 +203,30 @@ const Profile: React.FC = () => {
                 {!biometricEnabled && (
                   <p className="text-sm text-gray-500 mt-2 ml-8">Biometric authentication is disabled</p>
                 )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* KYC Tab Content */}
+          <TabsContent value="kyc">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
+              <div className="mb-6">
+                <div className="flex items-center mb-4">
+                  <IdCard className="h-5 w-5 mr-2 text-dmi" />
+                  <h2 className="text-xl font-semibold">KYC Verification</h2>
+                </div>
+                <p className="text-gray-600">Complete identity verification to access additional features.</p>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-gray-50 rounded-lg">
+                <div className="bg-blue-50 rounded-full p-3 mb-4">
+                  <IdCard className="h-8 w-8 text-dmi" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Verification Not Available</h3>
+                <p className="text-gray-600 max-w-md">
+                  Thanks for your interest in DMI KYC verification. Slots are not available at this time. 
+                  Stay tuned! You will receive an invitation as soon as one becomes available.
+                </p>
               </div>
             </div>
           </TabsContent>
