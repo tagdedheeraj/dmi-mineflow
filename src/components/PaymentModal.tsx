@@ -87,8 +87,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in overflow-hidden">
+      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-xl">
         {isSubmitted ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
