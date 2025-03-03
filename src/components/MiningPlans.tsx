@@ -7,32 +7,33 @@ import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
+import PaymentModal from '@/components/PaymentModal';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
   const { updateMiningBoost } = useMining();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const handlePurchase = (plan: MiningPlan) => {
     setSelectedPlan(plan);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = (transactionId: string) => {
+    if (!selectedPlan) return;
     
-    // In a real implementation, this would redirect to a payment gateway
+    setShowPaymentModal(false);
+    
+    // In a real implementation, this would verify the transaction server-side
     // For now, we'll simulate purchase success
     toast({
-      title: "Processing payment",
-      description: `Initiating purchase of ${plan.name} for $${plan.price}`,
+      title: "Plan activated!",
+      description: `Your ${selectedPlan.name} has been successfully activated.`,
     });
     
-    // Simulate payment processing
-    setTimeout(() => {
-      // Success scenario
-      updateMiningBoost(plan.miningBoost, plan.duration, plan.id);
-      
-      toast({
-        title: "Purchase Successful!",
-        description: `You've successfully purchased ${plan.name}. Your mining speed is now ${plan.miningBoost}x faster!`,
-      });
-    }, 2000);
+    // Update mining boost
+    updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
   return (
@@ -107,6 +108,17 @@ const MiningPlans: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedPlan && (
+        <PaymentModal
+          planId={selectedPlan.id}
+          planName={selectedPlan.name}
+          planPrice={selectedPlan.price}
+          onClose={() => setShowPaymentModal(false)}
+          onComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 };
