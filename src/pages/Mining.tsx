@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +10,7 @@ import MiningCard from '@/components/MiningCard';
 import MiningPlans from '@/components/MiningPlans';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
-import { Video, Clock, Sparkles } from 'lucide-react';
+import { Clock, Sparkles, Trophy } from 'lucide-react';
 
 const Mining: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -112,24 +113,35 @@ const Mining: React.FC = () => {
               </div>
             </div>
             
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect" onClick={() => navigate('/rewards')}>
-              <div className="flex items-center">
+            {/* Rewards section that redirects to rewards page */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-blue-100 card-hover-effect overflow-hidden relative cursor-pointer" onClick={() => navigate('/rewards')}>
+              <div className="absolute top-0 right-0 w-24 h-24 -mt-8 -mr-8 bg-blue-100 rounded-full opacity-70"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 -mb-6 -ml-6 bg-indigo-100 rounded-full opacity-50"></div>
+              
+              <div className="flex items-center mb-3">
                 <div className="h-8 w-8 rounded-full bg-dmi/10 flex items-center justify-center mr-3">
-                  <Video className="h-4 w-4 text-dmi" />
+                  <Trophy className="h-4 w-4 text-dmi" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Watch Ads</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Earn DMI coins by watching short ads
-                  </p>
+                  <h3 className="text-lg font-medium text-gray-900">DMI Rewards</h3>
                 </div>
               </div>
-              <Button 
-                className="mt-4 w-full bg-dmi hover:bg-dmi/90 text-white"
-                onClick={() => navigate('/rewards')}
-              >
-                Watch Ads
-              </Button>
+              
+              <div className="relative">
+                <p className="text-sm text-gray-600 mt-1">
+                  Watch ads and complete tasks to earn additional DMI coins
+                </p>
+                
+                <Button 
+                  className="mt-4 w-full bg-dmi hover:bg-dmi/90 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/rewards');
+                  }}
+                >
+                  Earn Rewards
+                </Button>
+              </div>
             </div>
           </div>
         </div>

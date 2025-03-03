@@ -1,4 +1,5 @@
 
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import Mining from "./pages/Mining";
 import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
 import Plans from "./pages/Plans";
+import Rewards from "./pages/Rewards";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/plans" element={<Plans />} />
+              <Route path="/rewards" element={<Rewards />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MiningProvider>

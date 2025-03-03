@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
-import { Video, Timer, Coins, X, Check, Play, Wallet } from 'lucide-react';
+import { Video, Timer, Coins, Check, Play, Wallet, Award, Gift, Star, Diamond, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from '@/components/Header';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserBalance } from '@/lib/storage';
@@ -31,6 +32,7 @@ const Rewards: React.FC = () => {
   const [countdownTime, setCountdownTime] = useState(0);
   const [todayAdsWatched, setTodayAdsWatched] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
+  const [activeTab, setActiveTab] = useState("videos");
   
   // Maximum daily ad limit
   const MAX_DAILY_ADS = 20;
@@ -148,152 +150,218 @@ const Rewards: React.FC = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-16 animate-fade-in">
       {/* Header */}
       <Header />
       
       {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Rewards</h1>
-        
-        {/* Watch Ad Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex items-center mb-4">
-            <div className="h-10 w-10 rounded-full bg-dmi/10 flex items-center justify-center mr-4">
-              <Video className="h-5 w-5 text-dmi" />
-            </div>
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">Watch Ads to Earn DMI</h2>
-              <p className="text-sm text-gray-500">Watch short ads and earn DMI coins</p>
-            </div>
-          </div>
-          
-          {/* Progress indicator */}
-          <div className="bg-gray-100 h-2 rounded-full mb-2">
-            <div 
-              className="bg-dmi h-2 rounded-full"
-              style={{ width: `${(todayAdsWatched / MAX_DAILY_ADS) * 100}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-500 text-center mb-6">
-            {todayAdsWatched} / {MAX_DAILY_ADS} ads watched today
-          </p>
-          
-          {isWatchingAd ? (
-            // Ad watching state
-            <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <div className="animate-pulse mb-4">
-                <Play className="h-10 w-10 text-dmi mx-auto" />
-              </div>
-              <p className="text-gray-800 font-medium">Watching ad...</p>
-              <p className="text-sm text-gray-500 mt-2">Please don't close this screen</p>
-            </div>
-          ) : isAdComplete ? (
-            // Ad completion state
-            <div className="bg-green-50 p-6 rounded-lg text-center">
-              <div className="mb-4 bg-green-100 h-14 w-14 rounded-full flex items-center justify-center mx-auto">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <p className="text-gray-800 font-medium">Reward earned!</p>
-              <p className="text-sm text-gray-500 mt-2">+1 DMI coin added to your wallet</p>
-            </div>
-          ) : countdownTime > 0 ? (
-            // Countdown state
-            <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <div className="mb-4 flex items-center justify-center">
-                <Timer className="h-6 w-6 text-gray-400 mr-2" />
-                <span className="text-2xl font-bold text-gray-700">{formatCountdown(countdownTime)}</span>
-              </div>
-              <p className="text-gray-800 font-medium">Next ad available in</p>
-              <p className="text-sm text-gray-500 mt-2">Please wait for the countdown to complete</p>
-            </div>
-          ) : (
-            // Ready to watch state
-            <Button 
-              className="w-full py-6 text-base flex items-center justify-center"
-              onClick={handleWatchAd}
-              disabled={todayAdsWatched >= MAX_DAILY_ADS}
-            >
-              <Play className="mr-2 h-5 w-5" />
-              Watch Ad to Earn 1 DMI
-            </Button>
-          )}
-          
-          {todayAdsWatched >= MAX_DAILY_ADS && (
-            <p className="text-sm text-amber-600 mt-4 text-center">
-              You've reached your daily limit. Come back tomorrow for more rewards!
-            </p>
-          )}
-        </div>
-        
-        {/* Daily Stats Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Today's Earnings</h2>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Coins className="h-5 w-5 text-dmi mr-2" />
-                <span className="text-lg font-bold">{todayEarnings} DMI</span>
-              </div>
-              <p className="text-sm text-gray-500">Earned Today</p>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Video className="h-5 w-5 text-gray-600 mr-2" />
-                <span className="text-lg font-bold">{todayAdsWatched}</span>
-              </div>
-              <p className="text-sm text-gray-500">Ads Watched</p>
-            </div>
-          </div>
-          
-          <Button 
-            variant="outline" 
-            className="w-full mt-4"
-            onClick={() => navigate('/wallet')}
-          >
-            <Wallet className="mr-2 h-4 w-4" />
-            Go to Wallet
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Rewards Center</h1>
+          <Button variant="outline" onClick={() => navigate('/wallet')} className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            My Wallet
           </Button>
         </div>
         
-        {/* How It Works Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">How It Works</h2>
-          
-          <div className="space-y-4">
-            <div className="flex">
-              <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-bold text-dmi">1</span>
-              </div>
-              <div>
-                <p className="text-gray-800">Watch short ads to earn DMI coins</p>
-                <p className="text-sm text-gray-500">Each ad earns you 1 DMI coin</p>
-              </div>
+        {/* Reward stats overview */}
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md overflow-hidden mb-6">
+          <div className="p-6 text-white">
+            <div className="flex items-center mb-4">
+              <Diamond className="h-6 w-6 mr-2" />
+              <h2 className="text-xl font-semibold">Your Rewards Summary</h2>
             </div>
             
-            <div className="flex">
-              <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-bold text-dmi">2</span>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-xs text-white/80">Today's Earnings</p>
+                <p className="text-xl font-bold flex items-center">
+                  <Coins className="h-4 w-4 mr-1 text-yellow-300" />
+                  {todayEarnings} DMI
+                </p>
               </div>
-              <div>
-                <p className="text-gray-800">Wait 1 minute between ads</p>
-                <p className="text-sm text-gray-500">Countdown timer will show when next ad is available</p>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-xs text-white/80">Ads Watched</p>
+                <p className="text-xl font-bold flex items-center">
+                  <Video className="h-4 w-4 mr-1 text-blue-300" />
+                  {todayAdsWatched}/{MAX_DAILY_ADS}
+                </p>
               </div>
-            </div>
-            
-            <div className="flex">
-              <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-bold text-dmi">3</span>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-xs text-white/80">Current Rate</p>
+                <p className="text-xl font-bold flex items-center">
+                  <TrendingUp className="h-4 w-4 mr-1 text-green-300" />
+                  1 DMI/Ad
+                </p>
               </div>
-              <div>
-                <p className="text-gray-800">Watch up to 20 ads per day</p>
-                <p className="text-sm text-gray-500">Daily limit resets at midnight</p>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-xs text-white/80">Next Ad</p>
+                <p className="text-xl font-bold flex items-center">
+                  <Timer className="h-4 w-4 mr-1 text-red-300" />
+                  {countdownTime > 0 ? formatCountdown(countdownTime) : "Ready"}
+                </p>
               </div>
             </div>
           </div>
+          
+          {/* Progress bar */}
+          <div className="h-2 bg-white/20">
+            <div 
+              className="h-full bg-gradient-to-r from-green-400 to-blue-400"
+              style={{ width: `${(todayAdsWatched / MAX_DAILY_ADS) * 100}%` }}
+            ></div>
+          </div>
         </div>
+        
+        {/* Tabs for different reward types */}
+        <Tabs defaultValue="videos" className="mb-6" onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="videos" className="flex items-center justify-center">
+              <Video className="h-4 w-4 mr-2" />
+              Watch Videos
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center justify-center" disabled>
+              <Star className="h-4 w-4 mr-2" />
+              Daily Tasks
+            </TabsTrigger>
+            <TabsTrigger value="special" className="flex items-center justify-center" disabled>
+              <Gift className="h-4 w-4 mr-2" />
+              Special Offers
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="videos" className="mt-4">
+            {/* Watch Ad Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="h-10 w-10 rounded-full bg-dmi/10 flex items-center justify-center mr-4">
+                    <Video className="h-5 w-5 text-dmi" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-medium text-gray-900">Watch Ads to Earn DMI</h2>
+                    <p className="text-sm text-gray-500">Watch short ads and earn 1 DMI coin per ad</p>
+                  </div>
+                </div>
+                
+                {isWatchingAd ? (
+                  // Ad watching state
+                  <div className="bg-blue-50 p-6 rounded-lg text-center">
+                    <div className="animate-pulse mb-4">
+                      <Play className="h-10 w-10 text-dmi mx-auto" />
+                    </div>
+                    <p className="text-gray-800 font-medium">Watching ad...</p>
+                    <p className="text-sm text-gray-500 mt-2">Please don't close this screen</p>
+                  </div>
+                ) : isAdComplete ? (
+                  // Ad completion state
+                  <div className="bg-green-50 p-6 rounded-lg text-center">
+                    <div className="mb-4 bg-green-100 h-14 w-14 rounded-full flex items-center justify-center mx-auto">
+                      <Check className="h-8 w-8 text-green-600" />
+                    </div>
+                    <p className="text-gray-800 font-medium">Reward earned!</p>
+                    <p className="text-sm text-gray-500 mt-2">+1 DMI coin added to your wallet</p>
+                  </div>
+                ) : countdownTime > 0 ? (
+                  // Countdown state
+                  <div className="bg-gray-50 p-6 rounded-lg text-center">
+                    <div className="mb-4 flex items-center justify-center">
+                      <Timer className="h-8 w-8 text-gray-400 mr-2" />
+                      <span className="text-3xl font-bold text-gray-700">{formatCountdown(countdownTime)}</span>
+                    </div>
+                    <p className="text-gray-800 font-medium">Next ad available in</p>
+                    <p className="text-sm text-gray-500 mt-2">Please wait for the countdown to complete</p>
+                  </div>
+                ) : (
+                  // Ready to watch state
+                  <div className="text-center">
+                    <Button 
+                      className="w-full py-6 text-base flex items-center justify-center"
+                      onClick={handleWatchAd}
+                      disabled={todayAdsWatched >= MAX_DAILY_ADS}
+                    >
+                      <Play className="mr-2 h-5 w-5" />
+                      Watch Ad to Earn 1 DMI
+                    </Button>
+                    
+                    {todayAdsWatched >= MAX_DAILY_ADS && (
+                      <p className="text-sm text-amber-600 mt-4">
+                        You've reached your daily limit. Come back tomorrow for more rewards!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* How It Works Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Award className="h-5 w-5 mr-2 text-dmi" />
+                How It Works
+              </h2>
+              
+              <div className="space-y-4">
+                <div className="flex">
+                  <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
+                    <span className="text-xs font-bold text-dmi">1</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">Watch short ads to earn DMI coins</p>
+                    <p className="text-sm text-gray-500">Each ad earns you 1 DMI coin</p>
+                  </div>
+                </div>
+                
+                <div className="flex">
+                  <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
+                    <span className="text-xs font-bold text-dmi">2</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">Wait 1 minute between ads</p>
+                    <p className="text-sm text-gray-500">Countdown timer will show when next ad is available</p>
+                  </div>
+                </div>
+                
+                <div className="flex">
+                  <div className="h-6 w-6 rounded-full bg-dmi/10 flex items-center justify-center mr-3 mt-0.5">
+                    <span className="text-xs font-bold text-dmi">3</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-800">Watch up to 20 ads per day</p>
+                    <p className="text-sm text-gray-500">Daily limit resets at midnight</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="tasks" className="mt-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+              <div className="py-8">
+                <Gift className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="text-lg font-medium text-gray-700">Coming Soon</h3>
+                <p className="text-gray-500 mt-2 max-w-md mx-auto">
+                  Daily tasks will allow you to earn additional DMI coins by completing simple activities.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="special" className="mt-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+              <div className="py-8">
+                <Gift className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="text-lg font-medium text-gray-700">Coming Soon</h3>
+                <p className="text-gray-500 mt-2 max-w-md mx-auto">
+                  Special offers and promotions will be available here with opportunities to earn bonus DMI coins.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
