@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -239,7 +238,7 @@ const Wallet: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-lg font-medium text-gray-900">DMI Balance</h2>
-                <p className="text-sm text-gray-500">Current mining rewards</p>
+                <p className="text-sm text-gray-600">Current mining rewards</p>
               </div>
             </div>
           </div>

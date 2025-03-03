@@ -14,7 +14,7 @@ import {
 import { db } from "./firebase";
 import { WithdrawalRequest } from "./withdrawalTypes";
 import { User } from "./storage";
-import { updateUserBalance } from "./firestore";
+import { updateUserBalance, updateUsdtEarnings } from "./firestore";
 
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');
@@ -39,6 +39,10 @@ export const createWithdrawalRequest = async (
     };
 
     const docRef = await addDoc(withdrawalRequestsCollection, withdrawalRequest);
+    
+    // Deduct the amount from user's USDT earnings when request is created
+    await updateUsdtEarnings(userId, -amount);
+    
     return docRef.id;
   } catch (error) {
     console.error("Error creating withdrawal request:", error);
@@ -118,8 +122,6 @@ export const approveWithdrawalRequest = async (
       return false;
     }
     
-    const request = requestSnap.data() as WithdrawalRequest;
-    
     // Update the request status
     await updateDoc(requestRef, {
       status: 'approved',
@@ -151,7 +153,7 @@ export const rejectWithdrawalRequest = async (
     const request = requestSnap.data() as WithdrawalRequest;
     
     // Return the USDT to the user's account if rejected
-    await updateUserBalance(request.userId, request.amount);
+    await updateUsdtEarnings(request.userId, request.amount);
     
     // Update the request status
     await updateDoc(requestRef, {
