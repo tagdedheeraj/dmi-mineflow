@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  ArrowLeft, 
   Wallet as WalletIcon, 
   DollarSign, 
   Clock, 
@@ -32,18 +30,14 @@ const Wallet: React.FC = () => {
   const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
   const [isSettingAddress, setIsSettingAddress] = useState(false);
 
-  // Calculate earnings
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
   const monthlyDmiEarnings = dailyDmiEarnings * 30;
   
-  // Calculate USDT value of DMI balance
   const dmiBalanceValue = (user?.balance || 0) * DMI_COIN_VALUE;
   
-  // For demo purposes, let's set some USDT earnings
   const usdtEarnings = user?.usdtEarnings || 0;
   
-  // Calculate daily USDT earnings from active plans
   const dailyUsdtEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     return total + (planInfo?.dailyEarnings || 0);
@@ -101,23 +95,9 @@ const Wallet: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
-      {/* Header */}
       <Header />
       
-      {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
-        <Button 
-          variant="ghost"
-          className="mb-6 flex items-center text-gray-600"
-          onClick={() => navigate('/mining')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Mining
-        </Button>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Wallet</h1>
-        
-        {/* DMI Balance Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
@@ -172,7 +152,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
         
-        {/* USDT Earnings Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
@@ -257,7 +236,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
         
-        {/* Mining Boost Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="p-5">
             <div className="flex items-center">
@@ -280,7 +258,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
         
-        {/* Active Plans Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
@@ -332,7 +309,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
-        {/* USDT Transaction History */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
