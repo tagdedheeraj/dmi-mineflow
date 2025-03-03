@@ -39,6 +39,13 @@ const SignIn: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 animate-fade-in">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
+          {/* DMI Logo at the top */}
+          <img 
+            src="/lovable-uploads/51c75bd9-9eaf-46e5-86a8-c39bdc1354d5.png" 
+            alt="DMI Logo" 
+            className="h-20 w-auto mx-auto mb-6"
+          />
+          
           <div className="mx-auto h-16 w-16 rounded-full bg-dmi/10 flex items-center justify-center mb-6">
             <div className="rounded-full bg-dmi h-10 w-10 flex items-center justify-center">
               <span className="text-white font-bold text-xl">D</span>
