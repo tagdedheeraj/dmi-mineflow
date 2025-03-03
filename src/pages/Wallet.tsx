@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
@@ -20,7 +21,7 @@ import {
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress, updateUsdtEarnings } from '@/lib/storage';
+import { setUsdtAddress, updateUsdtEarnings, createWithdrawalRequest } from '@/lib/storage';
 
 const Wallet: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -29,6 +30,7 @@ const Wallet: React.FC = () => {
   const { toast } = useToast();
   const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
   const [isSettingAddress, setIsSettingAddress] = useState(false);
+  const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -45,6 +47,16 @@ const Wallet: React.FC = () => {
   
   const weeklyUsdtEarnings = dailyUsdtEarnings * 7;
   const monthlyUsdtEarnings = dailyUsdtEarnings * 30;
+
+  useEffect(() => {
+    // Load withdrawal history
+    const withdrawalRequests = localStorage.getItem('withdrawal_requests');
+    if (withdrawalRequests) {
+      const requests = JSON.parse(withdrawalRequests);
+      const userRequests = requests.filter((req: any) => req.userId === user?.id);
+      setWithdrawalHistory(userRequests);
+    }
+  }, [user?.id]);
 
   if (!user) {
     navigate('/signin');
@@ -87,9 +99,23 @@ const Wallet: React.FC = () => {
       return;
     }
 
+    // Create a withdrawal request
+    createWithdrawalRequest(user.id, usdtEarnings, user.usdtAddress);
+    
+    // Update the user in context
+    updateUser({...user, usdtEarnings: 0});
+    
+    // Update withdrawal history
+    const withdrawalRequests = localStorage.getItem('withdrawal_requests');
+    if (withdrawalRequests) {
+      const requests = JSON.parse(withdrawalRequests);
+      const userRequests = requests.filter((req: any) => req.userId === user.id);
+      setWithdrawalHistory(userRequests);
+    }
+    
     toast({
       title: "Withdrawal Requested",
-      description: "Your withdrawal request has been submitted and will be processed shortly.",
+      description: "Your withdrawal request has been submitted and will be processed by admin.",
     });
   };
 
@@ -323,12 +349,39 @@ const Wallet: React.FC = () => {
           </div>
           
           <div className="p-5">
-            <div className="text-center py-6">
-              <p className="text-gray-500">No transactions yet</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Your withdrawal history will appear here
-              </p>
-            </div>
+            {withdrawalHistory.length > 0 ? (
+              <div className="space-y-3">
+                {withdrawalHistory.map((request) => (
+                  <div key={request.id} className="border border-gray-100 rounded-lg p-4">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-500 text-sm">
+                        {new Date(request.createdAt).toLocaleDateString()} 
+                        {' '} 
+                        {new Date(request.createdAt).toLocaleTimeString()}
+                      </span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                        request.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-900 font-medium">{formatCurrency(request.amount)}</span>
+                      <span className="text-gray-500 text-sm truncate max-w-[150px]">{request.address}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">No transactions yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Your withdrawal history will appear here
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>
