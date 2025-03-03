@@ -26,11 +26,13 @@ const SignIn: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      console.log("Submitting login form with email:", email);
-      await signIn(email, password);
+      console.log("Submitting login form with email:", email, "and password length:", password.length);
+      await signIn(email.trim(), password);
       // Redirect happens in the signIn function
     } catch (err: any) {
       console.error("Sign in component error:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
       
       // Display a more user-friendly error message
       if (err.code === 'auth/invalid-credential' || 

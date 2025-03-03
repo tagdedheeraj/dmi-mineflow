@@ -15,7 +15,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyD4IE8x5PdQKEF3hCD3k5A1LMDl5cZOd70",
   authDomain: "dmi-network.firebaseapp.com",
   projectId: "dmi-network",
-  storageBucket: "dmi-network.firebasestorage.app",
+  storageBucket: "dmi-network.appspot.com",
   messagingSenderId: "836476789960",
   appId: "1:836476789960:web:6754c3a441a9243d9bf1fd",
   measurementId: "G-F0597683MK"
@@ -36,8 +36,22 @@ export const signInWithEmail = async (email: string, password: string) => {
     return userCredential;
   } catch (error: any) {
     console.error("Firebase signIn error:", error);
-    // Log specific error code for debugging
     console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    
+    // Additional logging for debugging
+    if (error.code === 'auth/invalid-credential') {
+      console.log("Invalid credential error - Check if email and password match records");
+    } else if (error.code === 'auth/invalid-email') {
+      console.log("Invalid email format");
+    } else if (error.code === 'auth/user-not-found') {
+      console.log("No user found with this email");
+    } else if (error.code === 'auth/wrong-password') {
+      console.log("Password is incorrect");
+    } else if (error.code === 'auth/network-request-failed') {
+      console.log("Network error - Check connection");
+    }
+    
     // Make sure the error object is properly passed through
     throw error;
   }

@@ -181,6 +181,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("AuthContext: Attempting to sign in with email:", email);
       
+      // Additional validation
+      if (!email || !password) {
+        console.error("Email or password is empty");
+        throw new Error("Email and password are required");
+      }
+      
       // Sign in with Firebase
       const userCredential = await signInWithEmail(email, password);
       console.log("AuthContext: Sign in successful, user ID:", userCredential.user.uid);
@@ -246,7 +252,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
-      console.error("Sign in error details:", error);
+      console.error("Sign in error details in AuthContext:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
       
       let errorMessage = "Invalid email or password.";
       
