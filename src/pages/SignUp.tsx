@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 
 const SignUp: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -76,6 +76,14 @@ const SignUp: React.FC = () => {
               <p>{error}</p>
             </div>
           )}
+          
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-md flex items-start text-amber-800 text-sm">
+            <Info className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+            <p>
+              <strong>Important:</strong> Only one account per device is allowed within 24 hours. 
+              Creating multiple accounts may result in account suspension.
+            </p>
+          </div>
           
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
