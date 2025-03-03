@@ -9,12 +9,13 @@ import {
   doc,
   orderBy,
   getDoc,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { WithdrawalRequest } from "./withdrawalTypes";
 import { User } from "./storage";
-import { updateUserBalance, updateUsdtEarnings, getUser } from "./firestore";
+import { updateUserBalance, updateUsdtEarnings, getUser, addUsdtTransaction } from "./firestore";
 
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');
@@ -53,16 +54,19 @@ export const createWithdrawalRequest = async (
 // Get all withdrawal requests
 export const getAllWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
   try {
-    const q = query(
-      withdrawalRequestsCollection,
-      orderBy("createdAt", "desc")
-    );
+    // Simple query without compound conditions to avoid index requirements
+    const q = query(withdrawalRequestsCollection);
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data() as WithdrawalRequest;
-      return { ...data, id: doc.id };
-    });
+    const requests = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data() as WithdrawalRequest;
+        return { ...data, id: doc.id };
+      })
+      // Sort in memory instead of using orderBy to avoid Firestore index requirements
+      .sort((a, b) => b.createdAt - a.createdAt);
+    
+    return requests;
   } catch (error) {
     console.error("Error fetching withdrawal requests:", error);
     return [];
@@ -72,17 +76,22 @@ export const getAllWithdrawalRequests = async (): Promise<WithdrawalRequest[]> =
 // Get pending withdrawal requests
 export const getPendingWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
   try {
+    // Using only where clause without orderBy to avoid index requirements
     const q = query(
       withdrawalRequestsCollection,
-      where("status", "==", "pending"),
-      orderBy("createdAt", "desc")
+      where("status", "==", "pending")
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data() as WithdrawalRequest;
-      return { ...data, id: doc.id };
-    });
+    const pendingRequests = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data() as WithdrawalRequest;
+        return { ...data, id: doc.id };
+      })
+      // Sort in memory instead of using orderBy to avoid Firestore index requirements
+      .sort((a, b) => b.createdAt - a.createdAt);
+    
+    return pendingRequests;
   } catch (error) {
     console.error("Error fetching pending withdrawal requests:", error);
     return [];
@@ -92,17 +101,22 @@ export const getPendingWithdrawalRequests = async (): Promise<WithdrawalRequest[
 // Get user's withdrawal requests
 export const getUserWithdrawalRequests = async (userId: string): Promise<WithdrawalRequest[]> => {
   try {
+    // Using only where clause without orderBy to avoid index requirements
     const q = query(
       withdrawalRequestsCollection,
-      where("userId", "==", userId),
-      orderBy("createdAt", "desc")
+      where("userId", "==", userId)
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data() as WithdrawalRequest;
-      return { ...data, id: doc.id };
-    });
+    const userRequests = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data() as WithdrawalRequest;
+        return { ...data, id: doc.id };
+      })
+      // Sort in memory instead of using orderBy to avoid Firestore index requirements
+      .sort((a, b) => b.createdAt - a.createdAt);
+    
+    return userRequests;
   } catch (error) {
     console.error("Error fetching user withdrawal requests:", error);
     return [];
@@ -122,6 +136,17 @@ export const approveWithdrawalRequest = async (
       return false;
     }
     
+    const request = requestSnap.data() as WithdrawalRequest;
+    
+    // Add a USDT transaction record for the withdrawal
+    await addUsdtTransaction(
+      request.userId,
+      -request.amount,
+      'withdrawal',
+      `Withdrawal approved (${request.usdtAddress})`,
+      Date.now()
+    );
+    
     // Update the request status
     await updateDoc(requestRef, {
       status: 'approved',
@@ -129,6 +154,7 @@ export const approveWithdrawalRequest = async (
       processedBy: adminId
     });
     
+    console.log(`Withdrawal request ${requestId} approved successfully`);
     return true;
   } catch (error) {
     console.error("Error approving withdrawal request:", error);
@@ -155,6 +181,15 @@ export const rejectWithdrawalRequest = async (
     // Return the USDT to the user's account if rejected
     await updateUsdtEarnings(request.userId, request.amount);
     
+    // Add a transaction record for the returned amount
+    await addUsdtTransaction(
+      request.userId,
+      request.amount,
+      'refund',
+      `Withdrawal rejected: ${rejectionReason}`,
+      Date.now()
+    );
+    
     // Update the request status
     await updateDoc(requestRef, {
       status: 'rejected',
@@ -163,6 +198,7 @@ export const rejectWithdrawalRequest = async (
       rejectionReason: rejectionReason
     });
     
+    console.log(`Withdrawal request ${requestId} rejected successfully`);
     return true;
   } catch (error) {
     console.error("Error rejecting withdrawal request:", error);

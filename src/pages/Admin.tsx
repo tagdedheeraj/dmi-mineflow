@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,9 +67,13 @@ const Admin: React.FC = () => {
   // Load withdrawal requests
   const loadWithdrawalRequests = async () => {
     setIsLoading(true);
+    console.log("Loading withdrawal requests...");
     try {
       const allRequests = await getAllWithdrawalRequests();
+      console.log("All requests loaded:", allRequests.length);
+      
       const pending = await getPendingWithdrawalRequests();
+      console.log("Pending requests loaded:", pending.length);
       
       setWithdrawalRequests(allRequests);
       setPendingRequests(pending);
@@ -92,6 +97,7 @@ const Admin: React.FC = () => {
     if (!user || !request.id) return;
     
     try {
+      console.log(`Approving request ${request.id} for ${request.amount} USDT`);
       const success = await approveWithdrawalRequest(request.id, user.id);
       
       if (success) {
@@ -117,6 +123,7 @@ const Admin: React.FC = () => {
     if (!user || !selectedRequest || !selectedRequest.id || !rejectionReason) return;
     
     try {
+      console.log(`Rejecting request ${selectedRequest.id} with reason: ${rejectionReason}`);
       const success = await rejectWithdrawalRequest(
         selectedRequest.id, 
         user.id, 
@@ -147,9 +154,9 @@ const Admin: React.FC = () => {
   // Filter requests based on search term
   const filteredRequests = (activeTab === "pending" ? pendingRequests : withdrawalRequests)
     .filter(request => 
-      request.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.usdtAddress.toLowerCase().includes(searchTerm.toLowerCase())
+      request.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.usdtAddress?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
   if (isLoading) {
