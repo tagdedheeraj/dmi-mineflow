@@ -1,3 +1,4 @@
+
 import { 
   doc, 
   setDoc, 
@@ -115,10 +116,18 @@ export const saveDeviceRegistration = async (registration: DeviceRegistration): 
     if (!querySnapshot.empty) {
       // Update existing registration
       const docRef = querySnapshot.docs[0].ref;
-      await updateDoc(docRef, registration);
+      await updateDoc(docRef, {
+        deviceId: registration.deviceId,
+        accountIds: registration.accountIds,
+        firstAccountCreatedAt: registration.firstAccountCreatedAt
+      });
     } else {
       // Create new registration
-      await addDoc(deviceRegistrationsCollection, registration);
+      await addDoc(deviceRegistrationsCollection, {
+        deviceId: registration.deviceId,
+        accountIds: registration.accountIds,
+        firstAccountCreatedAt: registration.firstAccountCreatedAt
+      });
     }
   } catch (error) {
     console.error("Error saving device registration:", error);
@@ -200,11 +209,23 @@ export const saveCurrentMining = async (userId: string, session: MiningSession):
     if (session.id) {
       // Update existing session
       const sessionRef = doc(db, 'mining_sessions', session.id);
-      await updateDoc(sessionRef, sessionWithUserId);
+      await updateDoc(sessionRef, {
+        startTime: sessionWithUserId.startTime,
+        endTime: sessionWithUserId.endTime,
+        rate: sessionWithUserId.rate,
+        earned: sessionWithUserId.earned,
+        status: sessionWithUserId.status,
+        userId: sessionWithUserId.userId
+      });
     } else {
       // Create new session
       await addDoc(miningSessionsCollection, {
-        ...sessionWithUserId,
+        startTime: sessionWithUserId.startTime,
+        endTime: sessionWithUserId.endTime,
+        rate: sessionWithUserId.rate,
+        earned: sessionWithUserId.earned,
+        status: sessionWithUserId.status,
+        userId: sessionWithUserId.userId,
         createdAt: serverTimestamp()
       });
     }
@@ -315,8 +336,10 @@ export const checkAndUpdateMining = async (userId: string): Promise<{
         earned: earnedCoins
       };
       
-      // Clear current mining and add to history
-      await clearCurrentMining(currentSession.id!);
+      if (currentSession.id) {
+        // Clear current mining and add to history
+        await clearCurrentMining(currentSession.id);
+      }
       
       // Add to history
       await addToMiningHistory(userId, completedSession);

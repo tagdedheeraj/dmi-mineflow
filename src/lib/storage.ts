@@ -1,3 +1,4 @@
+
 /**
  * Local storage service to persist user and mining data
  */
@@ -16,6 +17,7 @@ export interface User {
 }
 
 export interface MiningSession {
+  id?: string;  // Add the id property which can be optional (for new sessions)
   startTime: number;
   endTime: number;
   rate: number;
