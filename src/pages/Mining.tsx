@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,7 @@ import MiningCard from '@/components/MiningCard';
 import MiningPlans from '@/components/MiningPlans';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
+import { Video } from 'lucide-react';
 
 const Mining: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -90,15 +92,23 @@ const Mining: React.FC = () => {
               </Button>
             </div>
             
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect">
-              <h3 className="text-lg font-medium text-gray-900">Mining Statistics</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                View your mining activity and performance
-              </p>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect" onClick={() => navigate('/rewards')}>
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-dmi/10 flex items-center justify-center mr-3">
+                  <Video className="h-4 w-4 text-dmi" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Watch Ads</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Earn DMI coins by watching short ads
+                  </p>
+                </div>
+              </div>
               <Button 
-                className="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-800"
+                className="mt-4 w-full bg-dmi hover:bg-dmi/90 text-white"
+                onClick={() => navigate('/rewards')}
               >
-                View Stats
+                Watch Ads
               </Button>
             </div>
           </div>
