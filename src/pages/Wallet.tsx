@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
 import Header from '@/components/Header';
@@ -39,6 +39,7 @@ const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
   const { activePlans, miningRate } = useMining();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
   const [isSettingAddress, setIsSettingAddress] = useState(false);
@@ -67,7 +68,7 @@ const Wallet: React.FC = () => {
     if (user) {
       loadWithdrawalRequests();
     }
-  }, [user]);
+  }, [user, location.pathname]);
 
   const loadWithdrawalRequests = async () => {
     if (!user) return;

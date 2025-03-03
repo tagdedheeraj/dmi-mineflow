@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,7 +99,7 @@ const Admin: React.FC = () => {
           title: "Request Approved",
           description: `Withdrawal request for ${formatCurrency(request.amount)} has been approved.`,
         });
-        loadWithdrawalRequests();
+        loadWithdrawalRequests(); // Refresh the list after approval
       } else {
         throw new Error("Failed to approve request.");
       }
@@ -131,7 +130,7 @@ const Admin: React.FC = () => {
         });
         setRejectionReason("");
         setSelectedRequest(null);
-        loadWithdrawalRequests();
+        loadWithdrawalRequests(); // Refresh the list after rejection
       } else {
         throw new Error("Failed to reject request.");
       }

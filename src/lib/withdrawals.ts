@@ -14,7 +14,7 @@ import {
 import { db } from "./firebase";
 import { WithdrawalRequest } from "./withdrawalTypes";
 import { User } from "./storage";
-import { updateUserBalance, updateUsdtEarnings } from "./firestore";
+import { updateUserBalance, updateUsdtEarnings, getUser } from "./firestore";
 
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');
