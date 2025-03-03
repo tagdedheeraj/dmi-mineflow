@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -12,7 +11,7 @@ import {
 } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, AuthError } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -152,9 +151,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       navigate('/mining');
     } catch (error: any) {
+      let errorMessage = "An error occurred during sign up.";
+      
+      // Handle specific Firebase auth errors
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already in use. Please try a different email or sign in.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please provide a valid email address.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please use a stronger password.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Sign Up Failed",
-        description: error.message || "An error occurred during sign up.",
+        description: errorMessage,
         variant: "destructive",
       });
       console.error("Sign up error:", error);
@@ -185,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             variant: "destructive",
           });
           await signOutUser();
-          return;
+          throw new Error("Account suspended");
         }
         
         // Update deviceId
@@ -225,12 +237,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
+      let errorMessage = "Invalid email or password.";
+      
+      // Handle specific Firebase auth errors
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = "This account has been disabled. Please contact support.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Sign In Failed",
-        description: error.message || "Invalid email or password.",
+        description: errorMessage,
         variant: "destructive",
       });
       console.error("Sign in error:", error);
+      throw error; // Re-throw the error so the SignIn component can handle it
     }
   };
 
