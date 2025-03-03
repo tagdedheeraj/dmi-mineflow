@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserBalance } from '@/lib/firebase';
+import { updateUserBalance } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
