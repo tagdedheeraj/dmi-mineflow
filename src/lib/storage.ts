@@ -1,3 +1,4 @@
+
 import { User } from "@/types"
 
 // Function to get the user from local storage
@@ -118,3 +119,4 @@ export const updateWithdrawalRequestStatus = (requestId: string, status: 'approv
   localStorage.setItem('withdrawal_requests', JSON.stringify(withdrawalRequests));
   return withdrawalRequests[index];
 };
+
