@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Coins, Video, TrendingUp, Timer } from 'lucide-react';
+import { Coins, Video, TrendingUp, Timer, Diamond } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 
 interface RewardStatsProps {
