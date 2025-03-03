@@ -187,6 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error("Email and password are required");
       }
       
+      // Ensure email is lowercase
+      email = email.toLowerCase();
+      
       // Sign in with Firebase
       const userCredential = await signInWithEmail(email, password);
       console.log("AuthContext: Sign in successful, user ID:", userCredential.user.uid);

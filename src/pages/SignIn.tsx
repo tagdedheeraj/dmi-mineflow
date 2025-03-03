@@ -27,7 +27,12 @@ const SignIn: React.FC = () => {
     
     try {
       console.log("Submitting login form with email:", email, "and password length:", password.length);
-      await signIn(email.trim(), password);
+      
+      // Convert email to lowercase and trim both fields
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedPassword = password;
+      
+      await signIn(trimmedEmail, trimmedPassword);
       // Redirect happens in the signIn function
     } catch (err: any) {
       console.error("Sign in component error:", err);

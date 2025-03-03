@@ -44,15 +44,25 @@ const SignUp: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await signUp(fullName, email, password);
+      // Ensure email is properly formatted (lowercase and trimmed)
+      const trimmedEmail = email.trim().toLowerCase();
+      console.log("Submitting signup form with email:", trimmedEmail);
+      
+      await signUp(fullName, trimmedEmail, password);
       // Redirect happens in the signUp function
     } catch (err: any) {
+      console.error("Sign up component error:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
+      
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already in use. Please try a different email or sign in.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please provide a valid email address.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password must be at least 6 characters long.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection and try again.');
       } else {
         setError(err.message || 'Failed to create an account. Please try again.');
       }

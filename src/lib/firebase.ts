@@ -31,6 +31,21 @@ const db = getFirestore(app);
 export const signInWithEmail = async (email: string, password: string) => {
   try {
     console.log(`Attempting to sign in with email: ${email}`);
+    
+    // Validate inputs
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+    
+    // Make sure email is lowercase and trimmed
+    email = email.toLowerCase().trim();
+    
+    // Ensure auth is initialized
+    if (!auth) {
+      console.error("Auth not initialized");
+      throw new Error("Authentication service not initialized");
+    }
+    
     const userCredential = await firebaseSignInWithEmail(auth, email, password);
     console.log("Authentication successful:", userCredential.user.uid);
     return userCredential;
@@ -59,9 +74,25 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const createUserWithEmail = async (email: string, password: string) => {
   try {
-    return await createUserWithEmailAndPassword(auth, email, password);
+    // Make sure email is lowercase and trimmed
+    email = email.toLowerCase().trim();
+    
+    console.log(`Attempting to create user with email: ${email}`);
+    
+    // Ensure auth is initialized
+    if (!auth) {
+      console.error("Auth not initialized");
+      throw new Error("Authentication service not initialized");
+    }
+    
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    console.log("User creation successful:", userCredential.user.uid);
+    return userCredential;
   } catch (error: any) {
     console.error("Firebase createUser error:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    
     // Make sure the error object is properly passed through
     throw error;
   }
