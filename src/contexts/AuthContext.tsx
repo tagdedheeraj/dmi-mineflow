@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -119,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (isMultipleAccount && within24Hours) {
         toast({
-          title: "Account Suspended",
+          title: "Account Creation Restricted",
           description: "You cannot create more than one account from the same device within 24 hours.",
           variant: "destructive",
         });
@@ -170,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive",
       });
       console.error("Sign up error:", error);
+      throw error; // Re-throw for component handling
     }
   };
 

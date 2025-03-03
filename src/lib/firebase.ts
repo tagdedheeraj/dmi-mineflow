@@ -1,7 +1,13 @@
 
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  AuthErrorCodes
+} from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
 
 // Your web app's Firebase configuration
@@ -22,12 +28,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Authentication functions
-export const signInWithEmail = (email: string, password: string) => {
-  return signInWithEmailAndPassword(auth, email, password);
+export const signInWithEmail = async (email: string, password: string) => {
+  try {
+    return await signInWithEmailAndPassword(auth, email, password);
+  } catch (error: any) {
+    console.error("Firebase signIn error:", error);
+    // Make sure the error object is properly passed through
+    throw error;
+  }
 };
 
-export const createUserWithEmail = (email: string, password: string) => {
-  return createUserWithEmailAndPassword(auth, email, password);
+export const createUserWithEmail = async (email: string, password: string) => {
+  try {
+    return await createUserWithEmailAndPassword(auth, email, password);
+  } catch (error: any) {
+    console.error("Firebase createUser error:", error);
+    // Make sure the error object is properly passed through
+    throw error;
+  }
 };
 
 export const signOutUser = () => {

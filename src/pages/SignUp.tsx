@@ -46,9 +46,17 @@ const SignUp: React.FC = () => {
     try {
       await signUp(fullName, email, password);
       // Redirect happens in the signUp function
-    } catch (err) {
-      setError('Failed to create an account.');
-      console.error(err);
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already in use. Please try a different email or sign in.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please provide a valid email address.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password must be at least 6 characters long.');
+      } else {
+        setError(err.message || 'Failed to create an account. Please try again.');
+      }
+      console.error("Sign up error:", err);
     } finally {
       setIsSubmitting(false);
     }
