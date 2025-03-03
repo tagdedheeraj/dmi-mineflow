@@ -51,7 +51,10 @@ export const getDeviceId = async (): Promise<string> => {
     try {
       const { error } = await supabase
         .from('device_registrations')
-        .insert({ device_id: deviceId, first_account_created_at: new Date() });
+        .insert({ 
+          device_id: deviceId, 
+          first_account_created_at: new Date().toISOString() 
+        });
         
       if (error) console.error('Error registering device:', error);
     } catch (err) {
