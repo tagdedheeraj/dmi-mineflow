@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,22 @@ import DMIBooster from '@/components/DMIBooster';
 const Plans: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const boostersRef = useRef<HTMLDivElement>(null);
 
   if (!user) {
     navigate('/signin');
     return null;
   }
+
+  // Handle hash navigation for scrolling to specific sections
+  useEffect(() => {
+    if (location.hash === '#dmi-boosters' && boostersRef.current) {
+      setTimeout(() => {
+        boostersRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location.hash]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
@@ -40,8 +51,8 @@ const Plans: React.FC = () => {
           <MiningPlans />
         </div>
         
-        {/* DMI Boosters section */}
-        <div className="mb-8">
+        {/* DMI Boosters section with ref for hash navigation */}
+        <div className="mb-8" ref={boostersRef} id="dmi-boosters">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">DMI Boosters</h2>
           <DMIBooster />
         </div>
