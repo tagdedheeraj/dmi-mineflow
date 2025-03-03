@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
+import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import MainnetCard from '@/components/MainnetCard';
 import MiningCard from '@/components/MiningCard';
