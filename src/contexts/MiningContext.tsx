@@ -53,6 +53,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isMining, setIsMining] = useState(false);
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
+  
+  // Track the last date when daily USDT earnings were processed
+  // Changed from using string to localStorage to prevent multiple updates in the same day
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   
   // Base mining rate: 1 DMI per hour
@@ -83,6 +86,14 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const plans = getActivePlans();
     setActivePlans(plans);
+  }, []);
+
+  // Load last earnings update date from localStorage on mount
+  useEffect(() => {
+    const lastUpdateDate = localStorage.getItem('dmi_last_usdt_earnings_update');
+    if (lastUpdateDate) {
+      setLastUsdtEarningsUpdate(lastUpdateDate);
+    }
   }, []);
 
   // Check for existing mining session on load
@@ -145,17 +156,21 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             title: "Daily Earnings Added!",
             description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
           });
+          
+          // Save the update date to localStorage to ensure persistence across sessions
+          localStorage.setItem('dmi_last_usdt_earnings_update', today);
+          // Update state
+          setLastUsdtEarningsUpdate(today);
         }
       }
-      
-      // Update last processed date
-      setLastUsdtEarningsUpdate(today);
     };
     
-    // Process earnings immediately on component mount
+    // Process earnings immediately on component mount or when dependencies change
     processDailyUsdtEarnings();
     
-    // Set up interval to check once per hour (to handle day change)
+    // Set up interval to check only once per hour (to handle day change)
+    // This prevents multiple checks within the same hour which could lead to UI updates
+    // even though no earnings were actually added
     const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
