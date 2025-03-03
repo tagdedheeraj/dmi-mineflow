@@ -1,13 +1,15 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   getUser, 
   saveUser, 
-  clearUser, 
-  User,
+  clearUser,
   getDeviceId,
-  registerAccountOnDevice
+  registerAccountOnDevice,
+  updateUser as updateStorageUser
 } from '@/lib/storage';
+import { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
