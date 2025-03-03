@@ -1,3 +1,4 @@
+
 // Real Unity Ads SDK integration
 interface UnityAdsInterface {
   isReady: () => boolean;
@@ -21,13 +22,15 @@ class UnityAdsImplementation implements UnityAdsInterface {
   initialize() {
     if (this.initialized) return;
     
+    console.log('Initializing Unity Ads with Game ID:', UNITY_GAME_ID);
+    
     // Load Unity Ads SDK script dynamically
     const script = document.createElement('script');
     script.src = 'https://frame.unityads.unity3d.com/partner/games/webgl.js';
     script.async = true;
     
     script.onload = () => {
-      console.log('Unity Ads SDK loaded');
+      console.log('Unity Ads SDK loaded successfully');
       
       // Initialize Unity Ads SDK
       if (window.unity && window.unity.services) {
@@ -62,6 +65,7 @@ class UnityAdsImplementation implements UnityAdsInterface {
     if (!this.initialized || this.isLoading) return;
     
     this.isLoading = true;
+    console.log('Loading Unity Ad with Placement ID:', UNITY_PLACEMENT_ID);
     
     if (window.unity && window.unity.services) {
       window.unity.services.banner.load({
@@ -79,11 +83,16 @@ class UnityAdsImplementation implements UnityAdsInterface {
   }
 
   isReady(): boolean {
-    if (!this.initialized) return false;
+    if (!this.initialized) {
+      console.log('Unity Ads not initialized yet');
+      return false;
+    }
     
     // If Unity SDK is available, check if ad is ready
     if (window.unity && window.unity.services) {
-      return window.unity.services.banner.isReady(UNITY_PLACEMENT_ID);
+      const isReady = window.unity.services.banner.isReady(UNITY_PLACEMENT_ID);
+      console.log('Unity Ad ready status:', isReady);
+      return isReady;
     }
     
     // Fallback to always ready if SDK is not available (for testing)
@@ -105,26 +114,26 @@ class UnityAdsImplementation implements UnityAdsInterface {
       return;
     }
     
-    console.log('Showing Unity Ad');
+    console.log('Showing Unity Ad with Placement ID:', UNITY_PLACEMENT_ID);
     
     // Show the ad if SDK is available
     if (window.unity && window.unity.services) {
       window.unity.services.banner.show({
         placementId: UNITY_PLACEMENT_ID,
         onStart: () => {
-          console.log('Unity Ad started');
+          console.log('Unity Ad started playing');
         },
         onClick: () => {
           console.log('Unity Ad clicked');
         },
         onComplete: () => {
-          console.log('Unity Ad completed');
+          console.log('Unity Ad completed successfully');
           callback();
           // Reload ad for next time
           this.loadAd();
         },
         onSkipped: () => {
-          console.log('Unity Ad skipped');
+          console.log('Unity Ad skipped by user');
           // Don't reward if skipped
           this.loadAd();
         },

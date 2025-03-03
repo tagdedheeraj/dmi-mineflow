@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUserBalance } from '@/lib/firestore';
@@ -32,6 +31,7 @@ export const useRewards = () => {
   useEffect(() => {
     // Initialize Unity Ads
     unityAds.initialize();
+    console.log('Unity Ads initialization requested from useRewards hook');
     
     // Fetch rewards data from Firestore if user is logged in
     const fetchRewardsData = async () => {
@@ -140,10 +140,12 @@ export const useRewards = () => {
     
     // Start watching ad
     setIsWatchingAd(true);
+    console.log('Attempting to show Unity Ad...');
     
     // Try to use Unity Ads, fall back to mock if needed
     try {
       if (unityAds.isReady()) {
+        console.log('Unity Ads is ready, showing ad...');
         unityAds.show(onAdComplete);
       } else {
         console.warn('Unity Ad not ready, falling back to mock implementation');
