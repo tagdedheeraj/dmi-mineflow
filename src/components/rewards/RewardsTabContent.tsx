@@ -43,6 +43,11 @@ const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
         
         {/* How It Works Card */}
         <HowItWorks />
+        
+        {/* Refer & Earn Section */}
+        <div className="mt-6">
+          <ReferralSystem />
+        </div>
       </TabsContent>
       
       <TabsContent value="referrals" className="mt-4">
