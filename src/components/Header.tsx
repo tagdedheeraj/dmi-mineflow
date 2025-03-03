@@ -25,14 +25,14 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-dmi/90 to-dmi-dark/90 backdrop-blur-md z-50 border-b border-dmi/20 shadow-md animate-slide-down">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 border-b border-gray-100 shadow-sm">
         <div className="max-w-screen-xl mx-auto h-full px-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/mining')}>
+          <div className="flex items-center cursor-pointer" onClick={() => navigate('/mining')}>
             <img 
               src="/lovable-uploads/51c75bd9-9eaf-46e5-86a8-c39bdc1354d5.png" 
               alt="DMI Logo" 
-              className="h-10 w-auto"
+              className="h-8 w-auto"
             />
           </div>
 
@@ -40,7 +40,7 @@ const Header: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-4 md:hidden text-white/80 hover:text-white hover:bg-white/10"
+            className="absolute left-4 md:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
@@ -49,31 +49,31 @@ const Header: React.FC = () => {
           {/* Balance */}
           {user && (
             <div className="flex-1 flex justify-center">
-              <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 flex items-center">
-                <span className="text-white font-medium">{user.balance} DMI</span>
+              <div className="px-3 py-1 rounded-full bg-gray-100 flex items-center">
+                <span className="text-gray-700 font-medium text-sm">{user.balance} DMI</span>
               </div>
             </div>
           )}
 
           {/* User actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {user ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="rounded-full text-white/80 hover:text-white hover:bg-white/10" aria-label="Notifications">
-                  <Bell className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100" aria-label="Notifications">
+                  <Bell className="h-4 w-4" />
                 </Button>
                 
                 {/* User menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full text-white/80 hover:text-white hover:bg-white/10" aria-label="User menu">
-                      <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                        <UserIcon className="h-4 w-4 text-white" />
+                    <Button variant="ghost" size="icon" className="rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100" aria-label="User menu">
+                      <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center">
+                        <UserIcon className="h-4 w-4 text-gray-500" />
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 animate-fade-in">
+                  <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/profile')}>
@@ -94,8 +94,8 @@ const Header: React.FC = () => {
               </>
             ) : (
               <>
-                <Button variant="ghost" className="text-white hover:bg-white/10" onClick={() => navigate('/signin')}>Sign In</Button>
-                <Button className="bg-white hover:bg-white/90 text-dmi" onClick={() => navigate('/signup')}>Sign Up</Button>
+                <Button variant="ghost" className="text-gray-600 hover:bg-gray-100" onClick={() => navigate('/signin')}>Sign In</Button>
+                <Button className="bg-dmi hover:bg-dmi/90 text-white" onClick={() => navigate('/signup')}>Sign Up</Button>
               </>
             )}
           </div>
