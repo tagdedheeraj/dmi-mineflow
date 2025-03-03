@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
   Wallet as WalletIcon, 
@@ -14,12 +16,13 @@ import {
   Upload,
   Zap,
   CreditCard,
-  Lock
+  Lock,
+  History
 } from 'lucide-react';
-import { DMI_COIN_VALUE } from '@/data/miningPlans';
+import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress } from '@/lib/storage';
+import { setUsdtAddress, updateUsdtEarnings } from '@/lib/storage';
 
 const Wallet: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -39,7 +42,13 @@ const Wallet: React.FC = () => {
   
   // For demo purposes, let's set some USDT earnings
   const usdtEarnings = user?.usdtEarnings || 0;
-  const dailyUsdtEarnings = activePlans.length > 0 ? 4.46 : 0; // Simulated daily USDT earnings
+  
+  // Calculate daily USDT earnings from active plans
+  const dailyUsdtEarnings = activePlans.reduce((total, plan) => {
+    const planInfo = miningPlans.find(p => p.id === plan.id);
+    return total + (planInfo?.dailyEarnings || 0);
+  }, 0);
+  
   const weeklyUsdtEarnings = dailyUsdtEarnings * 7;
   const monthlyUsdtEarnings = dailyUsdtEarnings * 30;
 
@@ -272,7 +281,7 @@ const Wallet: React.FC = () => {
         </div>
         
         {/* Active Plans Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
               <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mr-4">
@@ -288,18 +297,26 @@ const Wallet: React.FC = () => {
           <div className="p-5">
             {activePlans.length > 0 ? (
               <div className="space-y-4">
-                {activePlans.map(plan => (
-                  <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">{plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
-                      <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
+                {activePlans.map(plan => {
+                  const planInfo = miningPlans.find(p => p.id === plan.id);
+                  return (
+                    <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
+                        <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
+                        <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
+                        {planInfo && (
+                          <div className="col-span-2 mt-1">
+                            <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 text-sm text-gray-600">
-                      <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
-                      <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -312,6 +329,30 @@ const Wallet: React.FC = () => {
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* USDT Transaction History */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4">
+                <History className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">USDT Transactions</h2>
+                <p className="text-sm text-gray-500">Your withdrawal history</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            <div className="text-center py-6">
+              <p className="text-gray-500">No transactions yet</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Your withdrawal history will appear here
+              </p>
+            </div>
           </div>
         </div>
       </main>

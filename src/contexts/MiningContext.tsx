@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -9,8 +10,10 @@ import {
   checkAndUpdateMining,
   getActivePlans,
   saveActivePlan,
-  ActivePlan
+  ActivePlan,
+  updateUsdtEarnings
 } from '@/lib/storage';
+import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 
 interface MiningContextType {
