@@ -29,6 +29,39 @@ export function generateId(): string {
 /**
  * Format a number with commas for thousands
  */
-export function formatNumber(num: number): string {
+export function formatNumber(num: number | string): string {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/**
+ * Calculate future date based on days
+ */
+export function calculateFutureDate(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+/**
+ * Format currency in USD
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+}
+
+/**
+ * Returns a formatted date string
+ */
+export function formatDate(date: Date | string | number): string {
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 }

@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, saveUser, clearUser, User } from '@/lib/storage';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (fullName: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
   updateBalance: (newBalance: number) => void;
+  updateUser: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   signOut: () => {},
   updateBalance: () => {},
+  updateUser: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -121,6 +123,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveUser(updatedUser);
     }
   };
+  
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    saveUser(updatedUser);
+  };
 
   return (
     <AuthContext.Provider
@@ -132,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         signOut,
         updateBalance,
+        updateUser,
       }}
     >
       {children}

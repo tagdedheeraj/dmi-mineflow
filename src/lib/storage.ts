@@ -9,6 +9,8 @@ export interface User {
   email: string;
   balance: number;
   createdAt: number;
+  usdtAddress?: string;
+  usdtEarnings?: number;
 }
 
 export interface MiningSession {
@@ -19,10 +21,19 @@ export interface MiningSession {
   status: 'active' | 'completed' | 'pending';
 }
 
+export interface ActivePlan {
+  id: string;
+  purchasedAt: string;
+  expiresAt: string;
+  boostMultiplier: number;
+  duration: number;
+}
+
 const STORAGE_KEYS = {
   USER: 'dmi_user',
   CURRENT_MINING: 'dmi_current_mining',
   MINING_HISTORY: 'dmi_mining_history',
+  ACTIVE_PLANS: 'dmi_active_plans',
 };
 
 // User operations
@@ -40,6 +51,24 @@ export const updateUserBalance = (amount: number): User | null => {
   if (!user) return null;
   
   user.balance += amount;
+  saveUser(user);
+  return user;
+};
+
+export const setUsdtAddress = (address: string): User | null => {
+  const user = getUser();
+  if (!user) return null;
+  
+  user.usdtAddress = address;
+  saveUser(user);
+  return user;
+};
+
+export const updateUsdtEarnings = (amount: number): User | null => {
+  const user = getUser();
+  if (!user) return null;
+  
+  user.usdtEarnings = (user.usdtEarnings || 0) + amount;
   saveUser(user);
   return user;
 };
@@ -71,6 +100,22 @@ export const addToMiningHistory = (session: MiningSession): void => {
   const history = getMiningHistory();
   history.push(session);
   localStorage.setItem(STORAGE_KEYS.MINING_HISTORY, JSON.stringify(history));
+};
+
+// Plans operations
+export const getActivePlans = (): ActivePlan[] => {
+  const plansJson = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLANS);
+  const plans = plansJson ? JSON.parse(plansJson) : [];
+  
+  // Filter out expired plans
+  const now = new Date();
+  return plans.filter((plan: ActivePlan) => new Date(plan.expiresAt) > now);
+};
+
+export const saveActivePlan = (plan: ActivePlan): void => {
+  const plans = getActivePlans();
+  plans.push(plan);
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
 };
 
 // Check if mining should be active

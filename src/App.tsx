@@ -12,6 +12,8 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Mining from "./pages/Mining";
 import Profile from "./pages/Profile";
+import Wallet from "./pages/Wallet";
+import Plans from "./pages/Plans";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
               <Route path="/signup" element={<SignUp />} />
               <Route path="/mining" element={<Mining />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/plans" element={<Plans />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MiningProvider>

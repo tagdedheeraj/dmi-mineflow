@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -7,9 +6,12 @@ import {
   saveCurrentMining, 
   clearCurrentMining,
   addToMiningHistory,
-  checkAndUpdateMining
+  checkAndUpdateMining,
+  getActivePlans,
+  saveActivePlan,
+  ActivePlan
 } from '@/lib/storage';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface MiningContextType {
   currentMining: MiningSession | null;
@@ -20,6 +22,8 @@ interface MiningContextType {
   startMining: () => void;
   stopMining: () => void;
   isMining: boolean;
+  activePlans: ActivePlan[];
+  updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -31,6 +35,8 @@ const MiningContext = createContext<MiningContextType>({
   startMining: () => {},
   stopMining: () => {},
   isMining: false,
+  activePlans: [],
+  updateMiningBoost: () => {},
 });
 
 export const useMining = () => useContext(MiningContext);
@@ -43,12 +49,37 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentEarnings, setCurrentEarnings] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isMining, setIsMining] = useState(false);
+  const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   
-  // Default mining rate: 1 DMI per hour
-  const miningRate = 1;
+  // Base mining rate: 1 DMI per hour
+  const baseMiningRate = 1;
+  
+  // Calculate total mining rate including boosts from active plans
+  const calculateTotalMiningRate = useCallback(() => {
+    // Start with base rate
+    let totalRate = baseMiningRate;
+    
+    // Add boosts from active plans
+    activePlans.forEach(plan => {
+      if (new Date() < new Date(plan.expiresAt)) {
+        totalRate *= plan.boostMultiplier;
+      }
+    });
+    
+    return totalRate;
+  }, [activePlans, baseMiningRate]);
+  
+  // Get miningRate using the calculated total
+  const miningRate = calculateTotalMiningRate();
   
   // Duration of mining session in milliseconds (24 hours)
-  const MINING_DURATION = 24 * 60 * 60 * 1000; 
+  const MINING_DURATION = 24 * 60 * 60 * 1000;
+
+  // Load active plans
+  useEffect(() => {
+    const plans = getActivePlans();
+    setActivePlans(plans);
+  }, []);
 
   // Check for existing mining session on load
   useEffect(() => {
@@ -196,7 +227,42 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         description: `You've earned ${earnedCoins} DMI Coins.`,
       });
     }
-  }, [currentMining, user, updateBalance]);
+  }, [currentMining, user, updateBalance, toast]);
+
+  // Add a new plan and update mining boost
+  const updateMiningBoost = useCallback((boostMultiplier: number, duration: number, planId: string) => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+    
+    const newPlan: ActivePlan = {
+      id: planId,
+      purchasedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      boostMultiplier: boostMultiplier,
+      duration: duration
+    };
+    
+    // Save to storage
+    saveActivePlan(newPlan);
+    
+    // Update state
+    setActivePlans(prev => [...prev, newPlan]);
+    
+    // If there's an active mining session, update its rate
+    if (currentMining && currentMining.status === 'active') {
+      const updatedSession = {
+        ...currentMining,
+        rate: calculateTotalMiningRate(),
+      };
+      saveCurrentMining(updatedSession);
+      setCurrentMining(updatedSession);
+    }
+    
+    toast({
+      title: "Mining Boost Activated",
+      description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days.`,
+    });
+  }, [calculateTotalMiningRate, currentMining, toast]);
 
   return (
     <MiningContext.Provider
@@ -209,6 +275,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         startMining,
         stopMining,
         isMining,
+        activePlans,
+        updateMiningBoost,
       }}
     >
       {children}

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import MainnetCard from '@/components/MainnetCard';
 import MiningCard from '@/components/MiningCard';
+import MiningPlans from '@/components/MiningPlans';
+import DmiBalanceCard from '@/components/DmiBalanceCard';
 
 const Mining: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -65,7 +67,13 @@ const Mining: React.FC = () => {
           {/* Mining station card */}
           <MiningCard />
           
-          {/* Additional cards can be added here */}
+          {/* Mining Plans */}
+          <MiningPlans />
+          
+          {/* DMI Balance Card */}
+          <DmiBalanceCard />
+          
+          {/* Additional cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect">
               <h3 className="text-lg font-medium text-gray-900">Referral Program</h3>
