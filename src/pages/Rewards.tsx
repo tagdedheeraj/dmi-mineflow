@@ -11,7 +11,6 @@ import { Video, Star, Gift, Users } from 'lucide-react';
 // Import custom components
 import RewardStats from '@/components/rewards/RewardStats';
 import RewardsTabContent from '@/components/rewards/RewardsTabContent';
-import ReferralSystem from '@/components/rewards/ReferralSystem';
 import useRewards from '@/hooks/useRewards';
 
 const Rewards: React.FC = () => {
