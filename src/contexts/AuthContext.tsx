@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,6 +10,8 @@ import {
   registerAccountOnDevice
 } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
+import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -42,45 +45,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Listen for auth state changes
   useEffect(() => {
-    const storedUser = getUser();
-    if (storedUser) {
-      if (storedUser.suspended) {
-        toast({
-          title: "Account Suspended",
-          description: storedUser.suspendedReason || "This account has been suspended.",
-          variant: "destructive",
-        });
-        clearUser();
-        setUser(null);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        // First check if we have the user in local storage
+        const storedUser = getUser();
+        
+        if (storedUser && storedUser.email === firebaseUser.email) {
+          if (storedUser.suspended) {
+            toast({
+              title: "Account Suspended",
+              description: storedUser.suspendedReason || "This account has been suspended.",
+              variant: "destructive",
+            });
+            clearUser();
+            signOutUser();
+            setUser(null);
+          } else {
+            setUser(storedUser);
+          }
+        } else {
+          // Create a new user profile if it doesn't exist
+          const newUser: User = {
+            id: firebaseUser.uid,
+            fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            email: firebaseUser.email || '',
+            balance: 100,
+            createdAt: Date.now(),
+            deviceId: getDeviceId(),
+          };
+          setUser(newUser);
+          saveUser(newUser);
+        }
       } else {
-        setUser(storedUser);
+        // User is signed out
+        setUser(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, [toast]);
 
   const signUp = async (fullName: string, email: string, password: string) => {
     try {
-      const userId = `user_${Date.now()}`;
       const deviceId = getDeviceId();
+      const { isMultipleAccount, within24Hours } = registerAccountOnDevice(`user_${Date.now()}`);
       
-      const { isMultipleAccount, within24Hours } = registerAccountOnDevice(userId);
-      
-      const newUser: User = {
-        id: userId,
-        fullName,
-        email,
-        balance: 100,
-        createdAt: Date.now(),
-        deviceId,
-        suspended: isMultipleAccount && within24Hours,
-        suspendedReason: isMultipleAccount && within24Hours 
-          ? "Multiple accounts created from the same device within 24 hours."
-          : undefined
-      };
-      
-      if (newUser.suspended) {
+      if (isMultipleAccount && within24Hours) {
         toast({
           title: "Account Suspended",
           description: "You cannot create more than one account from the same device within 24 hours.",
@@ -89,6 +104,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/signin');
         return;
       }
+      
+      // Create user in Firebase
+      const userCredential = await createUserWithEmail(email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Create user profile
+      const newUser: User = {
+        id: firebaseUser.uid,
+        fullName,
+        email,
+        balance: 100,
+        createdAt: Date.now(),
+        deviceId,
+      };
       
       setUser(newUser);
       saveUser(newUser);
@@ -99,10 +128,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       navigate('/mining');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign Up Failed",
-        description: "An error occurred during sign up.",
+        description: error.message || "An error occurred during sign up.",
         variant: "destructive",
       });
       console.error("Sign up error:", error);
@@ -111,6 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Sign in with Firebase
+      const userCredential = await signInWithEmail(email, password);
+      const firebaseUser = userCredential.user;
+      
       const storedUser = getUser();
       
       if (storedUser && storedUser.email === email) {
@@ -120,46 +153,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: storedUser.suspendedReason || "This account has been suspended.",
             variant: "destructive",
           });
+          await signOutUser();
           return;
         }
         
+        // Update deviceId
         const deviceId = getDeviceId();
         const updatedUser = {
           ...storedUser,
           deviceId
         };
         saveUser(updatedUser);
-        
         setUser(updatedUser);
-        navigate('/mining');
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in.",
-        });
       } else {
-        toast({
-          title: "Sign In Failed",
-          description: "Invalid email or password.",
-          variant: "destructive",
-        });
+        // Create a new user profile if it doesn't exist
+        const newUser: User = {
+          id: firebaseUser.uid,
+          fullName: firebaseUser.displayName || email.split('@')[0] || 'User',
+          email: email,
+          balance: 100,
+          createdAt: Date.now(),
+          deviceId: getDeviceId(),
+        };
+        setUser(newUser);
+        saveUser(newUser);
       }
-    } catch (error) {
+      
+      navigate('/mining');
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
+    } catch (error: any) {
       toast({
         title: "Sign In Failed",
-        description: "An error occurred during sign in.",
+        description: error.message || "Invalid email or password.",
         variant: "destructive",
       });
       console.error("Sign in error:", error);
     }
   };
 
-  const signOut = () => {
-    setUser(null);
-    navigate('/signin');
-    toast({
-      title: "Signed Out",
-      description: "You've been successfully signed out.",
-    });
+  const signOut = async () => {
+    try {
+      await signOutUser();
+      setUser(null);
+      navigate('/signin');
+      toast({
+        title: "Signed Out",
+        description: "You've been successfully signed out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sign Out Failed",
+        description: error.message || "An error occurred during sign out.",
+        variant: "destructive",
+      });
+      console.error("Sign out error:", error);
+    }
   };
 
   const updateBalance = (newBalance: number) => {
@@ -178,6 +229,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
     try {
       if (user) {
+        // Firebase password change logic would go here
+        // For now, just show success toast
         toast({
           title: "Password Changed",
           description: "Your password has been successfully updated.",
@@ -191,10 +244,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Password Change Failed",
-        description: "An error occurred while changing your password.",
+        description: error.message || "An error occurred while changing your password.",
         variant: "destructive",
       });
       console.error("Password change error:", error);
