@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
@@ -15,20 +16,37 @@ import {
   Zap,
   CreditCard,
   Lock,
-  History
+  History,
+  AlertTriangle
 } from 'lucide-react';
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress, updateUsdtEarnings } from '@/lib/storage';
+import { setUsdtAddress } from '@/lib/firestore';
+import { createWithdrawalRequest, getUserWithdrawalRequests } from '@/lib/withdrawals';
+import { WithdrawalRequest } from '@/lib/withdrawalTypes';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const Wallet: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, isAdmin } = useAuth();
   const { activePlans, miningRate } = useMining();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
   const [isSettingAddress, setIsSettingAddress] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState<number>(0);
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -46,12 +64,29 @@ const Wallet: React.FC = () => {
   const weeklyUsdtEarnings = dailyUsdtEarnings * 7;
   const monthlyUsdtEarnings = dailyUsdtEarnings * 30;
 
+  useEffect(() => {
+    if (user) {
+      loadWithdrawalRequests();
+    }
+  }, [user]);
+
+  const loadWithdrawalRequests = async () => {
+    if (!user) return;
+    
+    try {
+      const requests = await getUserWithdrawalRequests(user.id);
+      setWithdrawalRequests(requests);
+    } catch (error) {
+      console.error("Failed to load withdrawal requests:", error);
+    }
+  };
+
   if (!user) {
     navigate('/signin');
     return null;
   }
 
-  const handleSetUsdtAddress = () => {
+  const handleSetUsdtAddress = async () => {
     if (usdtAddress.trim().length < 10) {
       toast({
         title: "Invalid Address",
@@ -61,18 +96,27 @@ const Wallet: React.FC = () => {
       return;
     }
 
-    const updatedUser = setUsdtAddress(usdtAddress);
-    if (updatedUser) {
-      updateUser(updatedUser);
-      setIsSettingAddress(false);
+    try {
+      const updatedUser = await setUsdtAddress(user.id, usdtAddress);
+      if (updatedUser) {
+        updateUser(updatedUser);
+        setIsSettingAddress(false);
+        toast({
+          title: "Address Saved",
+          description: "Your USDT withdrawal address has been saved successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error setting USDT address:", error);
       toast({
-        title: "Address Saved",
-        description: "Your USDT withdrawal address has been saved successfully.",
+        title: "Error",
+        description: "Failed to save USDT address. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!user.usdtAddress) {
       setIsSettingAddress(true);
       return;
@@ -87,10 +131,87 @@ const Wallet: React.FC = () => {
       return;
     }
 
-    toast({
-      title: "Withdrawal Requested",
-      description: "Your withdrawal request has been submitted and will be processed shortly.",
-    });
+    // Show withdrawal amount selection modal
+    setIsWithdrawalModalOpen(true);
+    setWithdrawalAmount(usdtEarnings);
+  };
+
+  const submitWithdrawalRequest = async () => {
+    if (!user) return;
+
+    if (withdrawalAmount <= 0 || withdrawalAmount > usdtEarnings) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid withdrawal amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Create withdrawal request
+      const requestId = await createWithdrawalRequest(
+        user.id,
+        user.fullName,
+        user.email,
+        withdrawalAmount,
+        user.usdtAddress || ''
+      );
+
+      if (requestId) {
+        // Deduct from user's USDT earnings
+        const updatedUser = { 
+          ...user, 
+          usdtEarnings: user.usdtEarnings ? user.usdtEarnings - withdrawalAmount : 0 
+        };
+        updateUser(updatedUser);
+        
+        // Close modal and show success message
+        setIsWithdrawalModalOpen(false);
+        toast({
+          title: "Withdrawal Requested",
+          description: "Your withdrawal request has been submitted and will be processed shortly.",
+        });
+        
+        // Reload withdrawal requests
+        loadWithdrawalRequests();
+      } else {
+        throw new Error("Failed to create withdrawal request");
+      }
+    } catch (error) {
+      console.error("Error creating withdrawal request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit withdrawal request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Approved
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            Pending
+          </span>
+        );
+    }
   };
 
   return (
@@ -98,6 +219,18 @@ const Wallet: React.FC = () => {
       <Header />
       
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
+        {isAdmin && (
+          <div className="mb-6 bg-dmi/10 rounded-xl p-4 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-medium">Admin Access</h2>
+              <p className="text-sm text-gray-600">You have administrator privileges</p>
+            </div>
+            <Button onClick={() => navigate('/admin')}>
+              Go to Admin Dashboard
+            </Button>
+          </div>
+        )}
+      
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
             <div className="flex items-center">
@@ -323,14 +456,98 @@ const Wallet: React.FC = () => {
           </div>
           
           <div className="p-5">
-            <div className="text-center py-6">
-              <p className="text-gray-500">No transactions yet</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Your withdrawal history will appear here
-              </p>
-            </div>
+            {withdrawalRequests.length > 0 ? (
+              <div className="space-y-4">
+                {withdrawalRequests.map(request => (
+                  <div key={request.id} className="border border-gray-100 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-gray-900 font-medium">{formatCurrency(request.amount)}</div>
+                        <div className="text-gray-500 text-sm">
+                          {new Date(request.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div>
+                        {getStatusBadge(request.status)}
+                      </div>
+                    </div>
+                    {request.status === 'rejected' && request.rejectionReason && (
+                      <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded flex items-start">
+                        <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5" />
+                        <span>{request.rejectionReason}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">No transactions yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Your withdrawal history will appear here
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Withdrawal Amount Modal */}
+        <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Withdraw USDT</DialogTitle>
+              <DialogDescription>
+                Enter the amount you want to withdraw. The funds will be sent to your registered USDT address.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="withdrawal-amount">Withdrawal Amount (USDT)</Label>
+                <Input
+                  id="withdrawal-amount"
+                  type="number"
+                  value={withdrawalAmount}
+                  onChange={(e) => setWithdrawalAmount(Number(e.target.value))}
+                  min={50}
+                  max={usdtEarnings}
+                  step={1}
+                />
+                <p className="text-xs text-gray-500">
+                  Available balance: {formatCurrency(usdtEarnings)}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Withdrawal Address</Label>
+                <div className="p-3 bg-gray-50 rounded-md text-sm font-mono break-all">
+                  {user.usdtAddress}
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Important Notes:</p>
+                <ul className="text-xs text-gray-600 list-disc pl-5 space-y-1">
+                  <li>Minimum withdrawal amount is $50 USDT</li>
+                  <li>Withdrawals are processed within 24-48 hours</li>
+                  <li>Make sure your withdrawal address is correct</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsWithdrawalModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={submitWithdrawalRequest} 
+                disabled={withdrawalAmount < 50 || withdrawalAmount > usdtEarnings || isLoading}
+              >
+                {isLoading ? "Processing..." : "Confirm Withdrawal"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

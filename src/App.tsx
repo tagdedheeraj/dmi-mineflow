@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
 import Plans from "./pages/Plans";
 import Rewards from "./pages/Rewards";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import BottomBar from "./components/BottomBar";
 
@@ -67,6 +68,7 @@ const App = () => {
                   } 
                 />
                 <Route path="/plans" element={<Plans />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route 
                   path="/rewards" 
                   element={

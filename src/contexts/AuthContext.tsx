@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (fullName: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   loading: true,
+  isAdmin: false,
   signIn: async () => {},
   signUp: async () => {},
   signOut: () => {},
@@ -40,9 +42,13 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// Admin email for special access
+const ADMIN_EMAIL = "tagdedheeraj4@gmail.com";
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -54,6 +60,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // First check if we have the user in Firestore
           const firestoreUser = await getFirestoreUser(firebaseUser.uid);
+          
+          // Check if this is the admin account
+          if (firebaseUser.email === ADMIN_EMAIL) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
           
           if (firestoreUser) {
             if (firestoreUser.suspended) {
@@ -91,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // User is signed out
         setUser(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -153,6 +167,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmail(email, password);
       const firebaseUser = userCredential.user;
       
+      // Check if this is the admin account
+      if (email === ADMIN_EMAIL) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+      
       // Fetch user from Firestore
       const firestoreUser = await getFirestoreUser(firebaseUser.uid);
       
@@ -189,11 +210,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newUser);
       }
       
-      navigate('/mining');
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
-      });
+      // Navigate admin to admin page, others to mining
+      if (email === ADMIN_EMAIL) {
+        navigate('/admin');
+        toast({
+          title: "Admin Login",
+          description: "You've logged in as an administrator.",
+        });
+      } else {
+        navigate('/mining');
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Sign In Failed",
@@ -208,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOutUser();
       setUser(null);
+      setIsAdmin(false);
       navigate('/signin');
       toast({
         title: "Signed Out",
@@ -281,6 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         loading,
+        isAdmin,
         signIn,
         signUp,
         signOut,
