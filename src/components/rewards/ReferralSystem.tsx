@@ -97,12 +97,12 @@ const ReferralSystem: React.FC = () => {
             Refer & Earn
           </h2>
           <div className="text-xs bg-dmi/10 text-dmi font-medium px-3 py-1 rounded-full">
-            Earn 100 DMI Coins
+            Earn 200 DMI Coins
           </div>
         </div>
         
         <p className="text-sm text-gray-600 mb-4">
-          Share your referral code with friends. When they apply your code, you'll both earn 100 DMI coins!
+          Share your referral code with friends. When they apply your code, you'll both earn 200 DMI coins!
         </p>
         
         <div className="mb-6">

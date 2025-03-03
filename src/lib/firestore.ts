@@ -175,7 +175,7 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
     });
     
     // Award the bonus to the referrer
-    const REFERRAL_BONUS = 100;
+    const REFERRAL_BONUS = 200;
     await updateUserBalance(referrerId, REFERRAL_BONUS);
     
     // Record the referral
