@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Pickaxe, Trophy, Wallet, User } from 'lucide-react';
+import { Pickaxe, Trophy, Wallet, User, Diamond } from 'lucide-react';
 
 const BottomBar: React.FC = () => {
   const location = useLocation();
@@ -17,6 +17,11 @@ const BottomBar: React.FC = () => {
       name: 'Mining',
       icon: Pickaxe,
       path: '/mining',
+    },
+    {
+      name: 'Plans',
+      icon: Diamond,
+      path: '/plans',
     },
     {
       name: 'Rewards',
@@ -43,7 +48,7 @@ const BottomBar: React.FC = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center w-1/4 py-1 px-2 rounded-lg transition-colors ${
+              className={`flex flex-col items-center justify-center w-1/5 py-1 px-2 rounded-lg transition-colors ${
                 isActive(item.path)
                   ? 'text-dmi bg-dmi/5'
                   : 'text-gray-500 hover:text-dmi hover:bg-gray-50'

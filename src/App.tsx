@@ -22,12 +22,6 @@ import BottomBar from "./components/BottomBar";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Helper function to determine if bottom bar should be shown
-  const shouldShowBottomBar = (path: string) => {
-    const mainRoutes = ['/mining', '/rewards', '/wallet', '/profile'];
-    return mainRoutes.includes(path);
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -67,7 +61,15 @@ const App = () => {
                     </>
                   } 
                 />
-                <Route path="/plans" element={<Plans />} />
+                <Route 
+                  path="/plans" 
+                  element={
+                    <>
+                      <Plans />
+                      <BottomBar />
+                    </>
+                  } 
+                />
                 <Route path="/admin" element={<Admin />} />
                 <Route 
                   path="/rewards" 

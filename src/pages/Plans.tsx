@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import MiningPlans from '@/components/MiningPlans';
+import DMIBooster from '@/components/DMIBooster';
 
 const Plans: React.FC = () => {
   const { user } = useAuth();
@@ -17,22 +18,13 @@ const Plans: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 animate-fade-in">
+    <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
       {/* Header */}
       <Header />
       
       {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
-        <Button 
-          variant="ghost"
-          className="mb-6 flex items-center text-gray-600"
-          onClick={() => navigate('/mining')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Mining
-        </Button>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Premium Mining Plans</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Mining Plans & Boosters</h1>
         
         <div className="mb-6 bg-yellow-50 border border-yellow-100 rounded-lg p-4">
           <h2 className="text-lg font-medium text-yellow-800 mb-2">Boost Your Mining Speed</h2>
@@ -42,7 +34,17 @@ const Plans: React.FC = () => {
           </p>
         </div>
         
-        <MiningPlans />
+        {/* Premium Mining Plans section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Premium Mining Plans</h2>
+          <MiningPlans />
+        </div>
+        
+        {/* DMI Boosters section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">DMI Boosters</h2>
+          <DMIBooster />
+        </div>
       </main>
     </div>
   );
