@@ -17,6 +17,7 @@ import Plans from "./pages/Plans";
 import Rewards from "./pages/Rewards";
 import NotFound from "./pages/NotFound";
 import BottomBar from "./components/BottomBar";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => {
                     </>
                   } 
                 />
+                <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </MiningProvider>
