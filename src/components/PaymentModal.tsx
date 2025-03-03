@@ -31,6 +31,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   // Countdown timer
   useEffect(() => {
     if (timeRemaining <= 0 || isSubmitted) return;
@@ -87,110 +95,119 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in overflow-hidden">
-      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-xl">
-        {isSubmitted ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Check className="h-8 w-8 text-green-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-center">Payment Submitted</h3>
-            <p className="text-center text-gray-600 mt-2">
-              Your transaction is being processed. Your {planName} will activate shortly.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-between items-start mb-5">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="p-0 m-0 h-8" 
-                onClick={onClose}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
-              </Button>
-              <div className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                <Clock className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">{formatDuration(timeRemaining)}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" onClick={onClose}>
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+        aria-hidden="true"
+      ></div>
+      <div 
+        className="relative z-50 w-full max-w-md bg-white rounded-xl shadow-xl m-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="max-h-[80vh] overflow-y-auto p-6">
+          {isSubmitted ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <Check className="h-8 w-8 text-green-600" />
               </div>
+              <h3 className="text-xl font-semibold text-center">Payment Submitted</h3>
+              <p className="text-center text-gray-600 mt-2">
+                Your transaction is being processed. Your {planName} will activate shortly.
+              </p>
             </div>
-
-            <h3 className="text-lg font-semibold mb-2 text-center">
-              Pay {planPrice} USDT (BEP20)
-            </h3>
-            <p className="text-sm text-center text-gray-600 mb-4">
-              Send exactly {planPrice} USDT to the address below
-            </p>
-
-            <div className="flex justify-center mb-6">
-              <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
-                <img 
-                  src="/lovable-uploads/8db582c6-1930-4f4e-9750-4f993735a428.png" 
-                  alt="Payment QR Code"
-                  className="w-48 h-48"
-                />
-              </div>
-            </div>
-
-            <div className="bg-gray-50 p-3 rounded-lg mb-5">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm text-gray-600">USDT Address (BEP20)</span>
+          ) : (
+            <>
+              <div className="flex justify-between items-start mb-5">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-6 p-0 text-blue-600"
-                  onClick={() => {
-                    navigator.clipboard.writeText(USDT_ADDRESS);
-                    toast({
-                      title: "Address copied",
-                      description: "The USDT address has been copied to your clipboard",
-                    });
-                  }}
+                  className="p-0 m-0 h-8" 
+                  onClick={onClose}
                 >
-                  Copy
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
                 </Button>
+                <div className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span className="text-sm font-medium">{formatDuration(timeRemaining)}</span>
+                </div>
               </div>
-              <p className="text-xs break-all font-mono bg-white p-2 rounded border border-gray-200">
-                {USDT_ADDRESS}
-              </p>
-            </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-5">
-                <Label htmlFor="transaction-id" className="mb-1 block">Enter Transaction ID</Label>
-                <Input
-                  id="transaction-id"
-                  placeholder="Paste your transaction ID here"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  After sending the payment, paste your transaction ID to activate your plan
+              <h3 className="text-lg font-semibold mb-2 text-center">
+                Pay {planPrice} USDT (BEP20)
+              </h3>
+              <p className="text-sm text-center text-gray-600 mb-4">
+                Send exactly {planPrice} USDT to the address below
+              </p>
+
+              <div className="flex justify-center mb-6">
+                <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
+                  <img 
+                    src="/lovable-uploads/8db582c6-1930-4f4e-9750-4f993735a428.png" 
+                    alt="Payment QR Code"
+                    className="w-48 h-48"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-lg mb-5">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-gray-600">USDT Address (BEP20)</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 p-0 text-blue-600"
+                    onClick={() => {
+                      navigator.clipboard.writeText(USDT_ADDRESS);
+                      toast({
+                        title: "Address copied",
+                        description: "The USDT address has been copied to your clipboard",
+                      });
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs break-all font-mono bg-white p-2 rounded border border-gray-200">
+                  {USDT_ADDRESS}
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={onClose}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Processing...' : 'Submit Payment'}
-                </Button>
-              </div>
-            </form>
-          </>
-        )}
+              <form onSubmit={handleSubmit}>
+                <div className="mb-5">
+                  <Label htmlFor="transaction-id" className="mb-1 block">Enter Transaction ID</Label>
+                  <Input
+                    id="transaction-id"
+                    placeholder="Paste your transaction ID here"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    After sending the payment, paste your transaction ID to activate your plan
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={onClose}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Processing...' : 'Submit Payment'}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
