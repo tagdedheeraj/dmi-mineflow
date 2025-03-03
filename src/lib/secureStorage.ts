@@ -1,0 +1,74 @@
+
+/**
+ * Secure storage utilities for authentication preferences
+ */
+
+// Authentication type options
+export type AuthMethod = 'none' | 'pin' | 'biometric';
+
+// User authentication preferences
+interface AuthPreferences {
+  method: AuthMethod;
+  pin?: string;
+  biometricEnabled?: boolean;
+}
+
+// Local storage keys
+const STORAGE_KEYS = {
+  AUTH_PREFERENCES: 'dmi_auth_preferences',
+};
+
+// Get authentication preferences
+export const getAuthPreferences = (): AuthPreferences => {
+  const prefsJson = localStorage.getItem(STORAGE_KEYS.AUTH_PREFERENCES);
+  return prefsJson 
+    ? JSON.parse(prefsJson) 
+    : { method: 'none' };
+};
+
+// Save authentication preferences
+export const saveAuthPreferences = (prefs: AuthPreferences): void => {
+  localStorage.setItem(STORAGE_KEYS.AUTH_PREFERENCES, JSON.stringify(prefs));
+};
+
+// Set PIN authentication
+export const setupPinAuth = (pin: string): void => {
+  const prefs = getAuthPreferences();
+  saveAuthPreferences({
+    ...prefs,
+    method: 'pin',
+    pin,
+  });
+};
+
+// Check if PIN is valid
+export const validatePin = (enteredPin: string): boolean => {
+  const prefs = getAuthPreferences();
+  return prefs.pin === enteredPin;
+};
+
+// Enable biometric authentication
+export const enableBiometric = (enabled: boolean): void => {
+  const prefs = getAuthPreferences();
+  saveAuthPreferences({
+    ...prefs,
+    method: enabled ? 'biometric' : 'none',
+    biometricEnabled: enabled,
+  });
+};
+
+// Check if authentication is required
+export const isAuthRequired = (): boolean => {
+  const prefs = getAuthPreferences();
+  return prefs.method !== 'none';
+};
+
+// Get the current authentication method
+export const getAuthMethod = (): AuthMethod => {
+  return getAuthPreferences().method;
+};
+
+// Clear authentication preferences
+export const clearAuthPreferences = (): void => {
+  saveAuthPreferences({ method: 'none' });
+};

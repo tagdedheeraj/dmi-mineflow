@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -23,6 +23,12 @@ import {
   ExternalLink,
   IdCard
 } from 'lucide-react';
+import { 
+  setupPinAuth, 
+  enableBiometric, 
+  getAuthPreferences 
+} from '@/lib/secureStorage';
+import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -30,6 +36,13 @@ const Profile: React.FC = () => {
   const [pin, setPin] = useState<string>("");
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Load saved authentication preferences
+    const prefs = getAuthPreferences();
+    setBiometricEnabled(!!prefs.biometricEnabled);
+  }, []);
 
   if (!user) {
     navigate('/signin');
@@ -38,9 +51,50 @@ const Profile: React.FC = () => {
 
   const handlePinSetup = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would implement actual PIN setup logic
-    alert("PIN set successfully!");
+    
+    // Validate PIN - must be 4 digits
+    if (!/^\d{4}$/.test(pin)) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter a 4-digit PIN.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Save the PIN
+    setupPinAuth(pin);
+    
+    toast({
+      title: "PIN Set Successfully",
+      description: "Your PIN has been configured. You will need to enter it when opening the app.",
+    });
+    
     setPin("");
+  };
+
+  const handleBiometricToggle = (enabled: boolean) => {
+    // Check if Web Authentication API is available
+    if (enabled && !window.PublicKeyCredential) {
+      toast({
+        title: "Not Supported",
+        description: "Biometric authentication is not supported on this device.",
+        variant: "destructive"
+      });
+      setBiometricEnabled(false);
+      return;
+    }
+    
+    // Save the biometric preference
+    enableBiometric(enabled);
+    setBiometricEnabled(enabled);
+    
+    toast({
+      title: enabled ? "Biometric Enabled" : "Biometric Disabled",
+      description: enabled 
+        ? "You can now use biometric authentication to access the app." 
+        : "Biometric authentication has been disabled.",
+    });
   };
 
   const handleContactSupport = () => {
@@ -227,7 +281,7 @@ const Profile: React.FC = () => {
                   </div>
                   <Switch
                     checked={biometricEnabled}
-                    onCheckedChange={setBiometricEnabled}
+                    onCheckedChange={handleBiometricToggle}
                   />
                 </div>
                 
