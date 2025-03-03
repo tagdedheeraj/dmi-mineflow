@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +9,7 @@ import MiningCard from '@/components/MiningCard';
 import MiningPlans from '@/components/MiningPlans';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
-import { Video } from 'lucide-react';
+import { Video, Clock, Sparkles } from 'lucide-react';
 
 const Mining: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -80,16 +79,37 @@ const Mining: React.FC = () => {
           
           {/* Additional cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect">
-              <h3 className="text-lg font-medium text-gray-900">Referral Program</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Invite friends and earn 5% of their mining rewards
-              </p>
-              <Button 
-                className="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-800"
-              >
-                Copy Referral Link
-              </Button>
+            {/* Coming Soon Card - Replacing Referral Program */}
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-indigo-100 card-hover-effect overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-24 h-24 -mt-8 -mr-8 bg-indigo-100 rounded-full opacity-70"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 -mb-6 -ml-6 bg-purple-100 rounded-full opacity-50"></div>
+              
+              <div className="flex items-center mb-3">
+                <div className="h-8 w-8 rounded-full bg-dmi/10 flex items-center justify-center mr-3">
+                  <Clock className="h-4 w-4 text-dmi" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Referral Program</h3>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mb-2">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Coming Soon
+                </span>
+                
+                <p className="text-sm text-gray-600 mt-1">
+                  Our referral program is being enhanced. Stay tuned for exciting rewards and bonuses!
+                </p>
+                
+                <Button 
+                  className="mt-4 w-full bg-gray-200/80 hover:bg-gray-200 text-gray-500 cursor-not-allowed"
+                  disabled
+                >
+                  Coming Soon
+                </Button>
+              </div>
             </div>
             
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover-effect" onClick={() => navigate('/rewards')}>
