@@ -27,7 +27,9 @@ const Rewards: React.FC = () => {
     setActiveTab,
     MAX_DAILY_ADS,
     handleWatchAd,
-    formatCountdown
+    formatCountdown,
+    completedTasks,
+    handleCompleteTask
   } = useRewards();
   
   // If no user is logged in, redirect to sign in
@@ -66,7 +68,7 @@ const Rewards: React.FC = () => {
               <Video className="h-4 w-4 mr-2" />
               Watch Videos
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="flex items-center justify-center" disabled>
+            <TabsTrigger value="tasks" className="flex items-center justify-center">
               <Star className="h-4 w-4 mr-2" />
               Daily Tasks
             </TabsTrigger>
@@ -89,6 +91,8 @@ const Rewards: React.FC = () => {
             maxDailyAds={MAX_DAILY_ADS}
             onWatchAd={handleWatchAd}
             formatCountdown={formatCountdown}
+            completedTasks={completedTasks}
+            onCompleteTask={handleCompleteTask}
           />
         </Tabs>
       </main>

@@ -5,6 +5,7 @@ import AdWatchCard from './AdWatchCard';
 import HowItWorks from './HowItWorks';
 import ComingSoon from './ComingSoon';
 import ReferralSystem from './ReferralSystem';
+import SocialMediaTasks from './SocialMediaTasks';
 
 interface RewardsTabContentProps {
   activeTab: string;
@@ -15,6 +16,8 @@ interface RewardsTabContentProps {
   maxDailyAds: number;
   onWatchAd: () => void;
   formatCountdown: (seconds: number) => string;
+  completedTasks: string[];
+  onCompleteTask: (taskId: string, data?: any) => Promise<void>;
 }
 
 const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
@@ -26,6 +29,8 @@ const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
   maxDailyAds,
   onWatchAd,
   formatCountdown,
+  completedTasks,
+  onCompleteTask
 }) => {
   return (
     <>
@@ -43,22 +48,17 @@ const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
         
         {/* How It Works Card */}
         <HowItWorks />
-        
-        {/* Refer & Earn Section */}
-        <div className="mt-6">
-          <ReferralSystem />
-        </div>
+      </TabsContent>
+      
+      <TabsContent value="tasks" className="mt-4">
+        <SocialMediaTasks 
+          completedTasks={completedTasks}
+          onCompleteTask={onCompleteTask}
+        />
       </TabsContent>
       
       <TabsContent value="referrals" className="mt-4">
         <ReferralSystem />
-      </TabsContent>
-      
-      <TabsContent value="tasks" className="mt-4">
-        <ComingSoon 
-          title="Coming Soon"
-          description="Daily tasks will allow you to earn additional DMI coins by completing simple activities."
-        />
       </TabsContent>
       
       <TabsContent value="special" className="mt-4">

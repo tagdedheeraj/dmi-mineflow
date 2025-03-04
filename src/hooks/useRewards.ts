@@ -1,10 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserBalance } from '@/lib/firestore';
+import { updateUserBalance, getUser, updateDoc, doc, getDoc, setDoc, collection, addDoc, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export const useRewards = () => {
   const { user, updateUser } = useAuth();
@@ -17,6 +16,7 @@ export const useRewards = () => {
   const [todayAdsWatched, setTodayAdsWatched] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [activeTab, setActiveTab] = useState("videos");
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   
   // Maximum daily ad limit
   const MAX_DAILY_ADS = 20;
@@ -37,10 +37,10 @@ export const useRewards = () => {
     const fetchRewardsData = async () => {
       if (!user) return;
       
-      const todayKey = getTodayDateKey();
-      const rewardsRef = doc(db, 'rewards', `${user.id}_${todayKey}`);
-      
       try {
+        // Fetch rewards data
+        const todayKey = getTodayDateKey();
+        const rewardsRef = doc(db, 'rewards', `${user.id}_${todayKey}`);
         const rewardsDoc = await getDoc(rewardsRef);
         
         if (rewardsDoc.exists()) {
@@ -54,6 +54,20 @@ export const useRewards = () => {
             date: todayKey,
             adsWatched: 0,
             earnings: 0
+          });
+        }
+        
+        // Fetch completed tasks
+        const tasksRef = doc(db, 'user_tasks', user.id);
+        const tasksDoc = await getDoc(tasksRef);
+        
+        if (tasksDoc.exists()) {
+          setCompletedTasks(tasksDoc.data().completedTasks || []);
+        } else {
+          // Create a new document for user tasks
+          await setDoc(tasksRef, {
+            userId: user.id,
+            completedTasks: []
           });
         }
       } catch (error) {
@@ -199,6 +213,128 @@ export const useRewards = () => {
     }, 3000);
   };
   
+  // Handle task completion
+  const handleCompleteTask = async (taskId: string, data?: any) => {
+    if (!user) {
+      toast({
+        title: "Not Logged In",
+        description: "You need to log in to complete tasks and earn rewards.",
+        variant: "destructive",
+      });
+      throw new Error("User not logged in");
+    }
+    
+    // Check if task is already completed
+    if (completedTasks.includes(taskId)) {
+      toast({
+        title: "Task Already Completed",
+        description: "You've already completed this task.",
+      });
+      throw new Error("Task already completed");
+    }
+    
+    let rewardAmount = 0;
+    let needsVerification = false;
+    
+    // Set reward amount based on task type
+    switch (taskId) {
+      case 'telegram_join':
+        rewardAmount = 10;
+        break;
+      case 'telegram_share':
+        rewardAmount = 10;
+        break;
+      case 'youtube_video':
+        rewardAmount = 500;
+        needsVerification = true;
+        break;
+      case 'instagram_post':
+        rewardAmount = 100;
+        needsVerification = true;
+        break;
+      case 'twitter_post':
+        rewardAmount = 50;
+        needsVerification = true;
+        break;
+      default:
+        rewardAmount = 0;
+    }
+    
+    try {
+      // Save submission for tasks that need verification
+      if (needsVerification) {
+        const submissionsRef = collection(db, 'task_submissions');
+        await addDoc(submissionsRef, {
+          userId: user.id,
+          taskId,
+          data,
+          timestamp: Date.now(),
+          status: 'pending',
+          rewardAmount
+        });
+        
+        // For tasks that need verification, don't update user balance yet
+        // Just mark the task as completed so they can't submit again
+        const tasksRef = doc(db, 'user_tasks', user.id);
+        const tasksDoc = await getDoc(tasksRef);
+        
+        if (tasksDoc.exists()) {
+          await updateDoc(tasksRef, {
+            completedTasks: [...completedTasks, taskId]
+          });
+        } else {
+          await setDoc(tasksRef, {
+            userId: user.id,
+            completedTasks: [taskId]
+          });
+        }
+        
+        // Update state
+        setCompletedTasks(prev => [...prev, taskId]);
+        return;
+      }
+      
+      // For instant tasks, update user balance immediately
+      if (rewardAmount > 0) {
+        const updatedUser = await updateUserBalance(user.id, rewardAmount);
+        if (updatedUser) {
+          updateUser(updatedUser);
+        }
+      }
+      
+      // Mark task as completed
+      const tasksRef = doc(db, 'user_tasks', user.id);
+      const tasksDoc = await getDoc(tasksRef);
+      
+      if (tasksDoc.exists()) {
+        await updateDoc(tasksRef, {
+          completedTasks: [...completedTasks, taskId]
+        });
+      } else {
+        await setDoc(tasksRef, {
+          userId: user.id,
+          completedTasks: [taskId]
+        });
+      }
+      
+      // Update state
+      setCompletedTasks(prev => [...prev, taskId]);
+      
+      // Log task completion
+      const taskLogsRef = collection(db, 'task_logs');
+      await addDoc(taskLogsRef, {
+        userId: user.id,
+        taskId,
+        timestamp: Date.now(),
+        rewardAmount
+      });
+      
+    } catch (error) {
+      console.error(`Error completing task ${taskId}:`, error);
+      throw error;
+    }
+  };
+  
   return {
     isWatchingAd,
     isAdComplete,
@@ -209,7 +345,9 @@ export const useRewards = () => {
     setActiveTab,
     MAX_DAILY_ADS,
     handleWatchAd,
-    formatCountdown
+    formatCountdown,
+    completedTasks,
+    handleCompleteTask
   };
 };
 
