@@ -48,13 +48,20 @@ const RewardsTabContent: React.FC<RewardsTabContentProps> = ({
         
         {/* How It Works Card */}
         <HowItWorks />
-      </TabsContent>
-      
-      <TabsContent value="tasks" className="mt-4">
-        <SocialMediaTasks 
-          completedTasks={completedTasks}
-          onCompleteTask={onCompleteTask}
-        />
+        
+        {/* Referral System */}
+        <div className="mt-6">
+          <ReferralSystem />
+        </div>
+        
+        {/* Daily Tasks */}
+        <div className="mt-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Daily Tasks</h2>
+          <SocialMediaTasks 
+            completedTasks={completedTasks}
+            onCompleteTask={onCompleteTask}
+          />
+        </div>
       </TabsContent>
       
       <TabsContent value="referrals" className="mt-4">

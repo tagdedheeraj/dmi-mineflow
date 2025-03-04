@@ -6,7 +6,7 @@ import { Wallet, Diamond } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from '@/components/Header';
-import { Video, Star, Gift, Users } from 'lucide-react';
+import { Video, Gift, Users } from 'lucide-react';
 
 // Import custom components
 import RewardStats from '@/components/rewards/RewardStats';
@@ -63,14 +63,10 @@ const Rewards: React.FC = () => {
         
         {/* Tabs for different reward types */}
         <Tabs defaultValue="videos" className="mb-6" onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="videos" className="flex items-center justify-center">
               <Video className="h-4 w-4 mr-2" />
-              Watch Videos
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="flex items-center justify-center">
-              <Star className="h-4 w-4 mr-2" />
-              Daily Tasks
+              Watch & Earn
             </TabsTrigger>
             <TabsTrigger value="referrals" className="flex items-center justify-center">
               <Users className="h-4 w-4 mr-2" />
