@@ -1,420 +1,304 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ExternalLink,
+  Share2,
+  Youtube,
+  Instagram,
+  Twitter,
+  AlertTriangle,
+  MessageCircle
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Telegram, Youtube, Instagram, Twitter, Check, ExternalLink } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface SocialMediaTasksProps {
   completedTasks: string[];
   onCompleteTask: (taskId: string, data?: any) => Promise<void>;
 }
 
-const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({ 
+const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({
   completedTasks,
   onCompleteTask
 }) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [youtubeLink, setYoutubeLink] = useState('');
-  const [instagramLink, setInstagramLink] = useState('');
-  const [twitterLink, setTwitterLink] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState({
-    telegram: false,
-    telegramShare: false,
-    youtube: false,
-    instagram: false,
-    twitter: false
-  });
-
-  const handleTelegramJoin = async () => {
-    if (!user) return;
+  const [videoLink, setVideoLink] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentTask, setCurrentTask] = useState<string | null>(null);
+  
+  const handleSubmitVideo = async () => {
+    if (!videoLink || !currentTask) return;
     
-    setIsSubmitting(prev => ({ ...prev, telegram: true }));
-    
+    setIsSubmitting(true);
     try {
-      // Open Telegram channel in a new tab
-      window.open('https://t.me/dminetwork', '_blank');
-      
-      await onCompleteTask('telegram_join');
-      
-      toast({
-        title: "Task Completed!",
-        description: "You've earned 10 DMI coins for joining our Telegram channel.",
-      });
+      await onCompleteTask(currentTask, { link: videoLink });
+      setVideoLink('');
+      setCurrentTask(null);
     } catch (error) {
-      console.error('Error completing Telegram task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to complete the task. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error submitting video:', error);
     } finally {
-      setIsSubmitting(prev => ({ ...prev, telegram: false }));
+      setIsSubmitting(false);
     }
   };
-
-  const handleTelegramShare = async () => {
-    if (!user) return;
-    
-    setIsSubmitting(prev => ({ ...prev, telegramShare: true }));
-    
-    try {
-      await onCompleteTask('telegram_share');
-      
-      toast({
-        title: "Task Completed!",
-        description: "You've earned 10 DMI coins for sharing our pinned post.",
-      });
-    } catch (error) {
-      console.error('Error completing Telegram share task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to complete the task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(prev => ({ ...prev, telegramShare: false }));
-    }
-  };
-
-  const handleYoutubeSubmit = async () => {
-    if (!user) return;
-    if (!youtubeLink) {
-      toast({
-        title: "Link Required",
-        description: "Please enter your YouTube video link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!youtubeLink.includes('youtube.com') && !youtubeLink.includes('youtu.be')) {
-      toast({
-        title: "Invalid Link",
-        description: "Please enter a valid YouTube video link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsSubmitting(prev => ({ ...prev, youtube: true }));
-    
-    try {
-      await onCompleteTask('youtube_video', { link: youtubeLink });
-      
-      setYoutubeLink('');
-      toast({
-        title: "Task Submitted!",
-        description: "Your YouTube video has been submitted for verification. You'll receive 500 DMI coins once verified.",
-      });
-    } catch (error) {
-      console.error('Error submitting YouTube task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit the task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(prev => ({ ...prev, youtube: false }));
-    }
-  };
-
-  const handleInstagramSubmit = async () => {
-    if (!user) return;
-    if (!instagramLink) {
-      toast({
-        title: "Link Required",
-        description: "Please enter your Instagram post link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!instagramLink.includes('instagram.com')) {
-      toast({
-        title: "Invalid Link",
-        description: "Please enter a valid Instagram post link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsSubmitting(prev => ({ ...prev, instagram: true }));
-    
-    try {
-      await onCompleteTask('instagram_post', { link: instagramLink });
-      
-      setInstagramLink('');
-      toast({
-        title: "Task Submitted!",
-        description: "Your Instagram post has been submitted for verification. You'll receive 100 DMI coins once verified.",
-      });
-    } catch (error) {
-      console.error('Error submitting Instagram task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit the task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(prev => ({ ...prev, instagram: false }));
-    }
-  };
-
-  const handleTwitterSubmit = async () => {
-    if (!user) return;
-    if (!twitterLink) {
-      toast({
-        title: "Link Required",
-        description: "Please enter your Twitter post link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!twitterLink.includes('twitter.com') && !twitterLink.includes('x.com')) {
-      toast({
-        title: "Invalid Link",
-        description: "Please enter a valid Twitter post link.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsSubmitting(prev => ({ ...prev, twitter: true }));
-    
-    try {
-      await onCompleteTask('twitter_post', { link: twitterLink });
-      
-      setTwitterLink('');
-      toast({
-        title: "Task Submitted!",
-        description: "Your Twitter post has been submitted for verification. You'll receive 50 DMI coins once verified.",
-      });
-    } catch (error) {
-      console.error('Error submitting Twitter task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit the task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(prev => ({ ...prev, twitter: false }));
-    }
-  };
-
+  
   return (
-    <div className="space-y-4">
-      {/* Warning Banner */}
-      <Card className="border-red-300 bg-red-50">
-        <CardContent className="p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-red-700">
-            <strong>IMPORTANT:</strong> Any user found attempting to cheat or abuse the rewards system will have their account permanently deleted without warning. DMI Network maintains a strict zero-tolerance policy for fraudulent activity.
-          </p>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-6">
+      {/* Warning banner */}
+      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
+        <div className="flex items-start">
+          <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <h3 className="font-medium text-amber-800">Anti-Fraud Warning</h3>
+            <p className="text-sm text-amber-700 mt-1">
+              Any attempt to cheat or submit fraudulent tasks will result in immediate account termination without warning. All submissions are manually verified.
+            </p>
+          </div>
+        </div>
+      </div>
+      
       {/* Telegram Join Task */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Telegram className="h-5 w-5 text-blue-500" />
-              Join Our Telegram Channel
-            </CardTitle>
-            <div className="text-sm font-semibold bg-blue-100 text-blue-700 py-1 px-2 rounded">
-              +10 DMI
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+              <MessageCircle className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Join our Telegram Channel</h2>
+              <p className="text-sm text-gray-500">Get 10 DMI coins for joining our official Telegram channel</p>
             </div>
           </div>
-          <CardDescription>
-            Join our official Telegram channel to stay updated
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="pt-2">
-          {completedTasks.includes('telegram_join') ? (
-            <Button disabled className="w-full bg-green-500 hover:bg-green-600">
-              <Check className="mr-2 h-4 w-4" /> Completed
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleTelegramJoin} 
-              disabled={isSubmitting.telegram}
-              className="w-full"
+          
+          <div className="flex items-center justify-between">
+            <a 
+              href="https://t.me/dminetwork" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 flex items-center text-sm font-medium"
             >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              {isSubmitting.telegram ? 'Processing...' : 'Join Telegram Channel'}
+              View Channel <ExternalLink className="h-4 w-4 ml-1" />
+            </a>
+            
+            <Button
+              onClick={() => onCompleteTask('telegram_join')}
+              disabled={completedTasks.includes('telegram_join')}
+              variant={completedTasks.includes('telegram_join') ? "outline" : "default"}
+            >
+              {completedTasks.includes('telegram_join') ? 'Completed' : 'Confirm Join'}
             </Button>
-          )}
-        </CardFooter>
-      </Card>
-
-      {/* Telegram Share Pinned Post Task */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Telegram className="h-5 w-5 text-blue-500" />
-              Share Pinned Post
-            </CardTitle>
-            <div className="text-sm font-semibold bg-blue-100 text-blue-700 py-1 px-2 rounded">
-              +10 DMI
+          </div>
+        </div>
+      </div>
+      
+      {/* Telegram Share Task */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+              <Share2 className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Share our Pinned Post</h2>
+              <p className="text-sm text-gray-500">Get 10 DMI coins for sharing our pinned post on Telegram</p>
             </div>
           </div>
-          <CardDescription>
-            Share our pinned post from the Telegram channel
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="pt-2">
-          {completedTasks.includes('telegram_share') ? (
-            <Button disabled className="w-full bg-green-500 hover:bg-green-600">
-              <Check className="mr-2 h-4 w-4" /> Completed
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleTelegramShare} 
-              disabled={isSubmitting.telegramShare || !completedTasks.includes('telegram_join')}
-              className="w-full"
+          
+          <div className="flex items-center justify-between">
+            <a 
+              href="https://t.me/dminetwork" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 flex items-center text-sm font-medium"
             >
-              {completedTasks.includes('telegram_join') ? 
-                (isSubmitting.telegramShare ? 'Processing...' : 'Confirm Share') : 
-                'Join Telegram First'}
+              View Pinned Post <ExternalLink className="h-4 w-4 ml-1" />
+            </a>
+            
+            <Button
+              onClick={() => onCompleteTask('telegram_share')}
+              disabled={completedTasks.includes('telegram_share')}
+              variant={completedTasks.includes('telegram_share') ? "outline" : "default"}
+            >
+              {completedTasks.includes('telegram_share') ? 'Completed' : 'Confirm Share'}
             </Button>
-          )}
-        </CardFooter>
-      </Card>
-
+          </div>
+        </div>
+      </div>
+      
       {/* YouTube Task */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Youtube className="h-5 w-5 text-red-500" />
-              Create YouTube Video
-            </CardTitle>
-            <div className="text-sm font-semibold bg-red-100 text-red-700 py-1 px-2 rounded">
-              +500 DMI
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+              <Youtube className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Create YouTube Video</h2>
+              <p className="text-sm text-gray-500">Get 500 DMI coins for creating and posting a video about DMI Network</p>
             </div>
           </div>
-          <CardDescription>
-            Create and upload a video about DMI Network on YouTube
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-2 pb-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter YouTube video link"
-              value={youtubeLink}
-              onChange={(e) => setYoutubeLink(e.target.value)}
-              disabled={completedTasks.includes('youtube_video')}
-            />
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              Create a video explaining the benefits of DMI Network
+            </span>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  disabled={completedTasks.includes('youtube_video')}
+                  variant={completedTasks.includes('youtube_video') ? "outline" : "default"}
+                  onClick={() => setCurrentTask('youtube_video')}
+                >
+                  {completedTasks.includes('youtube_video') ? 'Submitted' : 'Verify Video'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Submit YouTube Video</DialogTitle>
+                  <DialogDescription>
+                    Enter the URL of your YouTube video about DMI Network. This will be manually verified.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Input 
+                    placeholder="https://youtube.com/watch?v=..." 
+                    value={videoLink}
+                    onChange={(e) => setVideoLink(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleSubmitVideo} 
+                    disabled={!videoLink || isSubmitting}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-        <CardFooter className="pt-2">
-          {completedTasks.includes('youtube_video') ? (
-            <Button disabled className="w-full bg-green-500 hover:bg-green-600">
-              <Check className="mr-2 h-4 w-4" /> Completed
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleYoutubeSubmit} 
-              disabled={isSubmitting.youtube}
-              className="w-full"
-            >
-              {isSubmitting.youtube ? 'Processing...' : 'Verify YouTube Video'}
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-
+        </div>
+      </div>
+      
       {/* Instagram Task */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Instagram className="h-5 w-5 text-purple-500" />
-              Instagram Post
-            </CardTitle>
-            <div className="text-sm font-semibold bg-purple-100 text-purple-700 py-1 px-2 rounded">
-              +100 DMI
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+              <Instagram className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Share on Instagram</h2>
+              <p className="text-sm text-gray-500">Get 100 DMI coins for posting about DMI Network on Instagram</p>
             </div>
           </div>
-          <CardDescription>
-            Create and share a post about DMI Network on Instagram
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-2 pb-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter Instagram post link"
-              value={instagramLink}
-              onChange={(e) => setInstagramLink(e.target.value)}
-              disabled={completedTasks.includes('instagram_post')}
-            />
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              Post a reel or story about DMI Network
+            </span>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  disabled={completedTasks.includes('instagram_post')}
+                  variant={completedTasks.includes('instagram_post') ? "outline" : "default"}
+                  onClick={() => setCurrentTask('instagram_post')}
+                >
+                  {completedTasks.includes('instagram_post') ? 'Submitted' : 'Verify Post'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Submit Instagram Post</DialogTitle>
+                  <DialogDescription>
+                    Enter the URL of your Instagram post about DMI Network. This will be manually verified.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Input 
+                    placeholder="https://instagram.com/p/..." 
+                    value={videoLink}
+                    onChange={(e) => setVideoLink(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleSubmitVideo} 
+                    disabled={!videoLink || isSubmitting}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-        <CardFooter className="pt-2">
-          {completedTasks.includes('instagram_post') ? (
-            <Button disabled className="w-full bg-green-500 hover:bg-green-600">
-              <Check className="mr-2 h-4 w-4" /> Completed
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleInstagramSubmit} 
-              disabled={isSubmitting.instagram}
-              className="w-full"
-            >
-              {isSubmitting.instagram ? 'Processing...' : 'Verify Instagram Post'}
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-
+        </div>
+      </div>
+      
       {/* Twitter Task */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Twitter className="h-5 w-5 text-blue-400" />
-              Twitter Share
-            </CardTitle>
-            <div className="text-sm font-semibold bg-blue-100 text-blue-700 py-1 px-2 rounded">
-              +50 DMI
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+              <Twitter className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Share on Twitter</h2>
+              <p className="text-sm text-gray-500">Get 50 DMI coins for tweeting about DMI Network</p>
             </div>
           </div>
-          <CardDescription>
-            Share about DMI Network on Twitter
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-2 pb-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter Twitter post link"
-              value={twitterLink}
-              onChange={(e) => setTwitterLink(e.target.value)}
-              disabled={completedTasks.includes('twitter_post')}
-            />
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              Tweet about your experience with DMI Network
+            </span>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  disabled={completedTasks.includes('twitter_post')}
+                  variant={completedTasks.includes('twitter_post') ? "outline" : "default"}
+                  onClick={() => setCurrentTask('twitter_post')}
+                >
+                  {completedTasks.includes('twitter_post') ? 'Submitted' : 'Verify Tweet'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Submit Tweet</DialogTitle>
+                  <DialogDescription>
+                    Enter the URL of your tweet about DMI Network. This will be manually verified.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Input 
+                    placeholder="https://twitter.com/user/status/..." 
+                    value={videoLink}
+                    onChange={(e) => setVideoLink(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleSubmitVideo} 
+                    disabled={!videoLink || isSubmitting}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-        <CardFooter className="pt-2">
-          {completedTasks.includes('twitter_post') ? (
-            <Button disabled className="w-full bg-green-500 hover:bg-green-600">
-              <Check className="mr-2 h-4 w-4" /> Completed
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleTwitterSubmit} 
-              disabled={isSubmitting.twitter}
-              className="w-full"
-            >
-              {isSubmitting.twitter ? 'Processing...' : 'Verify Twitter Post'}
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
