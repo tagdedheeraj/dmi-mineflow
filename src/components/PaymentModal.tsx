@@ -1,16 +1,11 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { QrCode, ArrowLeft, Clock, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { formatDuration } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { miningPlans } from '@/data/miningPlans';
-import { useAuth } from '@/contexts/AuthContext';
-import { addUsdtTransaction } from '@/lib/firebase';
 
 interface PaymentModalProps {
   planId: string;
@@ -20,97 +15,180 @@ interface PaymentModalProps {
   onComplete: (transactionId: string) => void;
 }
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ 
-  planId, 
-  planName, 
-  planPrice, 
-  onClose, 
-  onComplete 
+const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
+const PAYMENT_TIMEOUT = 10 * 60; // 10 minutes in seconds
+
+const PaymentModal: React.FC<PaymentModalProps> = ({
+  planId,
+  planName,
+  planPrice,
+  onClose,
+  onComplete
 }) => {
-  const { user } = useAuth();
+  const [transactionId, setTransactionId] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState(PAYMENT_TIMEOUT);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
-  
-  const handlePaymentSuccess = async (transactionId: string) => {
-    try {
-      // Find the plan details
-      const plan = miningPlans.find(p => p.id === planId);
-      if (!plan) throw new Error('Plan not found');
-      
-      // Add initial daily earnings to user's USDT balance
-      await addUsdtTransaction(
-        user!.id,
-        plan.dailyEarnings,
-        'deposit',
-        `Initial earnings from ${plan.name}`,
-        Date.now()
-      );
-      
-      // Call the original onComplete handler
-      onComplete(transactionId);
-      
-      toast({
-        title: "Plan Activated!",
-        description: `You will receive ${plan.dailyEarnings} USDT daily for the next ${plan.duration} days.`,
+
+  useEffect(() => {
+    if (timeRemaining <= 0 || isSubmitted) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onClose();
+          toast({
+            title: "Payment time expired",
+            description: "The payment time has expired. Please try again.",
+            variant: "destructive"
+          });
+          return 0;
+        }
+        return prev - 1;
       });
-    } catch (error: any) {
-      console.error('Error processing payment:', error);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, onClose, isSubmitted, toast]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!transactionId.trim()) {
       toast({
-        title: "Error",
-        description: "Failed to process payment. Please try again.",
+        title: "Transaction ID Required",
+        description: "Please enter a valid transaction ID",
         variant: "destructive"
       });
+      return;
     }
+
+    setIsSubmitting(true);
+
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      
+      toast({
+        title: "Transaction submitted",
+        description: "Your payment is being processed. Your plan will activate shortly.",
+      });
+
+      setTimeout(() => {
+        onComplete(transactionId);
+      }, 2000);
+    }, 1500);
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Confirm Purchase</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to purchase the {planName} for ${planPrice}?
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="name" className="text-right text-sm font-medium text-gray-900">
-              Plan
-            </label>
-            <div className="col-span-3">
-              <input
-                type="text"
-                id="plan-name"
-                value={planName}
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled
-              />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in" style={{ overflowY: 'hidden' }}>
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+        {isSubmitted ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Check className="h-8 w-8 text-green-600" />
             </div>
+            <h3 className="text-xl font-semibold text-center">Payment Submitted</h3>
+            <p className="text-center text-gray-600 mt-2">
+              Your transaction is being processed. Your {planName} will activate shortly.
+            </p>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="username" className="text-right text-sm font-medium text-gray-900">
-              Price
-            </label>
-            <div className="col-span-3">
-              <input
-                type="text"
-                id="plan-price"
-                value={`$${planPrice}`}
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled
-              />
+        ) : (
+          <>
+            <div className="flex justify-between items-start mb-5">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-0 m-0 h-8" 
+                onClick={onClose}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <div className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                <Clock className="h-4 w-4 mr-1" />
+                <span className="text-sm font-medium">{formatDuration(timeRemaining)}</span>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" onClick={() => handlePaymentSuccess('fake-transaction-id')}>
-            Confirm Payment
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            <h3 className="text-lg font-semibold mb-2 text-center">
+              Pay {planPrice} USDT (BEP20)
+            </h3>
+            <p className="text-sm text-center text-gray-600 mb-4">
+              Send exactly {planPrice} USDT to the address below
+            </p>
+
+            <div className="flex justify-center mb-6">
+              <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
+                <img 
+                  src="/lovable-uploads/8db582c6-1930-4f4e-9750-4f993735a428.png" 
+                  alt="Payment QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-lg mb-5">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm text-gray-600">USDT Address (BEP20)</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 p-0 text-blue-600"
+                  onClick={() => {
+                    navigator.clipboard.writeText(USDT_ADDRESS);
+                    toast({
+                      title: "Address copied",
+                      description: "The USDT address has been copied to your clipboard",
+                    });
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs break-all font-mono bg-white p-2 rounded border border-gray-200">
+                {USDT_ADDRESS}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="mb-5">
+                <Label htmlFor="transaction-id" className="mb-1 block">Enter Transaction ID</Label>
+                <Input
+                  id="transaction-id"
+                  placeholder="Paste your transaction ID here"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  After sending the payment, paste your transaction ID to activate your plan
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={onClose}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Processing...' : 'Submit Payment'}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 

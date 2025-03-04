@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -7,7 +8,7 @@ import {
   signOut as firebaseSignOut,
   AuthErrorCodes
 } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp, increment } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -124,12 +125,6 @@ export const addUsdtTransaction = async (
       description,
       timestamp,
       createdAt: serverTimestamp()
-    });
-    
-    // Update user's USDT earnings
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      usdtEarnings: increment(amount)
     });
     
     console.log(`USDT transaction recorded for user ${userId}: ${type} ${amount}`);

@@ -14,8 +14,7 @@ import {
   saveActivePlan,
   updateUsdtEarnings,
   getLastUsdtUpdateDate,
-  updateLastUsdtUpdateDate,
-  addUsdtTransaction
+  updateLastUsdtUpdateDate
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
@@ -154,7 +153,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       activePlans.forEach(plan => {
         if (new Date() >= new Date(plan.expiresAt)) return;
         
-        const planInfo = miningPlans.find(p => p.id === plan.id);
+        const planInfo = plansData.find(p => p.id === plan.id);
         if (planInfo) {
           totalDailyEarnings += planInfo.dailyEarnings;
         }
@@ -162,21 +161,18 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       if (totalDailyEarnings > 0) {
         try {
-          await addUsdtTransaction(
-            user.id,
-            totalDailyEarnings,
-            'deposit',
-            'Daily mining plan earnings',
-            Date.now()
-          );
-          
-          await updateLastUsdtUpdateDate(user.id, today);
-          setLastUsdtEarningsUpdate(today);
-          
-          toast({
-            title: "Daily Earnings Added!",
-            description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
-          });
+          const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
+          if (updatedUser) {
+            updateUser(updatedUser);
+            
+            toast({
+              title: "Daily Earnings Added!",
+              description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
+            });
+            
+            await updateLastUsdtUpdateDate(user.id, today);
+            setLastUsdtEarningsUpdate(today);
+          }
         } catch (error) {
           console.error("Error processing daily USDT earnings:", error);
         }
@@ -188,7 +184,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
-  }, [user, activePlans, lastUsdtEarningsUpdate, toast]);
+  }, [user, activePlans, lastUsdtEarningsUpdate, updateUser, toast]);
 
   useEffect(() => {
     if (!currentMining || currentMining.status !== 'active') {
