@@ -17,6 +17,9 @@ const MiningCard: React.FC = () => {
 
   // Format the time remaining into hours:minutes:seconds
   const formattedTimeRemaining = formatDuration(timeRemaining);
+  
+  // Format mining rate to 2 decimal places for display
+  const formattedMiningRate = miningRate.toFixed(2);
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in">
@@ -43,7 +46,7 @@ const MiningCard: React.FC = () => {
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-xs text-gray-500">Mining Rate</p>
             <p className="text-xl font-semibold mt-1 text-gray-900">
-              {miningRate} <span className="text-sm font-medium text-gray-500">DMI/hr</span>
+              {formattedMiningRate} <span className="text-sm font-medium text-gray-500">DMI/hr</span>
             </p>
           </div>
         </div>
@@ -65,6 +68,9 @@ const MiningCard: React.FC = () => {
                 <Cpu className="h-8 w-8 text-dmi" />
               </div>
             </div>
+            <p className="text-center text-sm text-gray-600 mt-2">
+              Mining at {formattedMiningRate} DMI coins per hour
+            </p>
           </div>
         ) : (
           <Button 

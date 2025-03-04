@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -108,6 +109,37 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     loadLastUpdateDate();
   }, [user]);
+
+  // Effect to update the current mining session when active plans change
+  useEffect(() => {
+    const updateCurrentMiningRate = async () => {
+      if (!user || !currentMining || currentMining.status !== 'active') return;
+      
+      const newRate = calculateTotalMiningRate();
+      
+      // Only update if the rate has changed
+      if (newRate !== currentMining.rate) {
+        const updatedSession = {
+          ...currentMining,
+          rate: newRate
+        };
+        
+        try {
+          await saveCurrentMining(user.id, updatedSession);
+          setCurrentMining(updatedSession);
+          
+          toast({
+            title: "Mining Rate Updated",
+            description: `Your mining rate is now ${newRate.toFixed(2)} DMI coins per hour.`,
+          });
+        } catch (error) {
+          console.error("Error updating mining rate:", error);
+        }
+      }
+    };
+    
+    updateCurrentMiningRate();
+  }, [activePlans, calculateTotalMiningRate, currentMining, user, toast]);
 
   useEffect(() => {
     const checkMiningSession = async () => {
@@ -242,17 +274,18 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const intervalId = setInterval(updateProgress, 1000);
     
     return () => clearInterval(intervalId);
-  }, [currentMining, user, updateBalance]);
+  }, [currentMining, user, updateBalance, toast]);
 
   const startMining = useCallback(async () => {
     if (!user) return;
     
     const now = Date.now();
+    const currentRate = calculateTotalMiningRate();
     
     const newSession: MiningSession = {
       startTime: now,
       endTime: now + MINING_DURATION,
-      rate: miningRate,
+      rate: currentRate,
       earned: 0,
       status: 'active'
     };
@@ -267,7 +300,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       toast({
         title: "Mining Started",
-        description: "Your mining operation has begun. Check back in 24 hours!",
+        description: `Mining started at ${currentRate.toFixed(2)} DMI coins per hour.`,
       });
     } catch (error) {
       console.error("Error starting mining:", error);
@@ -277,7 +310,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         variant: "destructive",
       });
     }
-  }, [user, miningRate, toast]);
+  }, [user, calculateTotalMiningRate, toast]);
 
   const stopMining = useCallback(async () => {
     if (!user || !currentMining) return;
@@ -335,11 +368,14 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       setActivePlans(prev => [...prev, newPlan]);
       
+      // Update current mining session with new rate if one exists
       if (currentMining && currentMining.status === 'active') {
+        const newRate = calculateTotalMiningRate();
         const updatedSession = {
           ...currentMining,
-          rate: calculateTotalMiningRate(),
+          rate: newRate
         };
+        
         await saveCurrentMining(user.id, updatedSession);
         setCurrentMining(updatedSession);
       }
