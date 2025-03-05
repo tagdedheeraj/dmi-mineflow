@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Zap, Check, ArrowRight, Info } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, formatCurrency } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,6 +17,7 @@ const MiningPlans: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
+  // Calculate daily, weekly, and monthly earnings from all active plans
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
@@ -45,14 +47,8 @@ const MiningPlans: React.FC = () => {
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
-  const totalBoost = activePlans.reduce((total, plan) => {
-    if (new Date() < new Date(plan.expiresAt)) {
-      return total * plan.boostMultiplier;
-    }
-    return total;
-  }, 1);
-  
-  const boostPercentage = Math.round((totalBoost * 100) - 100);
+  // Calculate total boost percentage for display
+  const boostPercentage = Math.round((miningRate * 100) - 100);
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
