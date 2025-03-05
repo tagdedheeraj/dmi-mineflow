@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
   Share2,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({
   const [videoLink, setVideoLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | null>(null);
+  const { toast } = useToast();
   
   const handleSubmitVideo = async () => {
     if (!videoLink || !currentTask) return;
@@ -46,6 +48,25 @@ const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({
       console.error('Error submitting video:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTelegramTask = async (taskId: string) => {
+    const telegramUrl = 'https://t.me/dminetwork';
+    
+    try {
+      // Complete the task in the background
+      await onCompleteTask(taskId);
+      
+      // Then redirect to Telegram
+      window.open(telegramUrl, '_blank');
+    } catch (error) {
+      console.error(`Error completing ${taskId}:`, error);
+      toast({
+        title: "Error",
+        description: "Could not complete task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -88,11 +109,11 @@ const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({
             </a>
             
             <Button
-              onClick={() => onCompleteTask('telegram_join')}
+              onClick={() => handleTelegramTask('telegram_join')}
               disabled={completedTasks.includes('telegram_join')}
               variant={completedTasks.includes('telegram_join') ? "outline" : "default"}
             >
-              {completedTasks.includes('telegram_join') ? 'Completed' : 'Confirm Join'}
+              {completedTasks.includes('telegram_join') ? 'Completed' : 'Complete Task'}
             </Button>
           </div>
         </div>
@@ -122,11 +143,11 @@ const SocialMediaTasks: React.FC<SocialMediaTasksProps> = ({
             </a>
             
             <Button
-              onClick={() => onCompleteTask('telegram_share')}
+              onClick={() => handleTelegramTask('telegram_share')}
               disabled={completedTasks.includes('telegram_share')}
               variant={completedTasks.includes('telegram_share') ? "outline" : "default"}
             >
-              {completedTasks.includes('telegram_share') ? 'Completed' : 'Confirm Share'}
+              {completedTasks.includes('telegram_share') ? 'Completed' : 'Complete Task'}
             </Button>
           </div>
         </div>
