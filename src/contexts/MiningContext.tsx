@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -172,6 +173,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     checkMiningSession();
   }, [user, toast]);
 
+  // Enhanced USDT earnings update with notifications for each plan
   useEffect(() => {
     if (!user || activePlans.length === 0) return;
     
@@ -181,6 +183,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (lastUsdtEarningsUpdate === today) return;
       
       let totalDailyEarnings = 0;
+      const earningDetails: {planName: string; amount: number}[] = [];
       
       for (const plan of activePlans) {
         if (new Date() >= new Date(plan.expiresAt)) continue;
@@ -188,6 +191,10 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const planInfo = plansData.find(p => p.id === plan.id);
         if (planInfo) {
           totalDailyEarnings += planInfo.dailyEarnings;
+          earningDetails.push({
+            planName: planInfo.name,
+            amount: planInfo.dailyEarnings
+          });
         }
       }
       
@@ -197,10 +204,21 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (updatedUser) {
             updateUser(updatedUser);
             
-            toast({
-              title: "Daily Earnings Added!",
-              description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance from your mining plans.`,
+            // Send individual notifications for each plan
+            earningDetails.forEach(detail => {
+              toast({
+                title: `Daily Earnings from ${detail.planName}`,
+                description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
+              });
             });
+            
+            // Send a summary notification
+            if (earningDetails.length > 1) {
+              toast({
+                title: "Total Daily Earnings Added!",
+                description: `$${totalDailyEarnings.toFixed(2)} USDT has been added from all your mining plans.`,
+              });
+            }
             
             await updateLastUsdtUpdateDate(user.id, today);
             setLastUsdtEarningsUpdate(today);
@@ -213,6 +231,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     processDailyUsdtEarnings();
     
+    // Check for daily updates every hour
     const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
@@ -368,20 +387,30 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setActivePlans(prev => [...prev, newPlan]);
       
       const planInfo = plansData.find(p => p.id === planId);
-      if (planInfo && planInfo.dailyEarnings > 0) {
-        const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
-        if (updatedUser) {
-          updateUser(updatedUser);
-          
-          toast({
-            title: "First Day's Earnings Added!",
-            description: `${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance immediately.`,
-          });
+      if (planInfo) {
+        // Add immediate first day's earnings
+        if (planInfo.dailyEarnings > 0) {
+          const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
+          if (updatedUser) {
+            updateUser(updatedUser);
+            
+            toast({
+              title: `${planInfo.name} Plan Activated!`,
+              description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance immediately as your first day's earnings.`,
+            });
+          }
         }
+        
+        // Notification for mining boost
+        toast({
+          title: "Mining Boost Activated",
+          description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days from the ${planInfo.name} plan.`,
+        });
       }
       
+      // Update current mining session with new rate if active
       if (currentMining && currentMining.status === 'active') {
-        const newRate = calculateTotalMiningRate();
+        const newRate = calculateTotalMiningRate() * boostMultiplier;
         const updatedSession = {
           ...currentMining,
           rate: newRate
@@ -389,15 +418,16 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         
         await saveCurrentMining(user.id, updatedSession);
         setCurrentMining(updatedSession);
+        
+        toast({
+          title: "Mining Speed Updated",
+          description: `Your mining speed is now ${newRate.toFixed(2)}x faster!`,
+        });
       }
       
       await updateLastUsdtUpdateDate(user.id, new Date().toISOString());
       setLastUsdtEarningsUpdate(new Date().toISOString());
       
-      toast({
-        title: "Mining Boost Activated",
-        description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days.`,
-      });
     } catch (error) {
       console.error("Error updating mining boost:", error);
       toast({
