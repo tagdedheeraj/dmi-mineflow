@@ -8,13 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
-import { updateUsdtEarnings } from '@/lib/storage';
+import { updateUsdtEarnings } from '@/lib/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost } = useMining();
-  const { updateUser } = useAuth();
+  const { updateMiningBoost, activePlans } = useMining();
+  const { user, updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -23,26 +23,56 @@ const MiningPlans: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handlePaymentComplete = (transactionId: string) => {
-    if (!selectedPlan) return;
+  const handlePaymentComplete = async (transactionId: string) => {
+    if (!selectedPlan || !user) return;
     
     setShowPaymentModal(false);
     
-    // In a real implementation, this would verify the transaction server-side
-    // For now, we'll simulate purchase success
-    toast({
-      title: "Plan activated!",
-      description: `Your ${selectedPlan.name} has been successfully activated.`,
-    });
-    
-    // Add initial daily earnings to user's USDT balance
-    const updatedUser = updateUsdtEarnings(selectedPlan.dailyEarnings);
-    if (updatedUser) {
-      updateUser(updatedUser);
+    try {
+      // First add to user's existing USDT earnings (not replace)
+      const initialDailyEarning = selectedPlan.dailyEarnings;
+      
+      // Update USDT balance by adding the earnings to existing balance
+      const currentUsdtEarnings = user.usdtEarnings || 0;
+      const updatedUser = await updateUsdtEarnings(user.id, initialDailyEarning);
+      
+      if (updatedUser) {
+        updateUser(updatedUser);
+        
+        // Update mining boost
+        await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+        
+        // Calculate current total mining boost after this plan
+        let totalBoost = 1; // Base rate
+        let totalDailyEarnings = initialDailyEarning;
+        
+        // Calculate total from existing active plans
+        activePlans.forEach(plan => {
+          if (new Date() < new Date(plan.expiresAt)) {
+            const planInfo = miningPlans.find(p => p.id === plan.id);
+            if (planInfo) {
+              totalBoost += (planInfo.miningBoost - 1); // Add the boost (minus 1 to avoid double counting)
+              totalDailyEarnings += planInfo.dailyEarnings;
+            }
+          }
+        });
+        
+        // Add this plan's boost
+        totalBoost += (selectedPlan.miningBoost - 1);
+        
+        toast({
+          title: "Plan activated!",
+          description: `Your ${selectedPlan.name} has been successfully activated. Mining speed is now ${totalBoost.toFixed(2)}x and you'll get ${totalDailyEarnings.toFixed(2)} USDT daily for ${selectedPlan.duration} days.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error activating plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to activate plan. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    // Update mining boost
-    updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
   return (

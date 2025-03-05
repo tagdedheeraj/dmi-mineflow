@@ -67,7 +67,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     activePlans.forEach(plan => {
       if (new Date() < new Date(plan.expiresAt)) {
-        totalRate *= plan.boostMultiplier;
+        totalRate += (plan.boostMultiplier - 1); // Add the boost (minus 1 to avoid double counting the base)
       }
     });
     
@@ -193,17 +193,20 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       if (totalDailyEarnings > 0) {
         try {
-          const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
-          if (updatedUser) {
-            updateUser(updatedUser);
-            
-            toast({
-              title: "Daily Earnings Added!",
-              description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
-            });
-            
-            await updateLastUsdtUpdateDate(user.id, today);
-            setLastUsdtEarningsUpdate(today);
+          // Update user's USDT earnings by adding new earnings to existing earnings
+          if (user && user.usdtEarnings !== undefined) {
+            const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
+            if (updatedUser) {
+              updateUser(updatedUser);
+              
+              toast({
+                title: "Daily Earnings Added!",
+                description: `${totalDailyEarnings.toFixed(2)} USDT has been added to your balance.`,
+              });
+              
+              await updateLastUsdtUpdateDate(user.id, today);
+              setLastUsdtEarningsUpdate(today);
+            }
           }
         } catch (error) {
           console.error("Error processing daily USDT earnings:", error);
@@ -254,6 +257,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addToMiningHistory(user.id, completedSession);
         
         if (user) {
+          // Add to existing balance instead of replacing
           updateBalance(user.balance + finalEarnings);
         }
         
@@ -330,6 +334,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await clearCurrentMining(currentMining.id!);
       await addToMiningHistory(user.id, completedSession);
       
+      // Add to existing balance instead of replacing
       await updateBalance(user.balance + earnedCoins);
       
       setCurrentMining(null);
@@ -382,7 +387,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       toast({
         title: "Mining Boost Activated",
-        description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days.`,
+        description: `Your mining speed is now increased to ${calculateTotalMiningRate().toFixed(2)}x for ${duration} days.`,
       });
     } catch (error) {
       console.error("Error updating mining boost:", error);
