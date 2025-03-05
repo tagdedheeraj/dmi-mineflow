@@ -55,26 +55,6 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
- * Calculate daily, weekly, and monthly earnings from active plans
- */
-export function calculateEarningsFromPlans(activePlans: any[], plansData: any[]) {
-  const dailyEarnings = activePlans.reduce((total, plan) => {
-    // Only count plans that haven't expired
-    if (new Date() < new Date(plan.expiresAt)) {
-      const planInfo = plansData.find(p => p.id === plan.id);
-      return total + (planInfo?.dailyEarnings || 0);
-    }
-    return total;
-  }, 0);
-  
-  return {
-    daily: dailyEarnings,
-    weekly: dailyEarnings * 7,
-    monthly: dailyEarnings * 30
-  };
-}
-
-/**
  * Returns a formatted date string
  */
 export function formatDate(date: Date | string | number): string {
