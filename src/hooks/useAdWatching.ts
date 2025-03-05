@@ -144,7 +144,7 @@ export const useAdWatching = () => {
     setIsAdComplete(true);
     
     try {
-      // Update user's balance (add 1 DMI coin)
+      // Update user's balance (add 1 DMI coin) - using increment method instead of setting to 1
       const updatedUser = await updateUserBalance(user.id, 1);
       if (updatedUser) {
         updateUser(updatedUser);

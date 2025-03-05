@@ -1,4 +1,3 @@
-
 import { 
   db, 
   auth,
@@ -15,7 +14,8 @@ import {
   query, 
   where, 
   getDocs, 
-  serverTimestamp 
+  serverTimestamp,
+  increment
 } from 'firebase/firestore';
 import { User } from './storage';
 
@@ -159,12 +159,14 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
   }
 };
 
-// Update user balance
+// Update user balance - MODIFIED to use increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
     const userRef = doc(db, 'users', userId);
+    
+    // Use the increment() function from Firestore to add the amount to the existing balance
     await updateDoc(userRef, {
-      balance: amount
+      balance: increment(amount)
     });
     
     // Fetch and return the updated user
