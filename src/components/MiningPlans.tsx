@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Zap, Check, ArrowRight } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
@@ -12,10 +12,19 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost } = useMining();
+  const { updateMiningBoost, activePlans } = useMining();
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // Calculate current active plans' daily, weekly, and monthly earnings
+  const currentDailyEarnings = activePlans.reduce((total, plan) => {
+    const planInfo = miningPlans.find(p => p.id === plan.id);
+    return total + (planInfo?.dailyEarnings || 0);
+  }, 0);
+  
+  const currentWeeklyEarnings = currentDailyEarnings * 7;
+  const currentMonthlyEarnings = currentDailyEarnings * 30;
 
   const handlePurchase = (plan: MiningPlan) => {
     setSelectedPlan(plan);
@@ -39,6 +48,14 @@ const MiningPlans: React.FC = () => {
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
+  // Calculate total mining speed boost from all active plans
+  const totalBoost = activePlans.reduce((total, plan) => {
+    return total * plan.boostMultiplier;
+  }, 1);
+  
+  // Format boost as percentage
+  const boostPercentage = Math.round((totalBoost * 100) - 100);
+
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
       <div className="p-6">
@@ -61,7 +78,29 @@ const MiningPlans: React.FC = () => {
               <p className="text-lg font-medium">Faster mining means more earnings</p>
             </div>
             <div className="bg-yellow-500/20 text-yellow-700 px-3 py-1 rounded-md font-semibold">
-              2000% Boost
+              {boostPercentage}% Boost
+            </div>
+          </div>
+        </div>
+        
+        {/* USDT Earnings from Plans */}
+        <div className="mt-6 bg-green-50 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-sm font-medium text-green-700">USDT Earnings from Plans</p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-gray-500">Daily</p>
+              <p className="text-green-600 font-bold">${currentDailyEarnings.toFixed(2)}</p>
+            </div>
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-gray-500">Weekly</p>
+              <p className="text-green-600 font-bold">${currentWeeklyEarnings.toFixed(2)}</p>
+            </div>
+            <div className="bg-white p-2 rounded shadow-sm">
+              <p className="text-xs text-gray-500">Monthly</p>
+              <p className="text-green-600 font-bold">${currentMonthlyEarnings.toFixed(2)}</p>
             </div>
           </div>
         </div>
