@@ -35,7 +35,7 @@ const Plans: React.FC = () => {
       
       {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Mining Plans & Boosters</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Arbitrage Plans & DMI Booster</h1>
         
         <div className="mb-6 bg-yellow-50 border border-yellow-100 rounded-lg p-4">
           <h2 className="text-lg font-medium text-yellow-800 mb-2">Boost Your Mining Speed</h2>
@@ -45,9 +45,9 @@ const Plans: React.FC = () => {
           </p>
         </div>
         
-        {/* Premium Mining Plans section */}
+        {/* Arbitrage Plans section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Premium Mining Plans</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Arbitrage Plans</h2>
           <MiningPlans />
         </div>
         

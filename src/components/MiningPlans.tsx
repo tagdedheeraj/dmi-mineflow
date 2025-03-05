@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,10 +16,8 @@ const MiningPlans: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
-  // Calculate current active plans' daily, weekly, and monthly earnings
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
-    // Only include earnings from plans that haven't expired
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
       return total + planInfo.dailyEarnings;
     }
@@ -40,28 +37,21 @@ const MiningPlans: React.FC = () => {
     
     setShowPaymentModal(false);
     
-    // In a real implementation, this would verify the transaction server-side
-    // For now, we'll simulate purchase success
     toast({
       title: "Plan activated!",
       description: `Your ${selectedPlan.name} has been successfully activated.`,
     });
     
-    // Update mining boost with the correct parameters from the plan
-    // This will trigger the daily USDT earnings calculation in the MiningContext
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
-  // Calculate total mining speed boost from all active plans
   const totalBoost = activePlans.reduce((total, plan) => {
-    // Only include active plans that haven't expired
     if (new Date() < new Date(plan.expiresAt)) {
       return total * plan.boostMultiplier;
     }
     return total;
   }, 1);
   
-  // Format boost as percentage
   const boostPercentage = Math.round((totalBoost * 100) - 100);
 
   return (
@@ -69,9 +59,9 @@ const MiningPlans: React.FC = () => {
       <div className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Mining Plans</h3>
+            <h3 className="text-lg font-medium text-gray-900">Arbitrage Plans</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Boost your mining speed and increase your earnings with our premium mining plans.
+              Boost your mining speed and increase your earnings with our premium arbitrage plans.
             </p>
           </div>
           <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
@@ -96,7 +86,6 @@ const MiningPlans: React.FC = () => {
           </div>
         </div>
         
-        {/* USDT Earnings from Plans */}
         <div className="mt-6 bg-green-50 rounded-lg p-4">
           <div className="flex justify-between items-center mb-3">
             <p className="text-sm font-medium text-green-700">USDT Earnings from Plans</p>
@@ -127,7 +116,6 @@ const MiningPlans: React.FC = () => {
 
         <div className="mt-6 grid grid-cols-1 gap-4">
           {miningPlans.map((plan) => {
-            // Check if this plan is already active
             const isActive = activePlans.some(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
             
             return (
@@ -183,7 +171,6 @@ const MiningPlans: React.FC = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
       {showPaymentModal && selectedPlan && (
         <PaymentModal
           planId={selectedPlan.id}
