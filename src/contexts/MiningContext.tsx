@@ -63,19 +63,22 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const baseMiningRate = 1;
   
+  // Calculate total mining rate from all active plans - using ADDITION for boosts
   const calculateTotalMiningRate = useCallback(() => {
-    let totalRate = baseMiningRate;
+    let totalBoost = baseMiningRate;
     
     // Filter for active plans that haven't expired
     const validPlans = activePlans.filter(plan => new Date() < new Date(plan.expiresAt));
     
     if (validPlans.length > 0) {
+      // Calculate total boost by ADDING all boosts together (not multiplying)
       validPlans.forEach(plan => {
-        totalRate *= plan.boostMultiplier;
+        // We add the boost minus 1 (since boost is a multiplier)
+        totalBoost += (plan.boostMultiplier - 1);
       });
     }
     
-    return totalRate;
+    return totalBoost;
   }, [activePlans, baseMiningRate]);
   
   const miningRate = calculateTotalMiningRate();
@@ -403,10 +406,13 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         }
         
+        // Calculate total mining rate after adding new plan
+        const newMiningRate = calculateTotalMiningRate() + (boostMultiplier - 1);
+        
         // Notification for mining boost
         toast({
           title: "Mining Boost Activated",
-          description: `Your mining speed is now increased by ${boostMultiplier}x for ${duration} days from the ${planInfo.name} plan.`,
+          description: `Your mining speed is now increased to ${newMiningRate.toFixed(2)}x from the ${planInfo.name} plan.`,
         });
       }
       
