@@ -15,7 +15,8 @@ import {
   saveActivePlan,
   updateUsdtEarnings,
   getLastUsdtUpdateDate,
-  updateLastUsdtUpdateDate
+  updateLastUsdtUpdateDate,
+  getUser
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
