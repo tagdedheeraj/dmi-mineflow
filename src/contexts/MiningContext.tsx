@@ -66,6 +66,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const calculateTotalMiningRate = useCallback(() => {
     let totalRate = baseMiningRate;
     
+    // Filter for active plans that haven't expired
     const validPlans = activePlans.filter(plan => new Date() < new Date(plan.expiresAt));
     
     if (validPlans.length > 0) {
@@ -185,6 +186,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let totalDailyEarnings = 0;
       const earningDetails: {planName: string; amount: number}[] = [];
       
+      // Only process active plans that haven't expired
       for (const plan of activePlans) {
         if (new Date() >= new Date(plan.expiresAt)) continue;
         
@@ -410,7 +412,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       // Update current mining session with new rate if active
       if (currentMining && currentMining.status === 'active') {
-        const newRate = calculateTotalMiningRate() * boostMultiplier;
+        const newRate = calculateTotalMiningRate();
         const updatedSession = {
           ...currentMining,
           rate: newRate
@@ -425,8 +427,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
       
-      await updateLastUsdtUpdateDate(user.id, new Date().toISOString());
-      setLastUsdtEarningsUpdate(new Date().toISOString());
+      await updateLastUsdtUpdateDate(user.id, new Date().toISOString().split('T')[0]);
+      setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
       
     } catch (error) {
       console.error("Error updating mining boost:", error);

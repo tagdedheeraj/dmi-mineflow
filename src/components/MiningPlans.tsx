@@ -20,7 +20,11 @@ const MiningPlans: React.FC = () => {
   // Calculate current active plans' daily, weekly, and monthly earnings
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
-    return total + (planInfo?.dailyEarnings || 0);
+    // Only include earnings from plans that haven't expired
+    if (planInfo && new Date() < new Date(plan.expiresAt)) {
+      return total + planInfo.dailyEarnings;
+    }
+    return total;
   }, 0);
   
   const currentWeeklyEarnings = currentDailyEarnings * 7;
@@ -50,7 +54,11 @@ const MiningPlans: React.FC = () => {
 
   // Calculate total mining speed boost from all active plans
   const totalBoost = activePlans.reduce((total, plan) => {
-    return total * plan.boostMultiplier;
+    // Only include active plans that haven't expired
+    if (new Date() < new Date(plan.expiresAt)) {
+      return total * plan.boostMultiplier;
+    }
+    return total;
   }, 1);
   
   // Format boost as percentage
@@ -111,7 +119,7 @@ const MiningPlans: React.FC = () => {
           
           {activePlans.length > 0 && (
             <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
-              <p className="font-medium">Active Plans: {activePlans.length}</p>
+              <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
               <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
             </div>
           )}
