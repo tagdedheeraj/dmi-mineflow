@@ -1,3 +1,4 @@
+
 import { 
   db, 
   auth,
@@ -159,6 +160,34 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
   }
 };
 
+// Function to get the last USDT earnings update date
+export const getLastUsdtUpdateDate = async (userId: string): Promise<string | null> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists() && userDoc.data().lastUsdtEarningsUpdate) {
+      return userDoc.data().lastUsdtEarningsUpdate;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting last USDT update date:", error);
+    return null;
+  }
+};
+
+// Function to update the last USDT earnings update date
+export const updateLastUsdtUpdateDate = async (userId: string, date: string): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      lastUsdtEarningsUpdate: date
+    });
+  } catch (error) {
+    console.error("Error updating last USDT update date:", error);
+  }
+};
+
 // Update user balance - MODIFIED to use increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
@@ -191,5 +220,107 @@ export const getUser = async (userId: string): Promise<User | null> => {
   } catch (error) {
     console.error("Error fetching user:", error);
     return null;
+  }
+};
+
+// Function to update USDT earnings
+export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    
+    // Use increment to add the amount to existing USDT earnings
+    await updateDoc(userRef, {
+      usdtEarnings: increment(amount)
+    });
+    
+    // Log the transaction
+    await addUsdtTransaction(
+      userId,
+      amount,
+      'deposit',
+      'Daily plan earnings',
+      Date.now()
+    );
+    
+    console.log(`Added ${amount} USDT to user ${userId}'s earnings from plan`);
+    
+    // Fetch and return the updated user
+    return await getUser(userId);
+  } catch (error) {
+    console.error("Error updating USDT earnings:", error);
+    return null;
+  }
+};
+
+// Function to process daily USDT earnings for all active plans
+export const processDailyUsdtEarnings = async (
+  userId: string, 
+  activePlans: any[], 
+  plansData: any[]
+): Promise<{
+  success: boolean;
+  totalAmount: number;
+  details: {planName: string; amount: number}[];
+}> => {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const lastUpdateDate = await getLastUsdtUpdateDate(userId);
+    
+    // If already updated today, return without processing
+    if (lastUpdateDate === today) {
+      return {
+        success: true,
+        totalAmount: 0,
+        details: []
+      };
+    }
+    
+    let totalDailyEarnings = 0;
+    const earningDetails: {planName: string; amount: number}[] = [];
+    
+    // Process active plans that haven't expired
+    for (const plan of activePlans) {
+      if (new Date() >= new Date(plan.expiresAt)) continue;
+      
+      const planInfo = plansData.find((p: any) => p.id === plan.id);
+      if (planInfo) {
+        totalDailyEarnings += planInfo.dailyEarnings;
+        earningDetails.push({
+          planName: planInfo.name,
+          amount: planInfo.dailyEarnings
+        });
+      }
+    }
+    
+    if (totalDailyEarnings > 0) {
+      // Update user's USDT earnings
+      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
+      if (updatedUser) {
+        // Update the last update date
+        await updateLastUsdtUpdateDate(userId, today);
+        
+        return {
+          success: true,
+          totalAmount: totalDailyEarnings,
+          details: earningDetails
+        };
+      }
+    } else {
+      // Even if there are no earnings, update the date to avoid checking again today
+      await updateLastUsdtUpdateDate(userId, today);
+    }
+    
+    return {
+      success: totalDailyEarnings > 0,
+      totalAmount: totalDailyEarnings,
+      details: earningDetails
+    };
+  } catch (error) {
+    console.error("Error processing daily USDT earnings:", error);
+    return {
+      success: false,
+      totalAmount: 0,
+      details: []
+    };
   }
 };
