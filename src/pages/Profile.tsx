@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +20,9 @@ import {
   Mail, 
   FileText,
   ExternalLink,
-  IdCard
+  IdCard,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import { 
   setupPinAuth, 
@@ -29,13 +30,17 @@ import {
   getAuthPreferences 
 } from '@/lib/secureStorage';
 import { useToast } from '@/hooks/use-toast';
+import { updateAppSettings } from '@/lib/firestore';
 
 const Profile: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin, appSettings } = useAuth();
   const navigate = useNavigate();
   const [pin, setPin] = useState<string>("");
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [newVersion, setNewVersion] = useState<string>("");
+  const [newUpdateUrl, setNewUpdateUrl] = useState<string>("");
+  const [isEditingAppSettings, setIsEditingAppSettings] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,6 +48,13 @@ const Profile: React.FC = () => {
     const prefs = getAuthPreferences();
     setBiometricEnabled(!!prefs.biometricEnabled);
   }, []);
+
+  useEffect(() => {
+    if (appSettings) {
+      setNewVersion(appSettings.version);
+      setNewUpdateUrl(appSettings.updateUrl);
+    }
+  }, [appSettings]);
 
   if (!user) {
     navigate('/signin');
@@ -99,6 +111,29 @@ const Profile: React.FC = () => {
 
   const handleContactSupport = () => {
     window.location.href = "mailto:dmi@dminetwork.us";
+  };
+
+  const handleUpdate = () => {
+    window.open(appSettings.updateUrl, '_blank');
+  };
+
+  const handleSaveAppSettings = async () => {
+    if (isAdmin) {
+      const success = await updateAppSettings(newVersion, newUpdateUrl);
+      if (success) {
+        toast({
+          title: "Settings Updated",
+          description: "App version and update URL have been updated successfully.",
+        });
+        setIsEditingAppSettings(false);
+      } else {
+        toast({
+          title: "Update Failed",
+          description: "Failed to update app settings.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   return (
@@ -171,6 +206,77 @@ const Profile: React.FC = () => {
                       Active
                     </p>
                   </div>
+                </div>
+                
+                {/* App Version and Update Section */}
+                <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center text-gray-600">
+                      <Download className="h-4 w-4 mr-2" />
+                      <span className="text-sm">App Version</span>
+                    </div>
+                    {isAdmin && !isEditingAppSettings && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setIsEditingAppSettings(true)}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {isAdmin && isEditingAppSettings ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="app-version">App Version</Label>
+                        <Input
+                          id="app-version"
+                          value={newVersion}
+                          onChange={(e) => setNewVersion(e.target.value)}
+                          placeholder="1.0.0"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="update-url">Update URL</Label>
+                        <Input
+                          id="update-url"
+                          value={newUpdateUrl}
+                          onChange={(e) => setNewUpdateUrl(e.target.value)}
+                          placeholder="https://dminetwork.us"
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={handleSaveAppSettings}>
+                          Save Changes
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsEditingAppSettings(false);
+                            setNewVersion(appSettings.version);
+                            setNewUpdateUrl(appSettings.updateUrl);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-gray-900 font-medium mb-2">
+                        {appSettings.version}
+                      </p>
+                      <Button 
+                        className="w-full" 
+                        onClick={handleUpdate}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Update Now
+                      </Button>
+                    </>
+                  )}
                 </div>
                 
                 <div className="mb-6">

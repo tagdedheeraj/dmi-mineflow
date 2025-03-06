@@ -8,17 +8,25 @@ import {
 import { 
   getUser as getFirestoreUser, 
   saveUser as saveFirestoreUser,
-  registerAccountOnDevice
+  registerAccountOnDevice,
+  getAppSettings
 } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, AuthError } from 'firebase/auth';
+
+// Add AppSettings interface
+interface AppSettings {
+  version: string;
+  updateUrl: string;
+}
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   isAdmin: boolean;
+  appSettings: AppSettings;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (fullName: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -32,6 +40,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   isAdmin: false,
+  appSettings: { version: '1.0.0', updateUrl: 'https://dminetwork.us' },
   signIn: async () => {},
   signUp: async () => {},
   signOut: () => {},
@@ -49,8 +58,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [appSettings, setAppSettings] = useState<AppSettings>({ 
+    version: '1.0.0', 
+    updateUrl: 'https://dminetwork.us' 
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Fetch app settings
+  useEffect(() => {
+    const fetchAppSettings = async () => {
+      try {
+        const settings = await getAppSettings();
+        if (settings) {
+          setAppSettings(settings);
+        }
+      } catch (error) {
+        console.error("Error fetching app settings:", error);
+      }
+    };
+    
+    fetchAppSettings();
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -366,6 +395,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         loading,
         isAdmin,
+        appSettings,
         signIn,
         signUp,
         signOut,
