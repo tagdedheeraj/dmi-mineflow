@@ -18,9 +18,10 @@ import SearchBar from '@/components/admin/SearchBar';
 import WithdrawalTabs from '@/components/admin/WithdrawalTabs';
 import RejectionDialog from '@/components/admin/RejectionDialog';
 import RejectionDetailsDialog from '@/components/admin/RejectionDetailsDialog';
+import AppSettingsPanel from '@/components/admin/AppSettingsPanel';
 
 const Admin: React.FC = () => {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, signOut, appSettings } = useAuth();
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [pendingRequests, setPendingRequests] = useState<WithdrawalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,6 +151,13 @@ const Admin: React.FC = () => {
       <AdminHeader user={user} signOut={signOut} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* App Settings Panel */}
+        <AppSettingsPanel 
+          currentVersion={appSettings.version}
+          currentUpdateUrl={appSettings.updateUrl}
+          onSettingsUpdated={loadWithdrawalRequests}
+        />
+        
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-6">Withdrawal Requests Management</h2>
           
