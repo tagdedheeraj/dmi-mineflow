@@ -46,9 +46,10 @@ export const useMiningPlans = () => {
         prev.map(p => p.id === planId ? planUpdated : p)
       );
       
-      // Update the user info
+      // Update the user info with most current data from storage
       const updatedUser = getUser();
       if (updatedUser) {
+        console.log('Updated user after claim:', updatedUser);
         updateUser(updatedUser);
       }
       
