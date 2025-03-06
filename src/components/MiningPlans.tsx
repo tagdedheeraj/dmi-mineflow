@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info } from 'lucide-react';
+import { Zap, Check, ArrowRight, Info, Clock, RefreshCw } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
@@ -11,10 +12,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate } = useMining();
+  const { updateMiningBoost, activePlans, miningRate, claimPlanEarnings, getPlanClaimTime } = useMining();
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [claimTimers, setClaimTimers] = useState<{[key: string]: string}>({});
   
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
@@ -44,6 +46,30 @@ const MiningPlans: React.FC = () => {
     
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
+
+  const handleClaimEarnings = (planId: string) => {
+    claimPlanEarnings(planId);
+  };
+
+  // Update claim timers every second
+  useEffect(() => {
+    const updateTimers = () => {
+      const newTimers: {[key: string]: string} = {};
+      
+      activePlans.forEach(plan => {
+        const { canClaim, formattedTimeRemaining } = getPlanClaimTime(plan.id);
+        if (!canClaim) {
+          newTimers[plan.id] = formattedTimeRemaining;
+        }
+      });
+      
+      setClaimTimers(newTimers);
+    };
+    
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
+  }, [activePlans, getPlanClaimTime]);
 
   const totalBoost = activePlans.reduce((total, plan) => {
     if (new Date() < new Date(plan.expiresAt)) {
@@ -109,14 +135,17 @@ const MiningPlans: React.FC = () => {
           {activePlans.length > 0 && (
             <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
               <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-              <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+              <p className="text-xs mt-1">You can claim daily USDT earnings from each active plan</p>
             </div>
           )}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4">
           {miningPlans.map((plan) => {
-            const isActive = activePlans.some(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
+            const activePlan = activePlans.find(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
+            const isActive = !!activePlan;
+            const { canClaim } = activePlan ? getPlanClaimTime(plan.id) : { canClaim: false };
+            const countdown = claimTimers[plan.id] || "";
             
             return (
               <div key={plan.id} className={`border rounded-lg p-4 transition-all hover:shadow-md ${isActive ? 'border-green-300 bg-green-50' : 'border-gray-100'}`}>
@@ -158,13 +187,47 @@ const MiningPlans: React.FC = () => {
                   <p className="mt-2 text-xs text-red-500 font-medium">{plan.limitedTo}</p>
                 )}
                 
-                <Button 
-                  className="w-full mt-4 flex justify-center items-center space-x-2"
-                  onClick={() => handlePurchase(plan)}
-                >
-                  <span>{isActive ? 'Purchase Again' : 'Purchase Now'}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                {/* Show claim button or purchase button */}
+                {isActive ? (
+                  <div className="mt-4">
+                    {canClaim ? (
+                      <Button 
+                        className="w-full mt-2 flex justify-center items-center space-x-2 bg-green-600 hover:bg-green-700"
+                        onClick={() => handleClaimEarnings(plan.id)}
+                      >
+                        <span>Claim ${plan.dailyEarnings} USDT</span>
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <div>
+                        <Button 
+                          className="w-full mt-2 flex justify-center items-center space-x-2"
+                          variant="outline"
+                          disabled
+                        >
+                          <Clock className="h-4 w-4 mr-1" />
+                          <span>Next claim in: {countdown}</span>
+                        </Button>
+                      </div>
+                    )}
+                    <Button 
+                      className="w-full mt-2 flex justify-center items-center space-x-2"
+                      onClick={() => handlePurchase(plan)}
+                      variant="secondary"
+                    >
+                      <span>Purchase Again</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    className="w-full mt-4 flex justify-center items-center space-x-2"
+                    onClick={() => handlePurchase(plan)}
+                  >
+                    <span>Purchase Now</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             );
           })}
