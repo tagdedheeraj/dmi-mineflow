@@ -1,17 +1,18 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info } from 'lucide-react';
+import { Zap, Check, ArrowRight, Info, Clock } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, formatDuration } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate } = useMining();
+  const { updateMiningBoost, activePlans, miningRate, nextEarningsUpdate, timeToNextEarningsUpdate } = useMining();
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -53,6 +54,17 @@ const MiningPlans: React.FC = () => {
   }, 1);
   
   const boostPercentage = Math.round((totalBoost * 100) - 100);
+  
+  // Format next earnings update time
+  const formatNextUpdate = () => {
+    if (!nextEarningsUpdate) return 'No active plans';
+    
+    const nextUpdateDate = new Date(nextEarningsUpdate);
+    const hours = nextUpdateDate.getHours().toString().padStart(2, '0');
+    const minutes = nextUpdateDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${nextUpdateDate.toLocaleDateString()} at ${hours}:${minutes}`;
+  };
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
@@ -89,6 +101,12 @@ const MiningPlans: React.FC = () => {
         <div className="mt-6 bg-green-50 rounded-lg p-4">
           <div className="flex justify-between items-center mb-3">
             <p className="text-sm font-medium text-green-700">USDT Earnings from Plans</p>
+            {nextEarningsUpdate && (
+              <div className="flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                <span>Next update: {formatDuration(timeToNextEarningsUpdate)}</span>
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -109,7 +127,12 @@ const MiningPlans: React.FC = () => {
           {activePlans.length > 0 && (
             <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
               <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-              <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+              <p className="text-xs mt-1">
+                You receive daily USDT earnings from each active plan. 
+                {nextEarningsUpdate && (
+                  <span> Next update on {formatNextUpdate()}</span>
+                )}
+              </p>
             </div>
           )}
         </div>

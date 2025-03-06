@@ -1,3 +1,4 @@
+
 /**
  * Local storage service to persist user and mining data
  */
@@ -33,6 +34,7 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  nextEarningUpdate?: number; // Timestamp for next earning update
 }
 
 export interface DeviceRegistration {
@@ -47,6 +49,8 @@ const STORAGE_KEYS = {
   MINING_HISTORY: 'dmi_mining_history',
   ACTIVE_PLANS: 'dmi_active_plans',
   DEVICE_REGISTRATIONS: 'dmi_device_registrations',
+  LAST_EARNINGS_UPDATE: 'dmi_last_earnings_update',
+  NEXT_EARNINGS_UPDATE: 'dmi_next_earnings_update',
 };
 
 // Generate a unique device ID
@@ -193,8 +197,39 @@ export const getActivePlans = (): ActivePlan[] => {
 
 export const saveActivePlan = (plan: ActivePlan): void => {
   const plans = getActivePlans();
-  plans.push(plan);
+  
+  // Check if plan already exists
+  const existingPlanIndex = plans.findIndex(p => p.id === plan.id && p.purchasedAt === plan.purchasedAt);
+  
+  if (existingPlanIndex >= 0) {
+    // Update existing plan
+    plans[existingPlanIndex] = plan;
+  } else {
+    // Add new plan
+    plans.push(plan);
+  }
+  
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+// Earnings countdown timer
+export const getNextEarningsUpdateTime = (): number | null => {
+  const nextUpdateJson = localStorage.getItem(STORAGE_KEYS.NEXT_EARNINGS_UPDATE);
+  return nextUpdateJson ? JSON.parse(nextUpdateJson) : null;
+};
+
+export const setNextEarningsUpdateTime = (timestamp: number): void => {
+  localStorage.setItem(STORAGE_KEYS.NEXT_EARNINGS_UPDATE, JSON.stringify(timestamp));
+};
+
+export const updatePlanNextEarningTime = (planId: string, nextUpdateTime: number): void => {
+  const plans = getActivePlans();
+  const planIndex = plans.findIndex(p => p.id === planId);
+  
+  if (planIndex >= 0) {
+    plans[planIndex].nextEarningUpdate = nextUpdateTime;
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  }
 };
 
 // Check if mining should be active
