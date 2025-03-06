@@ -36,8 +36,18 @@ export const updateUsdtEarnings = (amount: number): User | null => {
   const user = getUser();
   if (!user) return null;
   
-  console.log(`Updating USDT earnings with amount: $${amount}`);
-  user.usdtEarnings = (user.usdtEarnings || 0) + amount;
+  console.log(`Updating USDT earnings: Current: $${user.usdtEarnings || 0}, Adding: $${amount}`);
+  
+  // Initialize usdtEarnings if it doesn't exist
+  if (user.usdtEarnings === undefined) {
+    user.usdtEarnings = 0;
+  }
+  
+  // Add the exact amount (daily earnings)
+  user.usdtEarnings += amount;
+  
+  console.log(`New USDT earnings: $${user.usdtEarnings}`);
+  
   saveUser(user);
   return user;
 };

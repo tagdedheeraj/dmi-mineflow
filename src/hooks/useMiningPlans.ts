@@ -38,9 +38,9 @@ export const useMiningPlans = () => {
     const planInfo = plansData.find(p => p.id === planId);
     if (!planInfo) return;
     
-    console.log(`Claiming daily earnings for plan ${planId}: $${planInfo.dailyEarnings}`);
+    console.log(`Attempting to claim daily earnings for plan ${planId}: $${planInfo.dailyEarnings}`);
     
-    // Make sure we pass the daily earnings amount, not the plan price
+    // 확실하게 일일 수익 금액을 전달해야 합니다
     const { success, planUpdated } = claimPlanUsdtEarnings(planId, planInfo.dailyEarnings);
     
     if (success && planUpdated) {
@@ -53,6 +53,7 @@ export const useMiningPlans = () => {
       const updatedUser = getUser();
       if (updatedUser) {
         console.log('Updated user after claim:', updatedUser);
+        console.log('USDT Earnings after claim:', updatedUser.usdtEarnings);
         updateUser(updatedUser);
       }
       
