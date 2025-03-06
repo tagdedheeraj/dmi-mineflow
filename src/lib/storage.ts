@@ -4,30 +4,27 @@
 
 export interface User {
   id: string;
-  email: string;
   fullName: string;
+  email: string;
   balance: number;
-  usdtEarnings?: number;
+  createdAt: number;
   usdtAddress?: string;
+  usdtEarnings?: number;
+  deviceId?: string;
+  suspended?: boolean;
+  suspendedReason?: string;
   referralCode?: string;
   appliedReferralCode?: string;
   referredBy?: string;
-  suspended?: boolean;
-  suspendedReason?: string;
-  device_id?: string;
-  admin?: boolean;
-  dmiPoints?: number;
 }
 
 export interface MiningSession {
-  id?: string;
-  userId?: string;
+  id?: string;  // Add the id property which can be optional (for new sessions)
   startTime: number;
   endTime: number;
   rate: number;
   earned: number;
-  status: 'active' | 'completed' | 'cancelled';
-  createdAt?: Timestamp;
+  status: 'active' | 'completed' | 'pending';
 }
 
 export interface ActivePlan {
@@ -36,41 +33,12 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
-  lastClaimed?: string; // Timestamp of when user last claimed daily USDT
-}
-
-export interface MiningHistoryItem {
-  id: string;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  earned: number;
-  completedAt: string;
 }
 
 export interface DeviceRegistration {
   deviceId: string;
   accountIds: string[];
   firstAccountCreatedAt: number;
-}
-
-export interface PasswordReset {
-  email: string;
-  token: string;
-  expiresAt: number;
-}
-
-export interface TaskCompletion {
-  userId: string;
-  taskId: string;
-  completedAt: number;
-  reward: number;
-}
-
-export interface DMIPoints {
-  userId: string;
-  points: number;
-  updatedAt: number;
 }
 
 const STORAGE_KEYS = {
@@ -202,12 +170,12 @@ export const clearCurrentMining = (): void => {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_MINING);
 };
 
-export const getMiningHistory = (): MiningHistoryItem[] => {
+export const getMiningHistory = (): MiningSession[] => {
   const historyJson = localStorage.getItem(STORAGE_KEYS.MINING_HISTORY);
   return historyJson ? JSON.parse(historyJson) : [];
 };
 
-export const addToMiningHistory = (session: MiningHistoryItem): void => {
+export const addToMiningHistory = (session: MiningSession): void => {
   const history = getMiningHistory();
   history.push(session);
   localStorage.setItem(STORAGE_KEYS.MINING_HISTORY, JSON.stringify(history));
