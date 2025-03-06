@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -85,20 +86,23 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const MINING_DURATION = 24 * 60 * 60 * 1000;
 
-  useEffect(() => {
-    const loadActivePlans = async () => {
-      if (!user) return;
+  // Load active plans when user changes or manually
+  const loadActivePlans = useCallback(async () => {
+    if (!user) return;
       
-      try {
-        const plans = await getActivePlans(user.id);
-        setActivePlans(plans);
-      } catch (error) {
-        console.error("Error loading active plans:", error);
-      }
-    };
-    
-    loadActivePlans();
+    try {
+      console.log("Loading active plans for user:", user.id);
+      const plans = await getActivePlans(user.id);
+      console.log("Loaded active plans:", plans);
+      setActivePlans(plans);
+    } catch (error) {
+      console.error("Error loading active plans:", error);
+    }
   }, [user]);
+
+  useEffect(() => {
+    loadActivePlans();
+  }, [loadActivePlans]);
 
   useEffect(() => {
     const loadLastUpdateDate = async () => {
@@ -370,6 +374,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user) return;
     
     try {
+      console.log(`Updating mining boost: ${boostMultiplier}x for ${duration} days, plan ID: ${planId}`);
       const now = new Date();
       const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
       
@@ -382,6 +387,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       await saveActivePlan(user.id, newPlan);
+      console.log("Plan saved to database:", newPlan);
+      
+      // Immediately update the local state to reflect the new plan
       setActivePlans(prev => [...prev, newPlan]);
       
       const planInfo = plansData.find(p => p.id === planId);
@@ -422,6 +430,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       await updateLastUsdtUpdateDate(user.id, new Date().toISOString().split('T')[0]);
       setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
+
+      // Force reload active plans to ensure they appear immediately
+      await loadActivePlans();
       
     } catch (error) {
       console.error("Error updating mining boost:", error);
@@ -431,7 +442,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         variant: "destructive",
       });
     }
-  }, [user, calculateTotalMiningRate, currentMining, toast, updateUser]);
+  }, [user, calculateTotalMiningRate, currentMining, toast, updateUser, loadActivePlans]);
 
   const canClaimPlan = useCallback((plan: ActivePlan): boolean => {
     if (new Date() >= new Date(plan.expiresAt)) return false;
@@ -450,8 +461,12 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user) return false;
     
     try {
+      console.log("Attempting to claim USDT for plan ID:", planId);
+      console.log("Active plans:", activePlans);
+      
       const planIndex = activePlans.findIndex(p => p.id === planId);
       if (planIndex === -1) {
+        console.error("Plan not found with ID:", planId);
         toast({
           title: "Claim Failed",
           description: "Plan not found.",
@@ -461,6 +476,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       
       const plan = activePlans[planIndex];
+      console.log("Found plan:", plan);
       
       if (!canClaimPlan(plan)) {
         toast({
@@ -473,6 +489,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       const planInfo = plansData.find(p => p.id === plan.id);
       if (!planInfo) {
+        console.error("Plan information not found for ID:", plan.id);
+        console.log("Available plans:", plansData.map(p => p.id));
         toast({
           title: "Claim Failed",
           description: "Plan information not found.",
@@ -481,6 +499,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return false;
       }
       
+      console.log("Found plan info:", planInfo);
       const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
       if (!updatedUser) {
         toast({
@@ -497,6 +516,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const updatedPlan = await updateActivePlan(user.id, planId, { lastClaimed: now });
       
       if (updatedPlan) {
+        console.log("Updated plan with claim timestamp:", updatedPlan);
+        
+        // Update the local state
         const updatedPlans = [...activePlans];
         updatedPlans[planIndex] = { ...updatedPlans[planIndex], lastClaimed: now };
         setActivePlans(updatedPlans);

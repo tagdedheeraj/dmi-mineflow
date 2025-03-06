@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,6 +74,12 @@ const Wallet: React.FC = () => {
     }
   }, [user, location.pathname]);
 
+  useEffect(() => {
+    // Add a debug log to check active plans when component mounts
+    console.log("Active plans in Wallet:", activePlans);
+    console.log("Valid active plans:", validActivePlans);
+  }, [activePlans, validActivePlans]);
+
   const loadWithdrawalRequests = async () => {
     if (!user) return;
     
@@ -122,16 +127,48 @@ const Wallet: React.FC = () => {
   };
 
   const handleClaimUsdt = async (planId: string) => {
+    console.log("Claiming USDT for plan:", planId);
     setClaimingPlanId(planId);
     try {
-      console.log("Claiming USDT for plan ID:", planId);
-      console.log("Available plans:", activePlans.map(p => p.id));
+      const plan = activePlans.find(p => p.id === planId);
+      console.log("Plan found:", plan);
+      
+      if (!plan) {
+        console.error("Plan not found:", planId);
+        toast({
+          title: "Claim Failed",
+          description: "Plan not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const planInfo = miningPlans.find(p => p.id === planId);
+      console.log("Plan info found:", planInfo);
+      
+      if (!planInfo) {
+        console.error("Plan info not found for ID:", planId);
+        toast({
+          title: "Claim Failed",
+          description: "Plan information not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const success = await claimDailyUsdt(planId);
+      console.log("Claim result:", success);
+      
       if (!success) {
         console.log("Failed to claim USDT");
       }
     } catch (error) {
       console.error("Error claiming USDT:", error);
+      toast({
+        title: "Claim Failed",
+        description: "An error occurred while claiming USDT.",
+        variant: "destructive",
+      });
     } finally {
       setClaimingPlanId(null);
     }
@@ -428,7 +465,7 @@ const Wallet: React.FC = () => {
           </div>
         </div>
         
-        {hasActiveArbitragePlans && (
+        {validActivePlans.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
             <div className="border-b border-gray-100 p-5">
               <div className="flex items-center">
@@ -450,7 +487,14 @@ const Wallet: React.FC = () => {
                     const canClaim = canClaimPlan(plan);
                     const nextClaimTime = getNextClaimTime(plan);
                     
-                    if (!planInfo) return null;
+                    if (!planInfo) {
+                      console.error("No plan info found for plan ID:", plan.id);
+                      return (
+                        <div key={plan.id} className="bg-red-50 rounded-lg p-4">
+                          <p>Plan information missing. ID: {plan.id}</p>
+                        </div>
+                      );
+                    }
                     
                     return (
                       <div key={plan.id} className="bg-gray-50 rounded-lg p-4">

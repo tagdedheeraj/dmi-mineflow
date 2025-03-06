@@ -18,6 +18,12 @@ const MiningPlans: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [claimingPlanId, setClaimingPlanId] = useState<string | null>(null);
   
+  // Debug log to check active plans when component loads
+  useEffect(() => {
+    console.log("Active plans in MiningPlans:", activePlans);
+    console.log("Available mining plans:", miningPlans);
+  }, [activePlans]);
+  
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
@@ -30,6 +36,7 @@ const MiningPlans: React.FC = () => {
   const currentMonthlyEarnings = currentDailyEarnings * 30;
 
   const handlePurchase = (plan: MiningPlan) => {
+    console.log("Selected plan for purchase:", plan);
     setSelectedPlan(plan);
     setShowPaymentModal(true);
   };
@@ -37,6 +44,7 @@ const MiningPlans: React.FC = () => {
   const handlePaymentComplete = (transactionId: string) => {
     if (!selectedPlan) return;
     
+    console.log("Payment completed, activating plan:", selectedPlan);
     setShowPaymentModal(false);
     
     toast({
@@ -44,12 +52,19 @@ const MiningPlans: React.FC = () => {
       description: `Your ${selectedPlan.name} has been successfully activated.`,
     });
     
+    // Ensure plan gets added to active plans
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+    
+    // Refresh the page to make sure the plan shows up immediately
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
   
   const handleClaimUsdt = async (planId: string) => {
     setClaimingPlanId(planId);
     try {
+      console.log("Claiming USDT for plan:", planId);
       const success = await claimDailyUsdt(planId);
       if (!success) {
         console.log("Failed to claim USDT");
@@ -159,7 +174,14 @@ const MiningPlans: React.FC = () => {
                 const canClaim = canClaimPlan(plan);
                 const nextClaimTime = getNextClaimTime(plan);
                 
-                if (!planInfo) return null;
+                if (!planInfo) {
+                  console.error("No plan info found for plan ID:", plan.id);
+                  return (
+                    <div key={plan.id} className="border border-red-200 bg-red-50 rounded-lg p-4">
+                      <p>Plan information missing. ID: {plan.id}</p>
+                    </div>
+                  );
+                }
                 
                 return (
                   <div key={plan.id} className="border border-green-200 bg-green-50 rounded-lg p-4">
