@@ -1,17 +1,20 @@
 
-import {
-  getDocs,
+import { 
+  collection,
   query,
   where,
+  getDocs,
   addDoc,
-  updateDoc
+  updateDoc,
+  serverTimestamp
 } from "firebase/firestore";
-import { deviceRegistrationsCollection } from "../firebase";
-import type { DeviceRegistration } from '../storage/types';
+import { db } from "../firebase";
+import type { DeviceRegistration } from '../storage';
 
 // Device registration operations
 export const getDeviceRegistrations = async (deviceId: string): Promise<DeviceRegistration | null> => {
   try {
+    const deviceRegistrationsCollection = collection(db, 'device_registrations');
     const q = query(deviceRegistrationsCollection, where("deviceId", "==", deviceId));
     const querySnapshot = await getDocs(q);
     
@@ -27,6 +30,7 @@ export const getDeviceRegistrations = async (deviceId: string): Promise<DeviceRe
 
 export const saveDeviceRegistration = async (registration: DeviceRegistration): Promise<void> => {
   try {
+    const deviceRegistrationsCollection = collection(db, 'device_registrations');
     const q = query(deviceRegistrationsCollection, where("deviceId", "==", registration.deviceId));
     const querySnapshot = await getDocs(q);
     

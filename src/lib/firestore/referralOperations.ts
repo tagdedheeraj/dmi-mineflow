@@ -1,18 +1,19 @@
 
 import { 
   doc, 
+  setDoc, 
   getDoc, 
   updateDoc, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
   collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
   serverTimestamp,
-  doc as docRef
+  docRef
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { updateUserBalance } from './userOperations';
+import { updateUserBalance } from "./userOperations";
 
 // Referral operations
 export const generateReferralCode = (userId: string): string => {
@@ -105,7 +106,7 @@ export const getReferredUsers = async (userId: string): Promise<any[]> => {
     
     for (const doc of querySnapshot.docs) {
       const data = doc.data();
-      const referredUserRef = await getDoc(docRef(db, 'users', data.referredId));
+      const referredUserRef = await getDoc(doc(db, 'users', data.referredId));
       
       if (referredUserRef.exists()) {
         const userData = referredUserRef.data();

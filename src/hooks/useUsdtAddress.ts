@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress as setUserUsdtAddress } from '@/lib/firestore';
+import { setUsdtAddress } from '@/lib/firestore';
 import { User } from '@/lib/storage/types';
 
 export function useUsdtAddress(user: User | null, updateUser: (user: User) => void) {
@@ -22,7 +22,7 @@ export function useUsdtAddress(user: User | null, updateUser: (user: User) => vo
     }
 
     try {
-      const updatedUser = await setUserUsdtAddress(user.id, usdtAddress);
+      const updatedUser = await setUsdtAddress(user.id, usdtAddress);
       if (updatedUser) {
         updateUser(updatedUser);
         setIsSettingAddress(false);

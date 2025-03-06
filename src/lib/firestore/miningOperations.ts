@@ -1,20 +1,22 @@
 
 import { 
   doc, 
-  getDoc, 
   updateDoc, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
   serverTimestamp
 } from "firebase/firestore";
-import { db, miningSessionsCollection } from "../firebase";
-import type { MiningSession } from '../storage/types';
-import { updateUserBalance } from './userOperations';
+import { db } from "../firebase";
+import type { MiningSession } from '../storage';
+import { updateUserBalance } from "./userOperations";
 
+// Mining operations
 export const getCurrentMining = async (userId: string): Promise<MiningSession | null> => {
   try {
+    const miningSessionsCollection = collection(db, 'mining_sessions');
     const q = query(
       miningSessionsCollection, 
       where("userId", "==", userId),
@@ -38,6 +40,7 @@ export const saveCurrentMining = async (userId: string, session: MiningSession):
   try {
     // Include user ID in the session data
     const sessionWithUserId = { ...session, userId };
+    const miningSessionsCollection = collection(db, 'mining_sessions');
     
     if (session.id) {
       // Update existing session
@@ -80,6 +83,7 @@ export const clearCurrentMining = async (sessionId: string): Promise<void> => {
 
 export const getMiningHistory = async (userId: string): Promise<MiningSession[]> => {
   try {
+    const miningSessionsCollection = collection(db, 'mining_sessions');
     const q = query(
       miningSessionsCollection, 
       where("userId", "==", userId),
@@ -100,6 +104,7 @@ export const getMiningHistory = async (userId: string): Promise<MiningSession[]>
 
 export const addToMiningHistory = async (userId: string, session: MiningSession): Promise<void> => {
   try {
+    const miningSessionsCollection = collection(db, 'mining_sessions');
     await addDoc(miningSessionsCollection, {
       ...session,
       userId,

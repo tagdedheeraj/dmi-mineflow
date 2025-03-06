@@ -1,12 +1,13 @@
+
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/lib/storage/types';
 import { 
-  saveUser as saveFirestoreUser,
-  registerAccountOnDevice 
+  saveUser,
+  registerAccountOnDevice,
+  getDeviceId
 } from '@/lib/firestore';
 import { createUserWithEmail } from '@/lib/firebase';
-import { getDeviceId } from '@/lib/firestore';
 
 export function useSignUp(setUser: (user: User | null) => void) {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export function useSignUp(setUser: (user: User | null) => void) {
         deviceId,
       };
       
-      await saveFirestoreUser(newUser);
+      await saveUser(newUser);
       setUser(newUser);
       
       toast({

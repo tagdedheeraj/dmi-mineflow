@@ -1,17 +1,19 @@
 
 import { 
-  addDoc,
-  getDocs,
+  collection,
   query,
   where,
+  getDocs,
+  addDoc,
   serverTimestamp
 } from "firebase/firestore";
-import { db, plansCollection } from "../firebase";
-import type { ActivePlan } from '../storage/types';
+import { db } from "../firebase";
+import type { ActivePlan } from '../storage';
 
 // Plans operations
 export const getActivePlans = async (userId: string): Promise<ActivePlan[]> => {
   try {
+    const plansCollection = collection(db, 'plans');
     const q = query(plansCollection, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
     
@@ -31,6 +33,7 @@ export const getActivePlans = async (userId: string): Promise<ActivePlan[]> => {
 
 export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<void> => {
   try {
+    const plansCollection = collection(db, 'plans');
     await addDoc(plansCollection, {
       ...plan,
       userId,

@@ -1,10 +1,10 @@
+
 import { 
   db, 
   auth,
   addUsdtTransaction
 } from './firebase';
 import { 
-  getFirestore, 
   doc, 
   getDoc, 
   setDoc, 
@@ -18,7 +18,7 @@ import {
   increment
 } from 'firebase/firestore';
 import { User } from './storage';
-import { updateUserBalance as updateFirestoreUserBalance, getUser as getFirestoreUser } from './firestore';
+import { updateUserBalance, getUser } from './firestore';
 
 // Function to get today's date in YYYY-MM-DD format
 export const getTodayDateKey = () => {
@@ -163,7 +163,7 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
 // Update user balance - MODIFIED to use increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
-    return await updateFirestoreUserBalance(userId, amount);
+    return await updateUserBalance(userId, amount);
   } catch (error) {
     console.error("Error updating user balance:", error);
     return null;
@@ -173,7 +173,7 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
 // Get user data
 export const getUser = async (userId: string): Promise<User | null> => {
   try {
-    return await getFirestoreUser(userId);
+    return await getUser(userId);
   } catch (error) {
     console.error("Error fetching user:", error);
     return null;

@@ -1,13 +1,14 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/lib/storage/types';
 import { 
-  getUser as getFirestoreUser, 
-  saveUser as saveFirestoreUser 
+  getUser, 
+  saveUser,
+  getDeviceId
 } from '@/lib/firestore';
 import { signInWithEmail, signOutUser } from '@/lib/firebase';
-import { getDeviceId } from '@/lib/firestore';
 import { ADMIN_EMAIL } from './types';
 
 export function useSignIn(
@@ -44,7 +45,7 @@ export function useSignIn(
       }
       
       // Fetch user from Firestore
-      const firestoreUser = await getFirestoreUser(firebaseUser.uid);
+      const firestoreUser = await getUser(firebaseUser.uid);
       console.log("AuthContext: Firestore user retrieved:", firestoreUser?.id || "not found");
       
       if (firestoreUser) {
@@ -64,7 +65,7 @@ export function useSignIn(
           ...firestoreUser,
           deviceId
         };
-        await saveFirestoreUser(updatedUser);
+        await saveUser(updatedUser);
         setUser(updatedUser);
       } else {
         // Create a new user profile if it doesn't exist
@@ -76,7 +77,7 @@ export function useSignIn(
           createdAt: Date.now(),
           deviceId: getDeviceId(),
         };
-        await saveFirestoreUser(newUser);
+        await saveUser(newUser);
         setUser(newUser);
       }
       

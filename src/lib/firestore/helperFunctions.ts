@@ -1,5 +1,22 @@
 
-// This file contains helper functions that don't fit in the other categories
-// It can be expanded in the future as needed
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
-// Export any other miscellaneous functions that were in the original firestore.ts
+// Helper function for tracking updates
+export const trackDBUpdate = async (
+  userId: string, 
+  updateType: string, 
+  updateData: any
+): Promise<void> => {
+  try {
+    const updatesRef = doc(db, 'updates_log', `${userId}_${updateType}_${Date.now()}`);
+    await setDoc(updatesRef, {
+      userId,
+      type: updateType,
+      data: updateData,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error(`Error tracking ${updateType} update:`, error);
+  }
+};

@@ -4,10 +4,15 @@ import {
   setDoc, 
   getDoc, 
   updateDoc, 
-  increment
+  increment, 
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "../firebase";
-import type { User } from '../storage/types';
+import type { User } from '../storage';
 
 // User operations
 export const getUser = async (userId: string): Promise<User | null> => {
@@ -79,7 +84,6 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
   }
 };
 
-// Helper function to track daily earnings updates
 export const getLastUsdtUpdateDate = async (userId: string): Promise<string | null> => {
   try {
     const userRef = doc(db, 'users', userId);

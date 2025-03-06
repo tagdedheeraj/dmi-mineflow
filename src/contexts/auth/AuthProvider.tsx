@@ -3,8 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { User } from '@/lib/storage/types';
-import { getUser as getFirestoreUser, saveUser as saveFirestoreUser } from '@/lib/firestore';
-import { getDeviceId } from '@/lib/firestore';
+import { getUser, saveUser, getDeviceId } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthOperations } from './useAuthOperations';
 import { useUserOperations } from './useUserOperations';
@@ -52,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // User is signed in
         try {
           // First check if we have the user in Firestore
-          const firestoreUser = await getFirestoreUser(firebaseUser.uid);
+          const firestoreUser = await getUser(firebaseUser.uid);
           console.log("Firestore user:", firestoreUser);
           
           // Check if this is the admin account
@@ -85,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               deviceId: getDeviceId(),
             };
             setUser(newUser);
-            await saveFirestoreUser(newUser);
+            await saveUser(newUser);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);

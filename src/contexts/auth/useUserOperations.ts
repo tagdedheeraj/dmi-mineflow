@@ -1,7 +1,7 @@
 
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/lib/storage/types';
-import { saveUser as saveFirestoreUser } from '@/lib/firestore';
+import { saveUser } from '@/lib/firestore';
 
 export function useUserOperations(
   user: User | null,
@@ -12,13 +12,13 @@ export function useUserOperations(
   const updateBalance = async (newBalance: number) => {
     if (user) {
       const updatedUser = { ...user, balance: newBalance };
-      await saveFirestoreUser(updatedUser);
+      await saveUser(updatedUser);
       setUser(updatedUser);
     }
   };
   
   const updateUser = (updatedUser: User) => {
-    saveFirestoreUser(updatedUser)
+    saveUser(updatedUser)
       .then(() => {
         setUser(updatedUser);
       })
