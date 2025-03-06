@@ -33,6 +33,7 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  lastClaimedAt?: string; // Track when USDT was last claimed for this plan
 }
 
 export interface DeviceRegistration {
@@ -195,6 +196,63 @@ export const saveActivePlan = (plan: ActivePlan): void => {
   const plans = getActivePlans();
   plans.push(plan);
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+// New function: Set the last claimed time for a specific plan
+export const updatePlanLastClaimedTime = (planId: string): ActivePlan | null => {
+  const plans = getActivePlans();
+  const planIndex = plans.findIndex(plan => plan.id === planId);
+  
+  if (planIndex === -1) return null;
+  
+  // Update the last claimed time to now
+  plans[planIndex].lastClaimedAt = new Date().toISOString();
+  
+  // Save updated plans
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  
+  return plans[planIndex];
+};
+
+// New function: Check if a plan can be claimed (24 hours have passed since last claim)
+export const canClaimPlan = (planId: string): boolean => {
+  const plans = getActivePlans();
+  const plan = plans.find(p => p.id === planId);
+  
+  if (!plan) return false;
+  
+  // If never claimed before, allow claiming
+  if (!plan.lastClaimedAt) return true;
+  
+  const lastClaimedDate = new Date(plan.lastClaimedAt);
+  const currentDate = new Date();
+  
+  // Calculate time difference in hours
+  const hoursSinceLastClaim = (currentDate.getTime() - lastClaimedDate.getTime()) / (1000 * 60 * 60);
+  
+  // Can claim if 24 hours have passed
+  return hoursSinceLastClaim >= 24;
+};
+
+// New function: Get time remaining until next claim is possible (in seconds)
+export const getTimeUntilNextClaim = (planId: string): number => {
+  const plans = getActivePlans();
+  const plan = plans.find(p => p.id === planId);
+  
+  if (!plan || !plan.lastClaimedAt) return 0;
+  
+  const lastClaimedDate = new Date(plan.lastClaimedAt);
+  const currentDate = new Date();
+  
+  // 24 hours in milliseconds
+  const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+  
+  // Calculate when next claim is available
+  const nextClaimTime = lastClaimedDate.getTime() + twentyFourHoursMs;
+  
+  // Calculate remaining time in seconds
+  const remainingMs = Math.max(0, nextClaimTime - currentDate.getTime());
+  return Math.floor(remainingMs / 1000);
 };
 
 // Check if mining should be active

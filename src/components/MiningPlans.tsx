@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
@@ -15,6 +17,7 @@ const MiningPlans: React.FC = () => {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const navigate = useNavigate();
   
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
@@ -43,6 +46,11 @@ const MiningPlans: React.FC = () => {
     });
     
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+    
+    // Navigate to wallet page after a short delay to see the active plan
+    setTimeout(() => {
+      navigate('/wallet');
+    }, 1500);
   };
 
   const totalBoost = activePlans.reduce((total, plan) => {

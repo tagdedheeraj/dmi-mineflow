@@ -32,6 +32,7 @@ interface MiningContextType {
   isMining: boolean;
   activePlans: ActivePlan[];
   updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
+  claimDailyUsdt: (planId: string, amount: number) => Promise<void>; // New method for manual claims
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -45,6 +46,7 @@ const MiningContext = createContext<MiningContextType>({
   isMining: false,
   activePlans: [],
   updateMiningBoost: () => {},
+  claimDailyUsdt: async () => {}, // Default empty implementation
 });
 
 export const useMining = () => useContext(MiningContext);
@@ -446,6 +448,58 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user, calculateTotalMiningRate, currentMining, toast, updateUser]);
 
+  // New method to manually claim daily USDT earnings for a specific plan
+  const claimDailyUsdt = useCallback(async (planId: string, amount: number): Promise<void> => {
+    if (!user || amount <= 0) {
+      console.error("Invalid claim parameters");
+      throw new Error("Invalid claim parameters");
+    }
+    
+    try {
+      console.log(`Claiming ${amount} USDT for plan ${planId}`);
+      
+      // Find plan in active plans to validate
+      const plan = activePlans.find(p => p.id === planId);
+      if (!plan) {
+        console.error(`Plan ${planId} not found in active plans`);
+        throw new Error("Plan not found");
+      }
+      
+      // Check if plan has expired
+      if (new Date() >= new Date(plan.expiresAt)) {
+        console.error(`Plan ${planId} has expired`);
+        throw new Error("Plan has expired");
+      }
+      
+      // Update user's USDT earnings
+      const updatedUser = await updateUsdtEarnings(user.id, amount);
+      if (updatedUser) {
+        console.log(`USDT earnings updated: +${amount}`);
+        updateUser(updatedUser);
+        
+        // Add USDT transaction record
+        try {
+          await addUsdtTransaction(
+            user.id,
+            amount,
+            'bonus',
+            `Daily earnings from ${planId} plan`,
+            Date.now()
+          );
+          console.log("USDT transaction recorded");
+        } catch (transactionError) {
+          console.error("Error recording USDT transaction:", transactionError);
+          // Continue even if transaction recording fails
+        }
+      } else {
+        throw new Error("Failed to update USDT earnings");
+      }
+    } catch (error) {
+      console.error("Error claiming daily USDT:", error);
+      throw error;
+    }
+  }, [user, activePlans, updateUser]);
+
   return (
     <MiningContext.Provider
       value={{
@@ -459,9 +513,11 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
+        claimDailyUsdt,
       }}
     >
       {children}
     </MiningContext.Provider>
   );
 };
+

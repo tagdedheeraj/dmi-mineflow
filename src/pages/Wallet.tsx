@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +17,8 @@ import {
   CreditCard,
   Lock,
   History,
-  AlertTriangle
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
@@ -24,6 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { setUsdtAddress } from '@/lib/firestore';
 import { createWithdrawalRequest, getUserWithdrawalRequests } from '@/lib/withdrawals';
 import { WithdrawalRequest } from '@/lib/withdrawalTypes';
+import { canClaimPlan, getTimeUntilNextClaim, updatePlanLastClaimedTime } from '@/lib/storage';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +40,7 @@ import {
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
-  const { activePlans, miningRate } = useMining();
+  const { activePlans, miningRate, claimDailyUsdt } = useMining();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -47,6 +50,8 @@ const Wallet: React.FC = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [claimCountdowns, setClaimCountdowns] = useState<{[planId: string]: number}>({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -69,6 +74,33 @@ const Wallet: React.FC = () => {
       loadWithdrawalRequests();
     }
   }, [user, location.pathname]);
+
+  // Initialize countdown timers for each plan
+  useEffect(() => {
+    if (!activePlans.length) return;
+    
+    // Initialize countdown values
+    const initialCountdowns: {[planId: string]: number} = {};
+    activePlans.forEach(plan => {
+      initialCountdowns[plan.id] = getTimeUntilNextClaim(plan.id);
+    });
+    setClaimCountdowns(initialCountdowns);
+    
+    // Update countdowns every second
+    const intervalId = setInterval(() => {
+      setClaimCountdowns(prevCountdowns => {
+        const newCountdowns = {...prevCountdowns};
+        for (const planId in newCountdowns) {
+          if (newCountdowns[planId] > 0) {
+            newCountdowns[planId] -= 1;
+          }
+        }
+        return newCountdowns;
+      });
+    }, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [activePlans, refreshTrigger]);
 
   const loadWithdrawalRequests = async () => {
     if (!user) return;
@@ -189,6 +221,63 @@ const Wallet: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Function to handle USDT claim for a specific plan
+  const handleClaimUsdt = async (planId: string) => {
+    const planInfo = miningPlans.find(p => p.id === planId);
+    if (!planInfo) {
+      toast({
+        title: "Claim Failed",
+        description: "Plan information not found.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Check if enough time has passed since last claim
+      if (!canClaimPlan(planId)) {
+        toast({
+          title: "Claim Failed",
+          description: "You can only claim once every 24 hours for each plan.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Claim daily USDT earnings
+      await claimDailyUsdt(planId, planInfo.dailyEarnings);
+      
+      // Update last claimed time
+      updatePlanLastClaimedTime(planId);
+      
+      // Trigger countdown refresh
+      setRefreshTrigger(prev => prev + 1);
+      
+      toast({
+        title: "USDT Claimed",
+        description: `You've successfully claimed ${formatCurrency(planInfo.dailyEarnings)} from your ${planInfo.name} plan.`,
+      });
+    } catch (error) {
+      console.error("Error claiming USDT:", error);
+      toast({
+        title: "Claim Failed",
+        description: "Failed to claim USDT earnings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Format time for countdown display
+  const formatTime = (seconds: number): string => {
+    if (seconds <= 0) return "Available Now";
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const getStatusBadge = (status: string) => {
@@ -409,18 +498,41 @@ const Wallet: React.FC = () => {
               <div className="space-y-4">
                 {activePlans.map(plan => {
                   const planInfo = miningPlans.find(p => p.id === plan.id);
+                  const canClaim = !claimCountdowns[plan.id] || claimCountdowns[plan.id] <= 0;
+                  
+                  // Only show arbitrage plans (those with dailyEarnings > 0)
+                  if (!planInfo || planInfo.dailyEarnings <= 0) return null;
+                  
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
                       <div className="flex justify-between">
                         <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
                         <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
                       </div>
+                      
                       <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
                         <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
                         <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
-                        {planInfo && (
-                          <div className="col-span-2 mt-1">
-                            <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                        <div className="col-span-2 mt-1">
+                          <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3">
+                        {canClaim ? (
+                          <Button 
+                            className="w-full flex justify-center items-center mt-2" 
+                            onClick={() => handleClaimUsdt(plan.id)}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            Claim USDT
+                          </Button>
+                        ) : (
+                          <div className="text-center mt-2">
+                            <div className="text-xs text-gray-500 mb-1">Next claim available in:</div>
+                            <div className="bg-gray-100 p-2 rounded text-sm font-mono">
+                              {formatTime(claimCountdowns[plan.id] || 0)}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -554,3 +666,4 @@ const Wallet: React.FC = () => {
 };
 
 export default Wallet;
+
