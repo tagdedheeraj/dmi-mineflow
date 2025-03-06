@@ -3,6 +3,7 @@
  * User storage service to manage user data
  */
 import { User, STORAGE_KEYS } from './types';
+import { updateUsdtEarnings as updateFirestoreUsdtEarnings } from '@/lib/firestore';
 
 // User operations
 export const getUser = (): User | null => {
@@ -48,7 +49,20 @@ export const updateUsdtEarnings = (amount: number): User | null => {
   
   console.log(`New USDT earnings: $${user.usdtEarnings}`);
   
+  // Update in localStorage
   saveUser(user);
+  
+  // Also update in Firebase
+  if (user.id) {
+    updateFirestoreUsdtEarnings(user.id, amount)
+      .then(() => {
+        console.log(`Firebase USDT earnings updated for user ${user.id}`);
+      })
+      .catch(error => {
+        console.error("Error updating Firebase USDT earnings:", error);
+      });
+  }
+  
   return user;
 };
 

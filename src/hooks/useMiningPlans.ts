@@ -40,7 +40,7 @@ export const useMiningPlans = () => {
     
     console.log(`Attempting to claim daily earnings for plan ${planId}: $${planInfo.dailyEarnings}`);
     
-    // 확실하게 일일 수익 금액을 전달해야 합니다
+    // Make sure to pass the exact daily earnings amount for this plan
     const { success, planUpdated } = claimPlanUsdtEarnings(planId, planInfo.dailyEarnings);
     
     if (success && planUpdated) {
