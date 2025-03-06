@@ -1,4 +1,3 @@
-
 /**
  * Local storage service to persist user and mining data
  */
@@ -97,6 +96,7 @@ export const updateUsdtEarnings = (amount: number): User | null => {
   const user = getUser();
   if (!user) return null;
   
+  console.log(`Updating USDT earnings with amount: $${amount}`);
   user.usdtEarnings = (user.usdtEarnings || 0) + amount;
   saveUser(user);
   return user;
@@ -248,6 +248,8 @@ export const claimPlanUsdtEarnings = (planId: string, amount: number): {
   // Update in storage
   plans[planIndex] = plan;
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  
+  console.log(`Claiming USDT earnings for plan ${planId}: $${amount}`);
   
   // Add USDT earnings to user's balance - correctly using the daily earnings amount
   updateUsdtEarnings(amount);
