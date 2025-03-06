@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info } from 'lucide-react';
+import { Zap, Check, ArrowRight, Info, DollarSign, Clock } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
@@ -11,10 +12,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate } = useMining();
+  const { updateMiningBoost, activePlans, miningRate, claimDailyUsdt } = useMining();
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [claimingPlanId, setClaimingPlanId] = useState<string | null>(null);
   
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
@@ -45,6 +47,39 @@ const MiningPlans: React.FC = () => {
     updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
   };
 
+  const handleClaimDailyUsdt = async (planId: string) => {
+    setClaimingPlanId(planId);
+    
+    try {
+      const planInfo = miningPlans.find(p => p.id === planId);
+      if (!planInfo) return;
+      
+      const result = await claimDailyUsdt(planId);
+      
+      if (result.success) {
+        toast({
+          title: "USDT Claimed!",
+          description: `You've successfully claimed $${planInfo.dailyEarnings.toFixed(2)} USDT from your ${planInfo.name} plan.`,
+        });
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: result.message || "You've already claimed your USDT for today.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error claiming USDT:", error);
+      toast({
+        title: "Claim Failed",
+        description: "An error occurred while claiming your USDT.",
+        variant: "destructive",
+      });
+    } finally {
+      setClaimingPlanId(null);
+    }
+  };
+
   const totalBoost = activePlans.reduce((total, plan) => {
     if (new Date() < new Date(plan.expiresAt)) {
       return total * plan.boostMultiplier;
@@ -53,6 +88,43 @@ const MiningPlans: React.FC = () => {
   }, 1);
   
   const boostPercentage = Math.round((totalBoost * 100) - 100);
+
+  // Check if a plan is claimable (hasn't been claimed in the last 24 hours)
+  const isClaimable = (planId: string) => {
+    const plan = activePlans.find(p => p.id === planId);
+    if (!plan) return false;
+    
+    // Check if the plan is active
+    if (new Date() >= new Date(plan.expiresAt)) return false;
+    
+    // Check if the plan has been claimed in the last 24 hours
+    const lastClaimed = plan.lastClaimed ? new Date(plan.lastClaimed) : null;
+    if (!lastClaimed) return true;
+    
+    const now = new Date();
+    const timeDiff = now.getTime() - lastClaimed.getTime();
+    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    
+    return hoursDiff >= 24;
+  };
+
+  // Calculate time remaining until next claim for a plan
+  const getTimeUntilNextClaim = (planId: string) => {
+    const plan = activePlans.find(p => p.id === planId);
+    if (!plan || !plan.lastClaimed) return null;
+    
+    const lastClaimed = new Date(plan.lastClaimed);
+    const nextClaimTime = new Date(lastClaimed.getTime() + 24 * 60 * 60 * 1000);
+    const now = new Date();
+    
+    if (now >= nextClaimTime) return null;
+    
+    const timeRemaining = nextClaimTime.getTime() - now.getTime();
+    const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+    const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hoursRemaining}h ${minutesRemaining}m`;
+  };
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
@@ -109,12 +181,66 @@ const MiningPlans: React.FC = () => {
           {activePlans.length > 0 && (
             <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
               <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-              <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+              <p className="text-xs mt-1">Claim your daily USDT earnings from each active plan every 24 hours</p>
             </div>
           )}
         </div>
 
+        {/* Active Plans Section with Claim Buttons */}
+        {activePlans.length > 0 && (
+          <div className="mt-6">
+            <h4 className="font-medium text-gray-900 mb-4">Your Active Plans</h4>
+            <div className="grid grid-cols-1 gap-4">
+              {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).map((plan) => {
+                const planInfo = miningPlans.find(p => p.id === plan.id);
+                if (!planInfo) return null;
+                
+                const canClaim = isClaimable(plan.id);
+                const timeUntilNextClaim = getTimeUntilNextClaim(plan.id);
+                
+                return (
+                  <div key={plan.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{planInfo.name}</h4>
+                        <p className="text-sm text-gray-500 mt-1">Expires: {new Date(plan.expiresAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-green-600 font-semibold">${planInfo.dailyEarnings.toFixed(2)}/day</div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      {canClaim ? (
+                        <Button 
+                          variant="default" 
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          onClick={() => handleClaimDailyUsdt(plan.id)}
+                          disabled={claimingPlanId === plan.id}
+                        >
+                          {claimingPlanId === plan.id ? (
+                            "Claiming..."
+                          ) : (
+                            <>
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Claim Daily USDT
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <div className="w-full bg-gray-100 text-gray-600 py-2 px-4 rounded-md text-center flex items-center justify-center">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Next claim in {timeUntilNextClaim || "24h"}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 grid grid-cols-1 gap-4">
+          <h4 className="font-medium text-gray-900">Available Plans</h4>
           {miningPlans.map((plan) => {
             const isActive = activePlans.some(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
             

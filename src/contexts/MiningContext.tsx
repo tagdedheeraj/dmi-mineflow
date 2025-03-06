@@ -16,7 +16,8 @@ import {
   updateUsdtEarnings,
   getLastUsdtUpdateDate,
   updateLastUsdtUpdateDate,
-  getUser
+  getUser,
+  updatePlanLastClaimed
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +33,7 @@ interface MiningContextType {
   isMining: boolean;
   activePlans: ActivePlan[];
   updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
+  claimDailyUsdt: (planId: string) => Promise<{success: boolean; message?: string}>;
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -45,6 +47,7 @@ const MiningContext = createContext<MiningContextType>({
   isMining: false,
   activePlans: [],
   updateMiningBoost: () => {},
+  claimDailyUsdt: async () => ({success: false}),
 });
 
 export const useMining = () => useContext(MiningContext);
@@ -99,6 +102,61 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     loadActivePlans();
   }, [user]);
+
+  // Add claimDailyUsdt function to claim daily rewards manually
+  const claimDailyUsdt = async (planId: string): Promise<{success: boolean; message?: string}> => {
+    if (!user) return {success: false, message: "User not authenticated"};
+    
+    try {
+      // Find the plan in active plans
+      const plan = activePlans.find(p => p.id === planId);
+      if (!plan) return {success: false, message: "Plan not found"};
+      
+      // Check if plan is expired
+      if (new Date() >= new Date(plan.expiresAt)) {
+        return {success: false, message: "This plan has expired"};
+      }
+      
+      // Check if user has already claimed in the last 24 hours
+      if (plan.lastClaimed) {
+        const lastClaimed = new Date(plan.lastClaimed);
+        const now = new Date();
+        const timeDiff = now.getTime() - lastClaimed.getTime();
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+        
+        if (hoursDiff < 24) {
+          return {
+            success: false, 
+            message: `You can claim again in ${Math.ceil(24 - hoursDiff)} hours`
+          };
+        }
+      }
+      
+      // Find plan info to get daily earnings amount
+      const planInfo = plansData.find(p => p.id === planId);
+      if (!planInfo) return {success: false, message: "Plan information not found"};
+      
+      // Update the lastClaimed timestamp for this plan
+      const now = new Date().toISOString();
+      await updatePlanLastClaimed(user.id, planId, now);
+      
+      // Update local state
+      setActivePlans(prev => prev.map(p => 
+        p.id === planId ? {...p, lastClaimed: now} : p
+      ));
+      
+      // Add USDT earnings to user's balance
+      const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
+      if (updatedUser) {
+        updateUser(updatedUser);
+      }
+      
+      return {success: true};
+    } catch (error) {
+      console.error("Error claiming daily USDT:", error);
+      return {success: false, message: "An error occurred while claiming"};
+    }
+  };
 
   useEffect(() => {
     const loadLastUpdateDate = async () => {
@@ -182,56 +240,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user || activePlans.length === 0) return;
     
     const processDailyUsdtEarnings = async () => {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      
-      if (lastUsdtEarningsUpdate === today) return;
-      
-      let totalDailyEarnings = 0;
-      const earningDetails: {planName: string; amount: number}[] = [];
-      
-      // Only process active plans that haven't expired
-      for (const plan of activePlans) {
-        if (new Date() >= new Date(plan.expiresAt)) continue;
-        
-        const planInfo = plansData.find(p => p.id === plan.id);
-        if (planInfo) {
-          totalDailyEarnings += planInfo.dailyEarnings;
-          earningDetails.push({
-            planName: planInfo.name,
-            amount: planInfo.dailyEarnings
-          });
-        }
-      }
-      
-      if (totalDailyEarnings > 0) {
-        try {
-          const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
-          if (updatedUser) {
-            updateUser(updatedUser);
-            
-            // Send individual notifications for each plan
-            earningDetails.forEach(detail => {
-              toast({
-                title: `Daily Earnings from ${detail.planName}`,
-                description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
-              });
-            });
-            
-            // Send a summary notification
-            if (earningDetails.length > 1) {
-              toast({
-                title: "Total Daily Earnings Added!",
-                description: `$${totalDailyEarnings.toFixed(2)} USDT has been added from all your mining plans.`,
-              });
-            }
-            
-            await updateLastUsdtUpdateDate(user.id, today);
-            setLastUsdtEarningsUpdate(today);
-          }
-        } catch (error) {
-          console.error("Error processing daily USDT earnings:", error);
-        }
-      }
+      // Auto-claim feature has been disabled in favor of manual claiming
+      // Code kept for reference but will not automatically add earnings
     };
     
     processDailyUsdtEarnings();
@@ -385,7 +395,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         purchasedAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
         boostMultiplier: boostMultiplier,
-        duration: duration
+        duration: duration,
+        lastClaimed: now.toISOString() // Set lastClaimed to now so user gets immediate earnings
       };
       
       await saveActivePlan(user.id, newPlan);
@@ -459,9 +470,12 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
+        claimDailyUsdt,
       }}
     >
       {children}
     </MiningContext.Provider>
   );
 };
+
+export default MiningProvider;

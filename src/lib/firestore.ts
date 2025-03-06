@@ -446,6 +446,28 @@ export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<
   }
 };
 
+// New function to update the lastClaimed timestamp for a plan
+export const updatePlanLastClaimed = async (userId: string, planId: string, lastClaimed: string): Promise<void> => {
+  try {
+    const q = query(
+      plansCollection, 
+      where("userId", "==", userId),
+      where("id", "==", planId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const planDoc = querySnapshot.docs[0];
+      await updateDoc(planDoc.ref, {
+        lastClaimed
+      });
+    }
+  } catch (error) {
+    console.error("Error updating plan lastClaimed timestamp:", error);
+  }
+};
+
 // Check if mining should be active
 export const checkAndUpdateMining = async (userId: string): Promise<{ 
   updatedSession: MiningSession | null,
