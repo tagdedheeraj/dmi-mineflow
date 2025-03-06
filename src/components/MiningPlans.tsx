@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,8 @@ const MiningPlans: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
-    const planInfo = miningPlans.find(p => p.id === plan.id);
-    if (planInfo && new Date() < new Date(plan.expiresAt)) {
-      return total + planInfo.dailyEarnings;
+    if (new Date() < new Date(plan.expiresAt)) {
+      return total + (plan.dailyEarnings || 0);
     }
     return total;
   }, 0);
@@ -42,7 +42,13 @@ const MiningPlans: React.FC = () => {
       description: `Your ${selectedPlan.name} has been successfully activated.`,
     });
     
-    updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+    // Update mining boost with daily earnings information
+    updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id, selectedPlan.dailyEarnings);
+    
+    // Reload the page to update all components with new plan
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
 
   const totalBoost = activePlans.reduce((total, plan) => {

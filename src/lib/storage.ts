@@ -33,6 +33,9 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  lastClaimTime?: number; // Track when user last claimed USDT
+  nextClaimTime?: number; // Track when user can claim again
+  dailyEarnings: number;  // Store daily earnings amount
 }
 
 export interface DeviceRegistration {
@@ -41,12 +44,22 @@ export interface DeviceRegistration {
   firstAccountCreatedAt: number;
 }
 
+export interface UsdtTransaction {
+  id: string;
+  amount: number;
+  timestamp: number;
+  planId: string;
+  planName: string;
+}
+
 const STORAGE_KEYS = {
   USER: 'dmi_user',
   CURRENT_MINING: 'dmi_current_mining',
   MINING_HISTORY: 'dmi_mining_history',
   ACTIVE_PLANS: 'dmi_active_plans',
   DEVICE_REGISTRATIONS: 'dmi_device_registrations',
+  USDT_TRANSACTIONS: 'dmi_usdt_transactions',
+  LAST_USDT_UPDATE: 'dmi_last_usdt_update',
 };
 
 // Generate a unique device ID
@@ -181,6 +194,18 @@ export const addToMiningHistory = (session: MiningSession): void => {
   localStorage.setItem(STORAGE_KEYS.MINING_HISTORY, JSON.stringify(history));
 };
 
+// USDT Transaction history
+export const getUsdtTransactions = (): UsdtTransaction[] => {
+  const txJson = localStorage.getItem(STORAGE_KEYS.USDT_TRANSACTIONS);
+  return txJson ? JSON.parse(txJson) : [];
+};
+
+export const addUsdtTransaction = (transaction: UsdtTransaction): void => {
+  const transactions = getUsdtTransactions();
+  transactions.push(transaction);
+  localStorage.setItem(STORAGE_KEYS.USDT_TRANSACTIONS, JSON.stringify(transactions));
+};
+
 // Plans operations
 export const getActivePlans = (): ActivePlan[] => {
   const plansJson = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLANS);
@@ -193,8 +218,39 @@ export const getActivePlans = (): ActivePlan[] => {
 
 export const saveActivePlan = (plan: ActivePlan): void => {
   const plans = getActivePlans();
-  plans.push(plan);
+  
+  // Set initial claim times when purchasing a new plan
+  const now = Date.now();
+  const enhancedPlan = {
+    ...plan,
+    lastClaimTime: now,  // Set initial claim time to now
+    nextClaimTime: now + 24 * 60 * 60 * 1000  // Next claim in 24 hours
+  };
+  
+  plans.push(enhancedPlan);
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+export const updateActivePlanClaimTime = (planId: string): ActivePlan | null => {
+  const plans = getActivePlans();
+  const planIndex = plans.findIndex(p => p.id === planId);
+  
+  if (planIndex === -1) return null;
+  
+  const now = Date.now();
+  plans[planIndex].lastClaimTime = now;
+  plans[planIndex].nextClaimTime = now + 24 * 60 * 60 * 1000; // 24 hours from now
+  
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  return plans[planIndex];
+};
+
+export const getLastUsdtUpdateDate = (): string | null => {
+  return localStorage.getItem(STORAGE_KEYS.LAST_USDT_UPDATE);
+};
+
+export const updateLastUsdtUpdateDate = (date: string): void => {
+  localStorage.setItem(STORAGE_KEYS.LAST_USDT_UPDATE, date);
 };
 
 // Check if mining should be active
