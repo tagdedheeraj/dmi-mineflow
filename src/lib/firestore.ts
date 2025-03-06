@@ -81,7 +81,8 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      usdtEarnings: increment(amount)
+      usdtEarnings: increment(amount),
+      lastUsdtEarningsUpdate: new Date().toISOString()
     });
     
     // Fetch and return the updated user
@@ -425,6 +426,29 @@ export const getActivePlans = async (userId: string): Promise<ActivePlan[]> => {
       .map(doc => {
         const data = doc.data() as ActivePlan;
         data.id = doc.id;
+        
+        // Set default scheduled update times if not present
+        if (!data.lastEarningsUpdate) {
+          data.lastEarningsUpdate = data.purchasedAt;
+        }
+        
+        if (!data.nextEarningsUpdate) {
+          // Set the next update to either 8 AM or midnight based on purchase time
+          const purchaseDate = new Date(data.purchasedAt);
+          const next8AM = new Date(purchaseDate);
+          next8AM.setHours(8, 0, 0, 0);
+          if (purchaseDate >= next8AM) next8AM.setDate(next8AM.getDate() + 1);
+          
+          const nextMidnight = new Date(purchaseDate);
+          nextMidnight.setHours(0, 0, 0, 0);
+          nextMidnight.setDate(nextMidnight.getDate() + 1);
+          
+          // Choose the sooner time
+          data.nextEarningsUpdate = (next8AM < nextMidnight) 
+            ? next8AM.toISOString() 
+            : nextMidnight.toISOString();
+        }
+        
         return data;
       })
       .filter(plan => new Date(plan.expiresAt) > now);
@@ -436,6 +460,28 @@ export const getActivePlans = async (userId: string): Promise<ActivePlan[]> => {
 
 export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<void> => {
   try {
+    // Make sure the plan has scheduled update times
+    if (!plan.lastEarningsUpdate) {
+      plan.lastEarningsUpdate = plan.purchasedAt;
+    }
+    
+    if (!plan.nextEarningsUpdate) {
+      // Set the next update to either 8 AM or midnight based on purchase time
+      const purchaseDate = new Date(plan.purchasedAt);
+      const next8AM = new Date(purchaseDate);
+      next8AM.setHours(8, 0, 0, 0);
+      if (purchaseDate >= next8AM) next8AM.setDate(next8AM.getDate() + 1);
+      
+      const nextMidnight = new Date(purchaseDate);
+      nextMidnight.setHours(0, 0, 0, 0);
+      nextMidnight.setDate(nextMidnight.getDate() + 1);
+      
+      // Choose the sooner time
+      plan.nextEarningsUpdate = (next8AM < nextMidnight) 
+        ? next8AM.toISOString() 
+        : nextMidnight.toISOString();
+    }
+    
     await addDoc(plansCollection, {
       ...plan,
       userId,
@@ -446,52 +492,36 @@ export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<
   }
 };
 
-// Check if mining should be active
-export const checkAndUpdateMining = async (userId: string): Promise<{ 
-  updatedSession: MiningSession | null,
-  earnedCoins: number 
-}> => {
+export const updatePlanSchedule = async (planId: string, lastUpdate: string, nextUpdate: string): Promise<boolean> => {
   try {
-    const currentSession = await getCurrentMining(userId);
-    if (!currentSession || currentSession.status !== 'active') {
-      return { updatedSession: null, earnedCoins: 0 };
-    }
-
-    const now = Date.now();
-    
-    // If mining period has completed
-    if (now >= currentSession.endTime) {
-      // Calculate exact earnings up to the end time
-      const elapsedHours = (currentSession.endTime - currentSession.startTime) / (1000 * 60 * 60);
-      const earnedCoins = Math.floor(elapsedHours * currentSession.rate);
-      
-      // Update session
-      const completedSession: MiningSession = {
-        ...currentSession,
-        status: 'completed',
-        earned: earnedCoins
-      };
-      
-      if (currentSession.id) {
-        // Clear current mining and add to history
-        await clearCurrentMining(currentSession.id);
-      }
-      
-      // Add to history
-      await addToMiningHistory(userId, completedSession);
-      
-      // Update user balance
-      await updateUserBalance(userId, earnedCoins);
-      
-      return { updatedSession: completedSession, earnedCoins };
-    }
-    
-    // Mining is still in progress
-    return { updatedSession: currentSession, earnedCoins: 0 };
+    const planRef = doc(db, 'active_plans', planId);
+    await updateDoc(planRef, {
+      lastEarningsUpdate: lastUpdate,
+      nextEarningsUpdate: nextUpdate
+    });
+    return true;
   } catch (error) {
-    console.error("Error checking and updating mining:", error);
-    return { updatedSession: null, earnedCoins: 0 };
+    console.error(`Error updating schedule for plan ${planId}:`, error);
+    return false;
   }
+};
+
+// Helper function to determine the next update time (8 AM or midnight)
+export const getNextUpdateTime = (): string => {
+  const now = new Date();
+  
+  // Set up the next 8 AM time
+  const next8AM = new Date(now);
+  next8AM.setHours(8, 0, 0, 0);
+  if (now >= next8AM) next8AM.setDate(next8AM.getDate() + 1);
+  
+  // Set up the next midnight time
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(0, 0, 0, 0);
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  
+  // Return the earlier time
+  return (next8AM < nextMidnight) ? next8AM.toISOString() : nextMidnight.toISOString();
 };
 
 // Helper function to track daily earnings updates

@@ -1,3 +1,4 @@
+
 /**
  * Local storage service to persist user and mining data
  */
@@ -16,6 +17,8 @@ export interface User {
   referralCode?: string;
   appliedReferralCode?: string;
   referredBy?: string;
+  lastUsdtEarningsUpdate?: string; // Track the last update date
+  nextUsdtEarningsUpdate?: string; // Track the next scheduled update time
 }
 
 export interface MiningSession {
@@ -33,6 +36,8 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  lastEarningsUpdate?: string; // Track the last earnings update for this plan
+  nextEarningsUpdate?: string; // Track the next scheduled update for this plan
 }
 
 export interface DeviceRegistration {
@@ -192,9 +197,71 @@ export const getActivePlans = (): ActivePlan[] => {
 };
 
 export const saveActivePlan = (plan: ActivePlan): void => {
+  // Set initial earnings update schedules if not provided
+  if (!plan.lastEarningsUpdate) {
+    plan.lastEarningsUpdate = new Date().toISOString();
+  }
+  
+  if (!plan.nextEarningsUpdate) {
+    // Set the next update to either 8 AM or midnight based on current time
+    const now = new Date();
+    const next8AM = new Date(now);
+    next8AM.setHours(8, 0, 0, 0);
+    if (now >= next8AM) next8AM.setDate(next8AM.getDate() + 1);
+    
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(0, 0, 0, 0);
+    nextMidnight.setDate(nextMidnight.getDate() + 1);
+    
+    // Choose the sooner time
+    plan.nextEarningsUpdate = (next8AM < nextMidnight) 
+      ? next8AM.toISOString() 
+      : nextMidnight.toISOString();
+  }
+  
   const plans = getActivePlans();
   plans.push(plan);
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+export const updatePlanEarningsSchedule = (planId: string, lastUpdate: string, nextUpdate: string): boolean => {
+  const plans = getActivePlans();
+  const planIndex = plans.findIndex(p => p.id === planId);
+  if (planIndex === -1) return false;
+  
+  plans[planIndex].lastEarningsUpdate = lastUpdate;
+  plans[planIndex].nextEarningsUpdate = nextUpdate;
+  
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  return true;
+};
+
+export const getNextScheduledEarningsUpdates = (): { planId: string; nextUpdate: string }[] => {
+  const plans = getActivePlans();
+  return plans.filter(plan => plan.nextEarningsUpdate)
+    .map(plan => ({
+      planId: plan.id,
+      nextUpdate: plan.nextEarningsUpdate!
+    }))
+    .sort((a, b) => new Date(a.nextUpdate).getTime() - new Date(b.nextUpdate).getTime());
+};
+
+// Helper function to determine the next update time (8 AM or midnight)
+export const getNextUpdateTime = (): string => {
+  const now = new Date();
+  
+  // Set up the next 8 AM time
+  const next8AM = new Date(now);
+  next8AM.setHours(8, 0, 0, 0);
+  if (now >= next8AM) next8AM.setDate(next8AM.getDate() + 1);
+  
+  // Set up the next midnight time
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(0, 0, 0, 0);
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  
+  // Return the earlier time
+  return (next8AM < nextMidnight) ? next8AM.toISOString() : nextMidnight.toISOString();
 };
 
 // Check if mining should be active
