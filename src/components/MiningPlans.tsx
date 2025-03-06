@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,6 @@ const MiningPlans: React.FC = () => {
     claimPlanEarnings(planId);
   };
 
-  // Update claim timers every second
   useEffect(() => {
     const updateTimers = () => {
       const newTimers: {[key: string]: string} = {};
@@ -187,7 +185,6 @@ const MiningPlans: React.FC = () => {
                   <p className="mt-2 text-xs text-red-500 font-medium">{plan.limitedTo}</p>
                 )}
                 
-                {/* Show claim button or purchase button */}
                 {isActive ? (
                   <div className="mt-4">
                     {canClaim ? (

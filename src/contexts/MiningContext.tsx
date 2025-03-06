@@ -18,7 +18,9 @@ const MiningContext = createContext<MiningContextType>({
   isMining: false,
   activePlans: [],
   updateMiningBoost: () => {},
-  claimPlanEarnings: () => {},
+  claimPlanEarnings: (planId: string) => {
+    console.log(`MiningContext attempting to claim plan: ${planId}`);
+  },
   getPlanClaimTime: () => ({ canClaim: false, timeRemaining: 0, formattedTimeRemaining: "00:00:00" }),
 });
 
@@ -82,7 +84,10 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
-        claimPlanEarnings,
+        claimPlanEarnings: (planId: string) => {
+          console.log(`MiningContext wrapper calling claimPlanEarnings with planId: ${planId}`);
+          claimPlanEarnings(planId);
+        },
         getPlanClaimTime
       }}
     >

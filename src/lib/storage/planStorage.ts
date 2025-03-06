@@ -73,7 +73,7 @@ export const claimPlanUsdtEarnings = (planId: string, amount: number): {
   
   console.log(`Claiming USDT earnings for plan ${planId}: $${amount}`);
   
-  // Add USDT earnings to user's balance - correctly using the daily earnings amount
+  // Add USDT earnings to user's balance - use the exact amount passed (daily earnings)
   updateUsdtEarnings(amount);
   
   return { success: true, planUpdated: plan };
