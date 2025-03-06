@@ -446,6 +446,42 @@ export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<
   }
 };
 
+export const updateActivePlan = async (
+  userId: string, 
+  planId: string, 
+  updates: Partial<ActivePlan>
+): Promise<ActivePlan | null> => {
+  try {
+    // Find the plan document
+    const q = query(
+      plansCollection, 
+      where("userId", "==", userId),
+      where("id", "==", planId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      console.error("Plan not found for update");
+      return null;
+    }
+    
+    const docRef = querySnapshot.docs[0].ref;
+    await updateDoc(docRef, updates);
+    
+    // Get the updated document
+    const updatedDoc = await getDoc(docRef);
+    if (updatedDoc.exists()) {
+      return { id: planId, ...updatedDoc.data() } as ActivePlan;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error updating active plan:", error);
+    return null;
+  }
+};
+
 // Check if mining should be active
 export const checkAndUpdateMining = async (userId: string): Promise<{ 
   updatedSession: MiningSession | null,

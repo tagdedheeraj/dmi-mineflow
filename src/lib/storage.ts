@@ -33,6 +33,7 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  lastClaimed?: string; // Add this property to track when user last claimed USDT
 }
 
 export interface DeviceRegistration {
@@ -195,6 +196,18 @@ export const saveActivePlan = (plan: ActivePlan): void => {
   const plans = getActivePlans();
   plans.push(plan);
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+};
+
+export const updateActivePlan = (planId: string, updates: Partial<ActivePlan>): ActivePlan | null => {
+  const plans = getActivePlans();
+  const planIndex = plans.findIndex(p => p.id === planId);
+  
+  if (planIndex === -1) return null;
+  
+  plans[planIndex] = { ...plans[planIndex], ...updates };
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
+  
+  return plans[planIndex];
 };
 
 // Check if mining should be active
