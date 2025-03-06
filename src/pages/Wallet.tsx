@@ -37,7 +37,7 @@ import {
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
-  const { activePlans, miningRate } = useMining();
+  const { activePlans, miningRate, claimDailyUsdt, canClaimPlan } = useMining();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -47,6 +47,7 @@ const Wallet: React.FC = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [claimingPlanId, setClaimingPlanId] = useState<string | null>(null);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -116,6 +117,38 @@ const Wallet: React.FC = () => {
     }
   };
 
+  const handleClaimUsdt = async (planId: string) => {
+    setClaimingPlanId(planId);
+    try {
+      const success = await claimDailyUsdt(planId);
+      if (!success) {
+        console.log("Failed to claim USDT");
+      }
+    } catch (error) {
+      console.error("Error claiming USDT:", error);
+    } finally {
+      setClaimingPlanId(null);
+    }
+  };
+
+  const getNextClaimTime = (plan: typeof activePlans[0]) => {
+    if (!plan.lastClaimed) return "Available now";
+    
+    const lastClaimedDate = new Date(plan.lastClaimed);
+    const nextClaimDate = new Date(lastClaimedDate);
+    nextClaimDate.setHours(nextClaimDate.getHours() + 24);
+    
+    const now = new Date();
+    const timeUntilNextClaim = nextClaimDate.getTime() - now.getTime();
+    
+    if (timeUntilNextClaim <= 0) return "Available now";
+    
+    const hoursRemaining = Math.floor(timeUntilNextClaim / (1000 * 60 * 60));
+    const minutesRemaining = Math.floor((timeUntilNextClaim % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `Available in ${hoursRemaining}h ${minutesRemaining}m`;
+  };
+
   const handleWithdraw = async () => {
     if (!user.usdtAddress) {
       setIsSettingAddress(true);
@@ -131,7 +164,6 @@ const Wallet: React.FC = () => {
       return;
     }
 
-    // Show withdrawal amount selection modal
     setIsWithdrawalModalOpen(true);
     setWithdrawalAmount(usdtEarnings);
   };
@@ -150,7 +182,6 @@ const Wallet: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Create withdrawal request
       const requestId = await createWithdrawalRequest(
         user.id,
         user.fullName,
@@ -160,21 +191,18 @@ const Wallet: React.FC = () => {
       );
 
       if (requestId) {
-        // Deduct from user's USDT earnings
         const updatedUser = { 
           ...user, 
           usdtEarnings: user.usdtEarnings ? user.usdtEarnings - withdrawalAmount : 0 
         };
         updateUser(updatedUser);
         
-        // Close modal and show success message
         setIsWithdrawalModalOpen(false);
         toast({
           title: "Withdrawal Requested",
           description: "Your withdrawal request has been submitted and will be processed shortly.",
         });
         
-        // Reload withdrawal requests
         loadWithdrawalRequests();
       } else {
         throw new Error("Failed to create withdrawal request");
@@ -407,8 +435,11 @@ const Wallet: React.FC = () => {
           <div className="p-5">
             {activePlans.length > 0 ? (
               <div className="space-y-4">
-                {activePlans.map(plan => {
+                {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).map(plan => {
                   const planInfo = miningPlans.find(p => p.id === plan.id);
+                  const canClaim = canClaimPlan(plan);
+                  const nextClaimTime = getNextClaimTime(plan);
+                  
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
                       <div className="flex justify-between">
@@ -424,6 +455,21 @@ const Wallet: React.FC = () => {
                           </div>
                         )}
                       </div>
+                      
+                      {canClaim ? (
+                        <Button
+                          className="w-full mt-3 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleClaimUsdt(plan.id)}
+                          disabled={claimingPlanId === plan.id}
+                        >
+                          {claimingPlanId === plan.id ? "Claiming..." : "Claim USDT"}
+                        </Button>
+                      ) : (
+                        <div className="w-full mt-3 flex items-center justify-center py-2 px-4 bg-gray-100 text-gray-500 rounded-md text-sm">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span>{nextClaimTime}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -491,7 +537,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
-        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>
