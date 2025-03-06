@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info, Clock } from 'lucide-react';
+import { Zap, Check, ArrowRight, Info } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
@@ -12,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate, nextEarningsUpdate } = useMining();
+  const { updateMiningBoost, activePlans, miningRate } = useMining();
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -54,19 +53,6 @@ const MiningPlans: React.FC = () => {
   }, 1);
   
   const boostPercentage = Math.round((totalBoost * 100) - 100);
-
-  // Format the next earnings update time
-  const formatNextUpdate = () => {
-    if (!nextEarningsUpdate) return 'Not scheduled';
-    
-    const updateTime = new Date(nextEarningsUpdate);
-    return updateTime.toLocaleString(undefined, { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
@@ -124,13 +110,6 @@ const MiningPlans: React.FC = () => {
             <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
               <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
               <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
-              
-              {nextEarningsUpdate && (
-                <div className="flex items-center mt-2 text-xs">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Next earnings update: {formatNextUpdate()}</span>
-                </div>
-              )}
             </div>
           )}
         </div>

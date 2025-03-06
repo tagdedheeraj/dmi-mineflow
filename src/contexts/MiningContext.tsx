@@ -3,10 +3,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { useAuth } from './AuthContext';
 import { 
   MiningSession, 
-  ActivePlan,
-  getNextUpdateTime,
-  updatePlanEarningsSchedule,
-  getNextScheduledEarningsUpdates
+  ActivePlan
 } from '@/lib/storage';
 import { 
   getCurrentMining,
@@ -35,7 +32,6 @@ interface MiningContextType {
   isMining: boolean;
   activePlans: ActivePlan[];
   updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
-  nextEarningsUpdate: string | null; // Add this to show when next earnings are scheduled
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -49,7 +45,6 @@ const MiningContext = createContext<MiningContextType>({
   isMining: false,
   activePlans: [],
   updateMiningBoost: () => {},
-  nextEarningsUpdate: null, // Initialize this property
 });
 
 export const useMining = () => useContext(MiningContext);
@@ -63,7 +58,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isMining, setIsMining] = useState(false);
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
-  const [nextEarningsUpdate, setNextEarningsUpdate] = useState<string | null>(null);
   
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   
@@ -98,12 +92,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const plans = await getActivePlans(user.id);
         setActivePlans(plans);
-        
-        // Check for the next scheduled earnings update
-        const scheduledUpdates = getNextScheduledEarningsUpdates();
-        if (scheduledUpdates.length > 0) {
-          setNextEarningsUpdate(scheduledUpdates[0].nextUpdate);
-        }
       } catch (error) {
         console.error("Error loading active plans:", error);
       }
@@ -189,78 +177,70 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     checkMiningSession();
   }, [user, toast]);
 
-  // Enhanced USDT earnings update with scheduled times for each plan
+  // Enhanced USDT earnings update with notifications for each plan
   useEffect(() => {
     if (!user || activePlans.length === 0) return;
     
     const processDailyUsdtEarnings = async () => {
-      const now = new Date();
-      const scheduledUpdates = getNextScheduledEarningsUpdates();
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
-      if (scheduledUpdates.length === 0) return;
+      if (lastUsdtEarningsUpdate === today) return;
       
-      // Check if any plan is due for an update
-      for (const { planId, nextUpdate } of scheduledUpdates) {
-        const nextUpdateTime = new Date(nextUpdate);
+      let totalDailyEarnings = 0;
+      const earningDetails: {planName: string; amount: number}[] = [];
+      
+      // Only process active plans that haven't expired
+      for (const plan of activePlans) {
+        if (new Date() >= new Date(plan.expiresAt)) continue;
         
-        if (now >= nextUpdateTime) {
-          // Get the plan details
-          const plan = activePlans.find(p => p.id === planId);
-          if (!plan || new Date() >= new Date(plan.expiresAt)) continue;
-          
-          const planInfo = plansData.find(p => p.id === planId);
-          if (planInfo) {
-            try {
-              // Add the daily earnings
-              const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
-              if (updatedUser) {
-                updateUser(updatedUser);
-                
-                // Send notification
-                toast({
-                  title: `Daily Earnings from ${planInfo.name}`,
-                  description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance.`,
-                });
-                
-                // Calculate and set the next update time (either 8 AM or midnight, whichever is next)
-                const lastUpdate = now.toISOString();
-                const nextUpdateTime = getNextUpdateTime();
-                
-                // Update the plan's last and next update times
-                updatePlanEarningsSchedule(planId, lastUpdate, nextUpdateTime);
-                
-                // Also update the state
-                setActivePlans(prevPlans => 
-                  prevPlans.map(p => 
-                    p.id === planId 
-                      ? { ...p, lastEarningsUpdate: lastUpdate, nextEarningsUpdate: nextUpdateTime } 
-                      : p
-                  )
-                );
-                
-                // Update the next earnings update time
-                const refreshedSchedules = getNextScheduledEarningsUpdates();
-                if (refreshedSchedules.length > 0) {
-                  setNextEarningsUpdate(refreshedSchedules[0].nextUpdate);
-                }
-                
-                console.log(`Plan ${planId} updated with earnings. Next update: ${nextUpdateTime}`);
-              }
-            } catch (error) {
-              console.error(`Error processing daily USDT earnings for plan ${planId}:`, error);
+        const planInfo = plansData.find(p => p.id === plan.id);
+        if (planInfo) {
+          totalDailyEarnings += planInfo.dailyEarnings;
+          earningDetails.push({
+            planName: planInfo.name,
+            amount: planInfo.dailyEarnings
+          });
+        }
+      }
+      
+      if (totalDailyEarnings > 0) {
+        try {
+          const updatedUser = await updateUsdtEarnings(user.id, totalDailyEarnings);
+          if (updatedUser) {
+            updateUser(updatedUser);
+            
+            // Send individual notifications for each plan
+            earningDetails.forEach(detail => {
+              toast({
+                title: `Daily Earnings from ${detail.planName}`,
+                description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
+              });
+            });
+            
+            // Send a summary notification
+            if (earningDetails.length > 1) {
+              toast({
+                title: "Total Daily Earnings Added!",
+                description: `$${totalDailyEarnings.toFixed(2)} USDT has been added from all your mining plans.`,
+              });
             }
+            
+            await updateLastUsdtUpdateDate(user.id, today);
+            setLastUsdtEarningsUpdate(today);
           }
+        } catch (error) {
+          console.error("Error processing daily USDT earnings:", error);
         }
       }
     };
     
     processDailyUsdtEarnings();
     
-    // Check for updates every minute
-    const intervalId = setInterval(processDailyUsdtEarnings, 60 * 1000);
+    // Check for daily updates every hour
+    const intervalId = setInterval(processDailyUsdtEarnings, 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
-  }, [user, activePlans, updateUser, toast]);
+  }, [user, activePlans, lastUsdtEarningsUpdate, updateUser, toast]);
 
   useEffect(() => {
     if (!currentMining || currentMining.status !== 'active') {
@@ -400,27 +380,16 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const now = new Date();
       const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
       
-      // Calculate the next update time (either 8 AM or midnight, whichever is next)
-      const nextUpdateTime = getNextUpdateTime();
-      
       const newPlan: ActivePlan = {
         id: planId,
         purchasedAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
         boostMultiplier: boostMultiplier,
-        duration: duration,
-        lastEarningsUpdate: now.toISOString(),
-        nextEarningsUpdate: nextUpdateTime
+        duration: duration
       };
       
       await saveActivePlan(user.id, newPlan);
       setActivePlans(prev => [...prev, newPlan]);
-      
-      // Update the next earnings update time
-      const refreshedSchedules = getNextScheduledEarningsUpdates();
-      if (refreshedSchedules.length > 0) {
-        setNextEarningsUpdate(refreshedSchedules[0].nextUpdate);
-      }
       
       const planInfo = plansData.find(p => p.id === planId);
       if (planInfo) {
@@ -432,7 +401,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             
             toast({
               title: `${planInfo.name} Plan Activated!`,
-              description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance immediately as your first day's earnings. Next earnings update at: ${new Date(nextUpdateTime).toLocaleString()}.`,
+              description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance immediately as your first day's earnings.`,
             });
           }
         }
@@ -490,7 +459,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
-        nextEarningsUpdate,
       }}
     >
       {children}
