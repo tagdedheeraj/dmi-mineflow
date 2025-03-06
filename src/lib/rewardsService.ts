@@ -18,6 +18,7 @@ import {
   increment
 } from 'firebase/firestore';
 import { User } from './storage';
+import { updateUserBalance as updateFirestoreUserBalance, getUser as getFirestoreUser } from './firestore';
 
 // Function to get today's date in YYYY-MM-DD format
 export const getTodayDateKey = () => {
@@ -162,16 +163,7 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
 // Update user balance - MODIFIED to use increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
-    const userRef = doc(db, 'users', userId);
-    
-    // Use the increment() function from Firestore to add the amount to the existing balance
-    await updateDoc(userRef, {
-      balance: increment(amount)
-    });
-    
-    // Fetch and return the updated user
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? userSnap.data() as User : null;
+    return await updateFirestoreUserBalance(userId, amount);
   } catch (error) {
     console.error("Error updating user balance:", error);
     return null;
@@ -181,13 +173,7 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
 // Get user data
 export const getUser = async (userId: string): Promise<User | null> => {
   try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      return userSnap.data() as User;
-    }
-    return null;
+    return await getFirestoreUser(userId);
   } catch (error) {
     console.error("Error fetching user:", error);
     return null;

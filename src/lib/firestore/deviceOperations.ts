@@ -1,11 +1,12 @@
-import { 
+
+import {
   getDocs,
   query,
   where,
-  updateDoc,
-  addDoc
+  addDoc,
+  updateDoc
 } from "firebase/firestore";
-import { db, deviceRegistrationsCollection } from "../firebase";
+import { deviceRegistrationsCollection } from "../firebase";
 import type { DeviceRegistration } from '../storage/types';
 
 // Device registration operations

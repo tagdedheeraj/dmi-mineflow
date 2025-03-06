@@ -1,15 +1,15 @@
 
 import { 
   doc, 
+  getDoc, 
   updateDoc, 
   addDoc, 
   getDocs, 
   query, 
   where, 
-  getDoc,
   collection,
-  doc as docRef,
-  serverTimestamp
+  serverTimestamp,
+  doc as docRef
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { updateUserBalance } from './userOperations';

@@ -1,20 +1,18 @@
 
 import { 
-  doc,
-  getDoc,
-  updateDoc,
-  addDoc,
-  getDocs,
-  query,
-  where,
+  doc, 
+  getDoc, 
+  updateDoc, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
   serverTimestamp
 } from "firebase/firestore";
 import { db, miningSessionsCollection } from "../firebase";
 import type { MiningSession } from '../storage/types';
 import { updateUserBalance } from './userOperations';
-import { getUser } from './userOperations';
 
-// Mining operations
 export const getCurrentMining = async (userId: string): Promise<MiningSession | null> => {
   try {
     const q = query(

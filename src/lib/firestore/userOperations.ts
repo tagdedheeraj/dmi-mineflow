@@ -1,11 +1,10 @@
 
 import { 
   doc, 
+  setDoc, 
   getDoc, 
   updateDoc, 
-  setDoc, 
-  increment,
-  serverTimestamp
+  increment
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type { User } from '../storage/types';
