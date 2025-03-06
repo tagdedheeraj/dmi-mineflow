@@ -37,7 +37,7 @@ import {
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
-  const { activePlans, miningRate, claimDailyUsdt, canClaimPlan } = useMining();
+  const { activePlans, miningRate } = useMining();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -47,7 +47,6 @@ const Wallet: React.FC = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [claimingPlanId, setClaimingPlanId] = useState<string | null>(null);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -57,10 +56,7 @@ const Wallet: React.FC = () => {
   
   const usdtEarnings = user?.usdtEarnings || 0;
   
-  // Filter only valid plans (not expired)
-  const validActivePlans = activePlans.filter(plan => new Date() < new Date(plan.expiresAt));
-  
-  const dailyUsdtEarnings = validActivePlans.reduce((total, plan) => {
+  const dailyUsdtEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     return total + (planInfo?.dailyEarnings || 0);
   }, 0);
@@ -73,12 +69,6 @@ const Wallet: React.FC = () => {
       loadWithdrawalRequests();
     }
   }, [user, location.pathname]);
-
-  useEffect(() => {
-    // Add a debug log to check active plans when component mounts
-    console.log("Active plans in Wallet:", activePlans);
-    console.log("Valid active plans:", validActivePlans);
-  }, [activePlans, validActivePlans]);
 
   const loadWithdrawalRequests = async () => {
     if (!user) return;
@@ -126,72 +116,6 @@ const Wallet: React.FC = () => {
     }
   };
 
-  const handleClaimUsdt = async (planId: string) => {
-    console.log("Claiming USDT for plan:", planId);
-    setClaimingPlanId(planId);
-    try {
-      const plan = activePlans.find(p => p.id === planId);
-      console.log("Plan found:", plan);
-      
-      if (!plan) {
-        console.error("Plan not found:", planId);
-        toast({
-          title: "Claim Failed",
-          description: "Plan not found.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const planInfo = miningPlans.find(p => p.id === planId);
-      console.log("Plan info found:", planInfo);
-      
-      if (!planInfo) {
-        console.error("Plan info not found for ID:", planId);
-        toast({
-          title: "Claim Failed",
-          description: "Plan information not found.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const success = await claimDailyUsdt(planId);
-      console.log("Claim result:", success);
-      
-      if (!success) {
-        console.log("Failed to claim USDT");
-      }
-    } catch (error) {
-      console.error("Error claiming USDT:", error);
-      toast({
-        title: "Claim Failed",
-        description: "An error occurred while claiming USDT.",
-        variant: "destructive",
-      });
-    } finally {
-      setClaimingPlanId(null);
-    }
-  };
-
-  const getNextClaimTime = (plan: typeof activePlans[0]) => {
-    if (!plan.lastClaimed) return "Available now";
-    
-    const lastClaimedDate = new Date(plan.lastClaimed);
-    const nextClaimDate = new Date(lastClaimedDate);
-    nextClaimDate.setHours(nextClaimDate.getHours() + 24);
-    
-    const now = new Date();
-    const timeUntilNextClaim = nextClaimDate.getTime() - now.getTime();
-    
-    if (timeUntilNextClaim <= 0) return "Available now";
-    
-    const hoursRemaining = Math.floor(timeUntilNextClaim / (1000 * 60 * 60));
-    const minutesRemaining = Math.floor((timeUntilNextClaim % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `Available in ${hoursRemaining}h ${minutesRemaining}m`;
-  };
-
   const handleWithdraw = async () => {
     if (!user.usdtAddress) {
       setIsSettingAddress(true);
@@ -207,6 +131,7 @@ const Wallet: React.FC = () => {
       return;
     }
 
+    // Show withdrawal amount selection modal
     setIsWithdrawalModalOpen(true);
     setWithdrawalAmount(usdtEarnings);
   };
@@ -225,6 +150,7 @@ const Wallet: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // Create withdrawal request
       const requestId = await createWithdrawalRequest(
         user.id,
         user.fullName,
@@ -234,18 +160,21 @@ const Wallet: React.FC = () => {
       );
 
       if (requestId) {
+        // Deduct from user's USDT earnings
         const updatedUser = { 
           ...user, 
           usdtEarnings: user.usdtEarnings ? user.usdtEarnings - withdrawalAmount : 0 
         };
         updateUser(updatedUser);
         
+        // Close modal and show success message
         setIsWithdrawalModalOpen(false);
         toast({
           title: "Withdrawal Requested",
           description: "Your withdrawal request has been submitted and will be processed shortly.",
         });
         
+        // Reload withdrawal requests
         loadWithdrawalRequests();
       } else {
         throw new Error("Failed to create withdrawal request");
@@ -284,9 +213,6 @@ const Wallet: React.FC = () => {
         );
     }
   };
-
-  // Check if user has any active arbitrage plans
-  const hasActiveArbitragePlans = validActivePlans.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
@@ -465,85 +391,56 @@ const Wallet: React.FC = () => {
           </div>
         </div>
         
-        {validActivePlans.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-            <div className="border-b border-gray-100 p-5">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mr-4">
-                  <CreditCard className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900">Active Plans</h2>
-                  <p className="text-sm text-gray-500">Your premium mining subscriptions</p>
-                </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mr-4">
+                <CreditCard className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">Active Plans</h2>
+                <p className="text-sm text-gray-500">Your premium mining subscriptions</p>
               </div>
             </div>
-            
-            <div className="p-5">
-              {validActivePlans.length > 0 ? (
-                <div className="space-y-4">
-                  {validActivePlans.map(plan => {
-                    const planInfo = miningPlans.find(p => p.id === plan.id);
-                    const canClaim = canClaimPlan(plan);
-                    const nextClaimTime = getNextClaimTime(plan);
-                    
-                    if (!planInfo) {
-                      console.error("No plan info found for plan ID:", plan.id);
-                      return (
-                        <div key={plan.id} className="bg-red-50 rounded-lg p-4">
-                          <p>Plan information missing. ID: {plan.id}</p>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex justify-between">
-                          <h3 className="font-medium">{planInfo.name}</h3>
-                          <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
-                        </div>
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
-                          <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
-                          <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
-                          {planInfo && (
-                            <div className="col-span-2 mt-1">
-                              <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
-                            </div>
-                          )}
-                        </div>
-                        
-                        {canClaim ? (
-                          <Button
-                            className="w-full mt-3 bg-green-600 hover:bg-green-700"
-                            onClick={() => handleClaimUsdt(plan.id)}
-                            disabled={claimingPlanId === plan.id}
-                          >
-                            {claimingPlanId === plan.id ? "Claiming..." : "Claim USDT"}
-                          </Button>
-                        ) : (
-                          <div className="w-full mt-3 flex items-center justify-center py-2 px-4 bg-gray-100 text-gray-500 rounded-md text-sm">
-                            <Clock className="h-4 w-4 mr-2" />
-                            <span>{nextClaimTime}</span>
+          </div>
+          
+          <div className="p-5">
+            {activePlans.length > 0 ? (
+              <div className="space-y-4">
+                {activePlans.map(plan => {
+                  const planInfo = miningPlans.find(p => p.id === plan.id);
+                  return (
+                    <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
+                        <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
+                        <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
+                        {planInfo && (
+                          <div className="col-span-2 mt-1">
+                            <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-gray-500">You don't have any active plans</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => navigate('/plans')}
-                  >
-                    View Available Plans
-                  </Button>
-                </div>
-              )}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">You don't have any active plans</p>
+                <Button 
+                  className="mt-4"
+                  onClick={() => navigate('/plans')}
+                >
+                  View Available Plans
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="border-b border-gray-100 p-5">
@@ -594,6 +491,7 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
+        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>
