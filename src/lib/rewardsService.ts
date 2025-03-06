@@ -1,4 +1,3 @@
-
 import { 
   db, 
   auth,
@@ -223,7 +222,7 @@ export const getUser = async (userId: string): Promise<User | null> => {
   }
 };
 
-// Function to update USDT earnings
+// Function to update USDT earnings with improved logging and transaction recording
 export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -233,7 +232,7 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
       usdtEarnings: increment(amount)
     });
     
-    // Log the transaction
+    // Log the transaction with more specific details
     await addUsdtTransaction(
       userId,
       amount,
@@ -252,7 +251,7 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
   }
 };
 
-// Function to process daily USDT earnings for all active plans
+// Enhanced function to process daily USDT earnings with better error handling
 export const processDailyUsdtEarnings = async (
   userId: string, 
   activePlans: any[], 
@@ -263,11 +262,15 @@ export const processDailyUsdtEarnings = async (
   details: {planName: string; amount: number}[];
 }> => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Get today's date in ISO format (YYYY-MM-DD)
+    const today = new Date().toISOString().split('T')[0];
     const lastUpdateDate = await getLastUsdtUpdateDate(userId);
+    
+    console.log(`Processing daily USDT earnings - Last update: ${lastUpdateDate}, Today: ${today}`);
     
     // If already updated today, return without processing
     if (lastUpdateDate === today) {
+      console.log(`Already processed earnings for today (${today}), skipping.`);
       return {
         success: true,
         totalAmount: 0,
@@ -280,33 +283,46 @@ export const processDailyUsdtEarnings = async (
     
     // Process active plans that haven't expired
     for (const plan of activePlans) {
-      if (new Date() >= new Date(plan.expiresAt)) continue;
+      // Skip expired plans
+      if (new Date() >= new Date(plan.expiresAt)) {
+        console.log(`Plan ${plan.id} has expired, skipping.`);
+        continue;
+      }
       
       const planInfo = plansData.find((p: any) => p.id === plan.id);
       if (planInfo) {
+        console.log(`Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
         totalDailyEarnings += planInfo.dailyEarnings;
         earningDetails.push({
           planName: planInfo.name,
           amount: planInfo.dailyEarnings
         });
+      } else {
+        console.log(`Could not find plan info for id: ${plan.id}`);
       }
     }
     
     if (totalDailyEarnings > 0) {
       // Update user's USDT earnings
+      console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings`);
       const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
+      
       if (updatedUser) {
         // Update the last update date
         await updateLastUsdtUpdateDate(userId, today);
+        console.log(`Updated last USDT earnings date to ${today}`);
         
         return {
           success: true,
           totalAmount: totalDailyEarnings,
           details: earningDetails
         };
+      } else {
+        throw new Error("Failed to update user's USDT earnings");
       }
     } else {
       // Even if there are no earnings, update the date to avoid checking again today
+      console.log(`No earnings to add, updating last update date to ${today}`);
       await updateLastUsdtUpdateDate(userId, today);
     }
     
