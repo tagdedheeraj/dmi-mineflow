@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,18 @@ const MiningPlans: React.FC = () => {
   };
 
   const handleClaimEarnings = (planId: string) => {
-    claimPlanEarnings(planId);
+    // Log the attempt to claim earnings
+    console.log(`Attempting to claim earnings for plan ${planId}`);
+    
+    // Get the plan details to pass the exact daily earnings amount
+    const planInfo = miningPlans.find(p => p.id === planId);
+    if (planInfo) {
+      console.log(`Plan daily earnings: $${planInfo.dailyEarnings}`);
+      // Pass the plan ID to the claim function in the context
+      claimPlanEarnings(planId);
+    } else {
+      console.error(`Plan with ID ${planId} not found`);
+    }
   };
 
   useEffect(() => {

@@ -33,7 +33,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const {
     activePlans,
     getPlanClaimTime,
-    claimPlanEarnings,
+    claimPlanEarnings: baseClaimPlanEarnings,
     updateMiningBoost: baseUpdateMiningBoost,
   } = useMiningPlans();
   
@@ -71,6 +71,12 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     updateMiningRate(newMiningRate);
   };
 
+  // Forward claim earnings function to ensure proper logging
+  const claimPlanEarnings = (planId: string) => {
+    console.log(`MiningContext wrapper calling claimPlanEarnings with planId: ${planId}`);
+    baseClaimPlanEarnings(planId);
+  };
+
   return (
     <MiningContext.Provider
       value={{
@@ -84,10 +90,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
-        claimPlanEarnings: (planId: string) => {
-          console.log(`MiningContext wrapper calling claimPlanEarnings with planId: ${planId}`);
-          claimPlanEarnings(planId);
-        },
+        claimPlanEarnings,
         getPlanClaimTime
       }}
     >
