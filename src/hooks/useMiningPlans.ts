@@ -38,6 +38,7 @@ export const useMiningPlans = () => {
     const planInfo = plansData.find(p => p.id === planId);
     if (!planInfo) return;
     
+    // Make sure we pass the daily earnings amount, not the plan price
     const { success, planUpdated } = claimPlanUsdtEarnings(planId, planInfo.dailyEarnings);
     
     if (success && planUpdated) {

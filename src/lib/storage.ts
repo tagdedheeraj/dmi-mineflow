@@ -249,7 +249,7 @@ export const claimPlanUsdtEarnings = (planId: string, amount: number): {
   plans[planIndex] = plan;
   localStorage.setItem(STORAGE_KEYS.ACTIVE_PLANS, JSON.stringify(plans));
   
-  // Add USDT earnings to user's balance
+  // Add USDT earnings to user's balance - correctly using the daily earnings amount
   updateUsdtEarnings(amount);
   
   return { success: true, planUpdated: plan };
