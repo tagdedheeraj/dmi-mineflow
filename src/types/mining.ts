@@ -1,4 +1,6 @@
 
+import { MiningSession, ActivePlan } from '@/lib/storage';
+
 export interface MiningContextType {
   currentMining: MiningSession | null;
   miningProgress: number; // 0-100 percentage
