@@ -356,7 +356,7 @@ const Profile: React.FC = () => {
                 
                 <div className="space-y-3">
                   <a 
-                    href="https://dminetwork.us/white-paper" 
+                    href="https://dminetwork.us" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -366,7 +366,7 @@ const Profile: React.FC = () => {
                   </a>
                   
                   <a 
-                    href="https://dminetwork.us/faqs" 
+                    href="https://dminetwork.us" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
