@@ -17,7 +17,27 @@ import {
 import { User } from '../storage';
 
 // Constants for commission rates
-export const REFERRAL_COMMISSION_RATE = 0.05; // 5% commission on earnings
+export const REFERRAL_COMMISSION_RATE_LEVEL1 = 0.05; // 5% commission for level 1
+export const REFERRAL_COMMISSION_RATE_LEVEL1_PREMIUM = 0.07; // 7% commission for level 1 premium users
+export const REFERRAL_COMMISSION_RATE_LEVEL2 = 0.02; // 2% commission for level 2
+export const REFERRAL_COMMISSION_RATE_LEVEL3 = 0.01; // 1% commission for level 3
+export const REFERRAL_COMMISSION_RATE_LEVEL4 = 0.005; // 0.5% commission for level 4
+export const REFERRAL_COMMISSION_RATE_LEVEL5 = 0.005; // 0.5% commission for level 5
+
+// DMI Coin rewards for different levels
+export const REFERRAL_REWARD_COINS_LEVEL1 = 200;
+export const REFERRAL_REWARD_COINS_LEVEL1_PREMIUM = 200;
+export const REFERRAL_REWARD_COINS_LEVEL2 = 50;
+export const REFERRAL_REWARD_COINS_LEVEL2_PREMIUM = 100;
+export const REFERRAL_REWARD_COINS_LEVEL3 = 10;
+export const REFERRAL_REWARD_COINS_LEVEL3_PREMIUM = 50;
+export const REFERRAL_REWARD_COINS_LEVEL4 = 0;
+export const REFERRAL_REWARD_COINS_LEVEL4_PREMIUM = 30;
+export const REFERRAL_REWARD_COINS_LEVEL5 = 0;
+export const REFERRAL_REWARD_COINS_LEVEL5_PREMIUM = 10;
+
+// Premium plan threshold (in USD)
+export const PREMIUM_PLAN_THRESHOLD = 100;
 
 /**
  * Gets the referrer ID for a specific user
@@ -41,6 +61,28 @@ export const getReferrerId = async (userId: string): Promise<string | null> => {
 };
 
 /**
+ * Check if a user has purchased a premium plan ($100+)
+ * @param userId ID of the user to check
+ * @returns Boolean indicating if the user has a premium plan
+ */
+export const hasPremiumPlan = async (userId: string): Promise<boolean> => {
+  try {
+    const plansRef = collection(db, 'plans');
+    const q = query(
+      plansRef, 
+      where("userId", "==", userId),
+      where("planCost", ">=", PREMIUM_PLAN_THRESHOLD)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking premium plan:", error);
+    return false;
+  }
+};
+
+/**
  * Awards commission to a referrer based on the earnings of a referred user
  * @param userId ID of the user who earned profit
  * @param earningsAmount Amount of profit earned
@@ -55,51 +97,82 @@ export const awardReferralCommission = async (
   try {
     console.log(`Processing referral commission for user ${userId} with earnings ${earningsAmount}`);
     
-    // Get the referrer's ID
-    const referrerId = await getReferrerId(userId);
+    // Current user we're processing
+    let currentUserId = userId;
     
-    if (!referrerId) {
-      console.log(`User ${userId} doesn't have a referrer, no commission to award`);
-      return false;
+    // Process up to 5 levels
+    for (let level = 1; level <= 5; level++) {
+      // Get the referrer's ID for current user
+      const referrerId = await getReferrerId(currentUserId);
+      
+      if (!referrerId) {
+        console.log(`User ${currentUserId} at level ${level} doesn't have a referrer, stopping chain`);
+        break;
+      }
+      
+      // Check if referrer has premium plan
+      const isPremium = await hasPremiumPlan(referrerId);
+      
+      // Determine commission rate based on level and plan type
+      let commissionRate = 0;
+      
+      if (level === 1) {
+        commissionRate = isPremium ? REFERRAL_COMMISSION_RATE_LEVEL1_PREMIUM : REFERRAL_COMMISSION_RATE_LEVEL1;
+      } else if (level === 2) {
+        commissionRate = REFERRAL_COMMISSION_RATE_LEVEL2;
+      } else if (level === 3) {
+        commissionRate = REFERRAL_COMMISSION_RATE_LEVEL3;
+      } else if (level === 4) {
+        commissionRate = REFERRAL_COMMISSION_RATE_LEVEL4;
+      } else if (level === 5) {
+        commissionRate = REFERRAL_COMMISSION_RATE_LEVEL5;
+      }
+      
+      // Calculate the commission amount
+      const commissionAmount = earningsAmount * commissionRate;
+      
+      if (commissionAmount <= 0) {
+        console.log(`Commission amount for level ${level} is zero or negative: ${commissionAmount}, skipping`);
+        // Continue to next level
+        currentUserId = referrerId;
+        continue;
+      }
+      
+      console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId}`);
+      
+      // Update the referrer's USDT earnings
+      const referrerRef = doc(db, 'users', referrerId);
+      await updateDoc(referrerRef, {
+        usdtEarnings: increment(commissionAmount)
+      });
+      
+      // Log the transaction
+      await addUsdtTransaction(
+        referrerId,
+        commissionAmount,
+        'deposit',
+        `Level ${level} referral commission from plan ${planId}`,
+        Date.now()
+      );
+      
+      // Add commission record
+      const commissionsRef = collection(db, 'referral_commissions');
+      await addDoc(commissionsRef, {
+        referrerId,
+        referredId: userId,
+        level,
+        amount: commissionAmount,
+        planId,
+        baseEarnings: earningsAmount,
+        timestamp: Date.now()
+      });
+      
+      console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId}`);
+      
+      // Move up to the next level
+      currentUserId = referrerId;
     }
     
-    // Calculate the commission amount (5% of earnings)
-    const commissionAmount = earningsAmount * REFERRAL_COMMISSION_RATE;
-    
-    if (commissionAmount <= 0) {
-      console.log(`Commission amount is zero or negative: ${commissionAmount}, skipping`);
-      return false;
-    }
-    
-    console.log(`Awarding ${commissionAmount} USDT commission to referrer ${referrerId}`);
-    
-    // Update the referrer's USDT earnings
-    const referrerRef = doc(db, 'users', referrerId);
-    await updateDoc(referrerRef, {
-      usdtEarnings: increment(commissionAmount)
-    });
-    
-    // Log the transaction
-    await addUsdtTransaction(
-      referrerId,
-      commissionAmount,
-      'deposit',
-      `Referral commission from plan ${planId}`,
-      Date.now()
-    );
-    
-    // Add commission record
-    const commissionsRef = collection(db, 'referral_commissions');
-    await addDoc(commissionsRef, {
-      referrerId,
-      referredId: userId,
-      amount: commissionAmount,
-      planId,
-      baseEarnings: earningsAmount,
-      timestamp: Date.now()
-    });
-    
-    console.log(`Successfully recorded ${commissionAmount} USDT commission for referrer ${referrerId}`);
     return true;
   } catch (error) {
     console.error("Error awarding referral commission:", error);
@@ -140,5 +213,41 @@ export const getTotalCommissionEarned = async (referrerId: string): Promise<numb
   } catch (error) {
     console.error("Error calculating total commission:", error);
     return 0;
+  }
+};
+
+/**
+ * Get commission earnings breakdown by level
+ * @param referrerId ID of the referrer
+ * @returns Object with commission breakdown by level
+ */
+export const getCommissionBreakdown = async (referrerId: string): Promise<{[key: string]: number}> => {
+  try {
+    const commissions = await getCommissionHistory(referrerId);
+    
+    // Initialize breakdown with zero for all levels
+    const breakdown = {
+      level1: 0,
+      level2: 0,
+      level3: 0,
+      level4: 0,
+      level5: 0
+    };
+    
+    // Sum up commissions by level
+    commissions.forEach(commission => {
+      const level = commission.level || 1; // Default to level 1 if not specified
+      
+      if (level === 1) breakdown.level1 += commission.amount;
+      else if (level === 2) breakdown.level2 += commission.amount;
+      else if (level === 3) breakdown.level3 += commission.amount;
+      else if (level === 4) breakdown.level4 += commission.amount;
+      else if (level === 5) breakdown.level5 += commission.amount;
+    });
+    
+    return breakdown;
+  } catch (error) {
+    console.error("Error calculating commission breakdown:", error);
+    return { level1: 0, level2: 0, level3: 0, level4: 0, level5: 0 };
   }
 };

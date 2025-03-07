@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Users, Copy, Gift, Trophy, Network, Share2, DollarSign } from 'lucide-react';
+import { Users, Copy, Gift, Trophy, Network, Share2, DollarSign, Badge, Layers } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -18,7 +17,29 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReferralNetworkVisualization from './ReferralNetworkVisualization';
 import ReferralLeaderboard from './ReferralLeaderboard';
-import { getCommissionHistory, getTotalCommissionEarned, REFERRAL_COMMISSION_RATE } from '@/lib/rewards/referralCommissions';
+import { 
+  getCommissionHistory, 
+  getTotalCommissionEarned, 
+  getCommissionBreakdown,
+  hasPremiumPlan,
+  REFERRAL_COMMISSION_RATE_LEVEL1,
+  REFERRAL_COMMISSION_RATE_LEVEL1_PREMIUM,
+  REFERRAL_COMMISSION_RATE_LEVEL2,
+  REFERRAL_COMMISSION_RATE_LEVEL3,
+  REFERRAL_COMMISSION_RATE_LEVEL4,
+  REFERRAL_COMMISSION_RATE_LEVEL5,
+  REFERRAL_REWARD_COINS_LEVEL1,
+  REFERRAL_REWARD_COINS_LEVEL1_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL2,
+  REFERRAL_REWARD_COINS_LEVEL2_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL3,
+  REFERRAL_REWARD_COINS_LEVEL3_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL4,
+  REFERRAL_REWARD_COINS_LEVEL4_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL5,
+  REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
+  PREMIUM_PLAN_THRESHOLD
+} from '@/lib/rewards/referralCommissions';
 
 const ReferralSystem: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -37,6 +58,14 @@ const ReferralSystem: React.FC = () => {
   const [referralNetwork, setReferralNetwork] = useState<any[]>([]);
   const [commissionHistory, setCommissionHistory] = useState<any[]>([]);
   const [totalCommission, setTotalCommission] = useState(0);
+  const [commissionBreakdown, setCommissionBreakdown] = useState<any>({
+    level1: 0,
+    level2: 0,
+    level3: 0,
+    level4: 0,
+    level5: 0
+  });
+  const [isPremium, setIsPremium] = useState(false);
   
   useEffect(() => {
     if (user && !user.referralCode) {
@@ -69,6 +98,15 @@ const ReferralSystem: React.FC = () => {
       
       getTotalCommissionEarned(user.id).then(total => {
         setTotalCommission(total);
+      });
+      
+      getCommissionBreakdown(user.id).then(breakdown => {
+        setCommissionBreakdown(breakdown);
+      });
+      
+      // Check if user has premium plan
+      hasPremiumPlan(user.id).then(result => {
+        setIsPremium(result);
       });
     }
   }, [user, updateUser]);
@@ -143,16 +181,31 @@ const ReferralSystem: React.FC = () => {
     }
   };
   
+  const getRewardText = (level: number) => {
+    if (level === 1) {
+      return `${isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1} DMI Coins + ${(isPremium ? REFERRAL_COMMISSION_RATE_LEVEL1_PREMIUM : REFERRAL_COMMISSION_RATE_LEVEL1) * 100}% Commission`;
+    } else if (level === 2) {
+      return `${isPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2} DMI Coins + ${REFERRAL_COMMISSION_RATE_LEVEL2 * 100}% Commission`;
+    } else if (level === 3) {
+      return `${isPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3} DMI Coins + ${REFERRAL_COMMISSION_RATE_LEVEL3 * 100}% Commission`;
+    } else if (level === 4) {
+      return `${isPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4} DMI Coins + ${REFERRAL_COMMISSION_RATE_LEVEL4 * 100}% Commission`;
+    } else if (level === 5) {
+      return `${isPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5} DMI Coins + ${REFERRAL_COMMISSION_RATE_LEVEL5 * 100}% Commission`;
+    }
+    return "";
+  };
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <Card className="p-4 border border-dmi/20 bg-white rounded-lg shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2 text-dmi">
             <Users className="h-5 w-5" />
-            Multi-Level Referral System
+            5-Level Referral System
           </h2>
           <div className="text-xs bg-dmi/10 text-dmi font-medium px-3 py-1 rounded-full">
-            Earn up to 500 DMI Coins + 5% Commission
+            Earn up to 5 Levels Deep
           </div>
         </div>
         
@@ -166,11 +219,65 @@ const ReferralSystem: React.FC = () => {
           
           <TabsContent value="overview" className="space-y-4">
             <div>
+              {isPremium ? (
+                <div className="bg-gradient-to-r from-amber-100 to-amber-200 p-3 rounded-lg flex items-center space-x-3 mb-4">
+                  <div className="bg-amber-400 p-2 rounded-full">
+                    <Badge className="h-5 w-5 text-amber-800" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800">Premium Referral Status Active</p>
+                    <p className="text-xs text-amber-700">
+                      You've unlocked premium referral rewards by purchasing a plan worth ${PREMIUM_PLAN_THRESHOLD}+
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-100 p-3 rounded-lg mb-4">
+                  <p className="text-sm text-gray-600">
+                    <Badge className="h-4 w-4 text-gray-500 inline mr-2" />
+                    Upgrade to premium rewards by purchasing any plan worth ${PREMIUM_PLAN_THRESHOLD}+ to earn higher referral bonuses on all 5 levels!
+                  </p>
+                </div>
+              )}
+            
               <p className="text-sm text-gray-600 mb-4">
-                Share your referral code with friends and earn rewards for each person who joins using your code! 
-                Multi-level rewards: Level 1 referrals earn you 200 DMI coins, and when your referrals invite others (Level 2), you earn an additional 50 DMI coins! 
-                Plus, get 5% commission on all earnings from your referred users' arbitrage plans.
+                Share your referral code and earn rewards across 5 levels! Each person who joins using your code earns you DMI coins and commission on their arbitrage plans. 
+                Your rewards increase when you purchase a ${PREMIUM_PLAN_THRESHOLD}+ plan!
               </p>
+              
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg mb-4">
+                <h3 className="font-medium flex items-center text-dmi">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Your Reward Structure
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-blue-50 p-2 rounded-lg">
+                    <p className="text-xs font-semibold text-blue-700">Level 1</p>
+                    <p className="text-xs text-blue-600">{getRewardText(1)}</p>
+                  </div>
+                  
+                  <div className="bg-green-50 p-2 rounded-lg">
+                    <p className="text-xs font-semibold text-green-700">Level 2</p>
+                    <p className="text-xs text-green-600">{getRewardText(2)}</p>
+                  </div>
+                  
+                  <div className="bg-purple-50 p-2 rounded-lg">
+                    <p className="text-xs font-semibold text-purple-700">Level 3</p>
+                    <p className="text-xs text-purple-600">{getRewardText(3)}</p>
+                  </div>
+                  
+                  <div className="bg-orange-50 p-2 rounded-lg">
+                    <p className="text-xs font-semibold text-orange-700">Level 4</p>
+                    <p className="text-xs text-orange-600">{getRewardText(4)}</p>
+                  </div>
+                  
+                  <div className="bg-indigo-50 p-2 rounded-lg md:col-span-2">
+                    <p className="text-xs font-semibold text-indigo-700">Level 5</p>
+                    <p className="text-xs text-indigo-600">{getRewardText(5)}</p>
+                  </div>
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-blue-50 p-3 rounded-lg flex items-center space-x-3">
@@ -194,28 +301,6 @@ const ReferralSystem: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-purple-50 p-3 rounded-lg flex items-center space-x-3">
-                  <div className="bg-purple-100 p-2 rounded-full">
-                    <Users className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Level 1 Referrals</p>
-                    <p className="font-semibold text-lg">{referralStats.level1Count}</p>
-                  </div>
-                </div>
-                
-                <div className="bg-orange-50 p-3 rounded-lg flex items-center space-x-3">
-                  <div className="bg-orange-100 p-2 rounded-full">
-                    <Network className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Level 2 Referrals</p>
-                    <p className="font-semibold text-lg">{referralStats.level2Count}</p>
-                  </div>
-                </div>
-              </div>
-              
               <div className="bg-yellow-50 p-3 rounded-lg flex items-center space-x-3 mb-6">
                 <div className="bg-yellow-100 p-2 rounded-full">
                   <DollarSign className="h-5 w-5 text-yellow-600" />
@@ -224,7 +309,7 @@ const ReferralSystem: React.FC = () => {
                   <p className="text-xs text-gray-500">Commission Earnings</p>
                   <p className="font-semibold text-lg">{totalCommission.toFixed(2)} USDT</p>
                   <p className="text-xs text-gray-600">
-                    You earn {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% of referred users' plan earnings
+                    You earn commissions on all 5 levels of your referral network
                   </p>
                 </div>
               </div>
@@ -308,8 +393,7 @@ const ReferralSystem: React.FC = () => {
             <h3 className="text-md font-medium">My Referral Network</h3>
             <p className="text-sm text-gray-600 mb-4">
               View your complete referral network below. 
-              Level 1 referrals earn you 200 DMI coins. 
-              Level 2 referrals earn you an additional 50 DMI coins.
+              Your network can grow up to 5 levels deep, and you earn rewards for each level!
             </p>
             
             <div className="h-60 bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -324,10 +408,42 @@ const ReferralSystem: React.FC = () => {
                 <h3 className="font-semibold text-lg">Referral Commissions</h3>
               </div>
               <p className="text-sm text-gray-700 mb-2">
-                Earn {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% commission on all earnings from users who joined with your referral code and purchased arbitrage plans.
+                Earn commission on all earnings from users in your 5-level referral network who purchase arbitrage plans.
               </p>
               <div className="text-sm bg-white bg-opacity-60 p-2 rounded text-gray-700">
                 Total commissions earned: <span className="font-medium">{totalCommission.toFixed(2)} USDT</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="bg-blue-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Level 1</p>
+                <p className="font-medium">{commissionBreakdown.level1.toFixed(2)} USDT</p>
+              </div>
+              
+              <div className="bg-green-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Level 2</p>
+                <p className="font-medium">{commissionBreakdown.level2.toFixed(2)} USDT</p>
+              </div>
+              
+              <div className="bg-purple-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Level 3</p>
+                <p className="font-medium">{commissionBreakdown.level3.toFixed(2)} USDT</p>
+              </div>
+              
+              <div className="bg-orange-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Level 4</p>
+                <p className="font-medium">{commissionBreakdown.level4.toFixed(2)} USDT</p>
+              </div>
+              
+              <div className="bg-indigo-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Level 5</p>
+                <p className="font-medium">{commissionBreakdown.level5.toFixed(2)} USDT</p>
+              </div>
+              
+              <div className="bg-yellow-50 p-2 rounded-lg">
+                <p className="text-xs text-gray-600">Total</p>
+                <p className="font-medium">{totalCommission.toFixed(2)} USDT</p>
               </div>
             </div>
             
@@ -335,22 +451,24 @@ const ReferralSystem: React.FC = () => {
             {commissionHistory.length === 0 ? (
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-500">
-                  No commissions earned yet. When your referred users earn from plans, you'll receive {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% of their earnings.
+                  No commissions earned yet. When your referred users earn from plans, you'll receive commission based on your level.
                 </p>
               </div>
             ) : (
               <div className="border rounded-md overflow-hidden">
-                <div className="grid grid-cols-4 bg-gray-50 p-2 text-xs font-medium text-gray-700">
+                <div className="grid grid-cols-5 bg-gray-50 p-2 text-xs font-medium text-gray-700">
                   <div>User</div>
                   <div>Amount</div>
+                  <div>Level</div>
                   <div>Plan</div>
                   <div>Date</div>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
                   {commissionHistory.map(commission => (
-                    <div key={commission.id} className="grid grid-cols-4 p-2 text-xs">
+                    <div key={commission.id} className="grid grid-cols-5 p-2 text-xs">
                       <div className="truncate">{commission.referredId}</div>
                       <div className="font-medium">{commission.amount.toFixed(2)} USDT</div>
+                      <div>Level {commission.level || 1}</div>
                       <div>{commission.planId}</div>
                       <div>{new Date(commission.timestamp).toLocaleDateString()}</div>
                     </div>

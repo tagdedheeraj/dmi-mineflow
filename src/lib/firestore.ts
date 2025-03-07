@@ -21,6 +21,20 @@ import {
   plansCollection 
 } from "./firebase";
 import type { User, MiningSession, ActivePlan, DeviceRegistration } from './storage';
+import {
+  REFERRAL_REWARD_COINS_LEVEL1,
+  REFERRAL_REWARD_COINS_LEVEL2,
+  REFERRAL_REWARD_COINS_LEVEL3,
+  REFERRAL_REWARD_COINS_LEVEL4,
+  REFERRAL_REWARD_COINS_LEVEL5,
+  REFERRAL_REWARD_COINS_LEVEL1_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL2_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL3_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL4_PREMIUM,
+  REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
+  PREMIUM_PLAN_THRESHOLD,
+  hasPremiumPlan
+} from './rewards/referralCommissions';
 
 // User operations
 export const getUser = async (userId: string): Promise<User | null> => {
@@ -174,9 +188,12 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       referredBy: referrerId
     });
     
-    // Award the bonus to the referrer (Level 1 = 200 DMI)
-    const REFERRAL_BONUS_L1 = 200;
-    await updateUserBalance(referrerId, REFERRAL_BONUS_L1);
+    // Check if referrer has premium plan status
+    const isPremium = await hasPremiumPlan(referrerId);
+    
+    // Award the bonus to the referrer based on premium status (Level 1)
+    const LEVEL1_BONUS = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
+    await updateUserBalance(referrerId, LEVEL1_BONUS);
     
     // Record the referral
     const referralsCollection = collection(db, 'referrals');
@@ -185,31 +202,66 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       referredId: userId,
       level: 1,
       referralCode: referralCode,
-      bonusAmount: REFERRAL_BONUS_L1,
+      bonusAmount: LEVEL1_BONUS,
       timestamp: serverTimestamp()
     });
     
-    // Check for Level 2 bonus (referrer's referrer)
-    const referrerData = referrerDoc.data();
-    if (referrerData.referredBy) {
-      // Award Level 2 bonus to the original referrer
-      const REFERRAL_BONUS_L2 = 50;
-      await updateUserBalance(referrerData.referredBy, REFERRAL_BONUS_L2);
+    // Process up to 5 levels of referrals
+    let currentReferrerId = referrerId;
+    let currentLevel = 2;
+    
+    while (currentLevel <= 5) {
+      // Try to get the referrer of the current referrer
+      const currentReferrerRef = doc(db, 'users', currentReferrerId);
+      const currentReferrerSnap = await getDoc(currentReferrerRef);
       
-      // Record the L2 referral
-      await addDoc(referralsCollection, {
-        referrerId: referrerData.referredBy,
-        referredId: userId,
-        level: 2,
-        referralCode: referrerData.appliedReferralCode,
-        bonusAmount: REFERRAL_BONUS_L2,
-        timestamp: serverTimestamp()
-      });
+      if (!currentReferrerSnap.exists() || !currentReferrerSnap.data().referredBy) {
+        // No more referrers in the chain
+        break;
+      }
+      
+      // Get higher level referrer
+      const higherReferrerId = currentReferrerSnap.data().referredBy;
+      
+      // Check if the higher level referrer has premium status
+      const isHigherReferrerPremium = await hasPremiumPlan(higherReferrerId);
+      
+      // Determine the bonus amount based on level and premium status
+      let bonusAmount = 0;
+      
+      if (currentLevel === 2) {
+        bonusAmount = isHigherReferrerPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2;
+      } else if (currentLevel === 3) {
+        bonusAmount = isHigherReferrerPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3;
+      } else if (currentLevel === 4) {
+        bonusAmount = isHigherReferrerPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4;
+      } else if (currentLevel === 5) {
+        bonusAmount = isHigherReferrerPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5;
+      }
+      
+      // Award the bonus to the higher level referrer
+      if (bonusAmount > 0) {
+        await updateUserBalance(higherReferrerId, bonusAmount);
+        
+        // Record the referral at this level
+        await addDoc(referralsCollection, {
+          referrerId: higherReferrerId,
+          referredId: userId,
+          level: currentLevel,
+          referralCode: currentReferrerSnap.data().appliedReferralCode,
+          bonusAmount: bonusAmount,
+          timestamp: serverTimestamp()
+        });
+      }
+      
+      // Move up one level
+      currentReferrerId = higherReferrerId;
+      currentLevel++;
     }
     
     return { 
       success: true, 
-      message: `Referral code applied! ${referrerDoc.data().fullName || 'User'} has received a ${REFERRAL_BONUS_L1} DMI bonus.` 
+      message: `Referral code applied! ${referrerDoc.data().fullName || 'User'} has received a ${LEVEL1_BONUS} DMI bonus.` 
     };
   } catch (error) {
     console.error("Error applying referral code:", error);
