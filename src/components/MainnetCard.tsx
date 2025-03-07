@@ -1,15 +1,24 @@
 
 import React from 'react';
 import { CalendarIcon } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface MainnetCardProps {
   launchDate: Date;
-  daysLeft: number;
 }
 
-const MainnetCard: React.FC<MainnetCardProps> = ({ launchDate, daysLeft }) => {
-  // Calculate progress percentage (based on 365 days countdown)
-  const progressPercentage = Math.max(0, Math.min(100, ((365 - daysLeft) / 365) * 100));
+const MainnetCard: React.FC<MainnetCardProps> = ({ launchDate }) => {
+  // Get today's date
+  const today = new Date();
+  
+  // Calculate days left until mainnet launch
+  const diffTime = launchDate.getTime() - today.getTime();
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Calculate progress percentage (based on total days from a year before launch)
+  const totalDays = 365; // Assuming we start counting a year before launch
+  const daysPassed = totalDays - daysLeft;
+  const progressPercentage = Math.max(0, Math.min(100, (daysPassed / totalDays) * 100));
   
   // Format date to display - ensure it shows August 26, 2025
   const formattedDate = launchDate.toLocaleString('default', { 
@@ -41,12 +50,10 @@ const MainnetCard: React.FC<MainnetCardProps> = ({ launchDate, daysLeft }) => {
             <span>Progress to launch</span>
             <span className="font-semibold">{daysLeft} days left</span>
           </div>
-          <div className="h-2.5 bg-black/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-white rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
+          <Progress 
+            value={progressPercentage} 
+            className="h-2.5 bg-black/20" 
+          />
         </div>
       </div>
     </div>

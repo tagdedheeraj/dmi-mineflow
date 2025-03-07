@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
@@ -60,10 +60,7 @@ const Mining: React.FC = () => {
       
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
         <div className="space-y-6">
-          <MainnetCard 
-            launchDate={mainnetLaunchDate} 
-            daysLeft={daysLeft} 
-          />
+          <MainnetCard launchDate={mainnetLaunchDate} />
           
           <MiningCard />
           
