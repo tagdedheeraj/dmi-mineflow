@@ -12,6 +12,7 @@ import {
 import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
 import { getUser } from './rewardsTracking';
+import { awardReferralCommission } from './referralCommissions';
 
 // Function to get the last USDT earnings update date (in IST)
 export const getLastUsdtUpdateDate = async (userId: string): Promise<string | null> => {
@@ -43,9 +44,9 @@ export const updateLastUsdtUpdateDate = async (userId: string, date: string): Pr
 };
 
 // Function to update USDT earnings with improved logging and transaction recording
-export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
+export const updateUsdtEarnings = async (userId: string, amount: number, planId?: string): Promise<User | null> => {
   try {
-    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT`);
+    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''}`);
     
     const userRef = doc(db, 'users', userId);
     const userBefore = await getDoc(userRef);
@@ -68,11 +69,17 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
       userId,
       amount,
       'deposit',
-      'Daily plan earnings',
+      planId ? `Earnings from plan ${planId}` : 'Daily plan earnings',
       Date.now()
     );
     
     console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
+    
+    // Process referral commission if this is from a plan and we have a plan ID
+    if (planId) {
+      // Award commission to the referrer (5% of earnings)
+      await awardReferralCommission(userId, amount, planId);
+    }
     
     // Fetch and return the updated user
     const updatedUser = await getUser(userId);

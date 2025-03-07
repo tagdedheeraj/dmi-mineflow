@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Users, Copy, Gift, Trophy, Network, Share2 } from 'lucide-react';
+import { Users, Copy, Gift, Trophy, Network, Share2, DollarSign } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -17,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReferralNetworkVisualization from './ReferralNetworkVisualization';
 import ReferralLeaderboard from './ReferralLeaderboard';
+import { getCommissionHistory, getTotalCommissionEarned, REFERRAL_COMMISSION_RATE } from '@/lib/rewards/referralCommissions';
 
 const ReferralSystem: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -33,6 +35,8 @@ const ReferralSystem: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [referralNetwork, setReferralNetwork] = useState<any[]>([]);
+  const [commissionHistory, setCommissionHistory] = useState<any[]>([]);
+  const [totalCommission, setTotalCommission] = useState(0);
   
   useEffect(() => {
     if (user && !user.referralCode) {
@@ -56,6 +60,15 @@ const ReferralSystem: React.FC = () => {
       
       getReferralNetwork(user.id).then(network => {
         setReferralNetwork(network);
+      });
+      
+      // Fetch commission data
+      getCommissionHistory(user.id).then(history => {
+        setCommissionHistory(history);
+      });
+      
+      getTotalCommissionEarned(user.id).then(total => {
+        setTotalCommission(total);
       });
     }
   }, [user, updateUser]);
@@ -115,7 +128,7 @@ const ReferralSystem: React.FC = () => {
       try {
         await navigator.share({
           title: 'Join DMI Network with my referral code',
-          text: `Use my referral code ${referralCode} to join DMI Network and get 200 DMI coins bonus!`,
+          text: `Use my referral code ${referralCode} to join DMI Network and get 200 DMI coins bonus! Plus, I'll earn 5% of your plan earnings as commission!`,
           url: 'https://dminetwork.us'
         });
         toast({
@@ -139,14 +152,15 @@ const ReferralSystem: React.FC = () => {
             Multi-Level Referral System
           </h2>
           <div className="text-xs bg-dmi/10 text-dmi font-medium px-3 py-1 rounded-full">
-            Earn up to 500 DMI Coins
+            Earn up to 500 DMI Coins + 5% Commission
           </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">My Network</TabsTrigger>
+            <TabsTrigger value="commission">Commissions</TabsTrigger>
             <TabsTrigger value="contest">Contest</TabsTrigger>
           </TabsList>
           
@@ -154,7 +168,8 @@ const ReferralSystem: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600 mb-4">
                 Share your referral code with friends and earn rewards for each person who joins using your code! 
-                Multi-level rewards: Level 1 referrals earn you 200 DMI coins, and when your referrals invite others (Level 2), you earn an additional 50 DMI coins!
+                Multi-level rewards: Level 1 referrals earn you 200 DMI coins, and when your referrals invite others (Level 2), you earn an additional 50 DMI coins! 
+                Plus, get 5% commission on all earnings from your referred users' arbitrage plans.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -198,6 +213,19 @@ const ReferralSystem: React.FC = () => {
                     <p className="text-xs text-gray-500">Level 2 Referrals</p>
                     <p className="font-semibold text-lg">{referralStats.level2Count}</p>
                   </div>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 p-3 rounded-lg flex items-center space-x-3 mb-6">
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <DollarSign className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">Commission Earnings</p>
+                  <p className="font-semibold text-lg">{totalCommission.toFixed(2)} USDT</p>
+                  <p className="text-xs text-gray-600">
+                    You earn {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% of referred users' plan earnings
+                  </p>
                 </div>
               </div>
               
@@ -287,6 +315,49 @@ const ReferralSystem: React.FC = () => {
             <div className="h-60 bg-gray-50 rounded-lg p-2 border border-gray-200">
               <ReferralNetworkVisualization network={referralNetwork} />
             </div>
+          </TabsContent>
+          
+          <TabsContent value="commission" className="space-y-4">
+            <div className="bg-gradient-to-r from-green-100 to-blue-100 p-4 rounded-lg mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                <h3 className="font-semibold text-lg">Referral Commissions</h3>
+              </div>
+              <p className="text-sm text-gray-700 mb-2">
+                Earn {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% commission on all earnings from users who joined with your referral code and purchased arbitrage plans.
+              </p>
+              <div className="text-sm bg-white bg-opacity-60 p-2 rounded text-gray-700">
+                Total commissions earned: <span className="font-medium">{totalCommission.toFixed(2)} USDT</span>
+              </div>
+            </div>
+            
+            <h3 className="text-md font-medium">Commission History</h3>
+            {commissionHistory.length === 0 ? (
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">
+                  No commissions earned yet. When your referred users earn from plans, you'll receive {(REFERRAL_COMMISSION_RATE * 100).toFixed(0)}% of their earnings.
+                </p>
+              </div>
+            ) : (
+              <div className="border rounded-md overflow-hidden">
+                <div className="grid grid-cols-4 bg-gray-50 p-2 text-xs font-medium text-gray-700">
+                  <div>User</div>
+                  <div>Amount</div>
+                  <div>Plan</div>
+                  <div>Date</div>
+                </div>
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                  {commissionHistory.map(commission => (
+                    <div key={commission.id} className="grid grid-cols-4 p-2 text-xs">
+                      <div className="truncate">{commission.referredId}</div>
+                      <div className="font-medium">{commission.amount.toFixed(2)} USDT</div>
+                      <div>{commission.planId}</div>
+                      <div>{new Date(commission.timestamp).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="contest" className="space-y-4">
