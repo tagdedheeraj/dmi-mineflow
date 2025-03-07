@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,6 @@ const ReferralSystem: React.FC = () => {
   const [referralNetwork, setReferralNetwork] = useState<any[]>([]);
   
   useEffect(() => {
-    // Generate referral code if user doesn't have one
     if (user && !user.referralCode) {
       const code = generateReferralCode(user.id);
       setReferralCode(code);
@@ -47,7 +45,6 @@ const ReferralSystem: React.FC = () => {
       setReferralCode(user.referralCode);
     }
     
-    // Load referred users and stats
     if (user) {
       getReferredUsers(user.id).then(users => {
         setReferredUsers(users);
@@ -91,7 +88,6 @@ const ReferralSystem: React.FC = () => {
           description: result.message,
         });
         
-        // Update user object
         if (user) {
           updateUser({ ...user, appliedReferralCode: inputCode });
         }
@@ -303,7 +299,7 @@ const ReferralSystem: React.FC = () => {
                 Join our monthly referral contest! The user with the most referrals this month wins a special prize of 5000 DMI coins!
               </p>
               <div className="text-xs bg-white bg-opacity-60 p-2 rounded text-gray-700">
-                Contest ends: <span className="font-medium">August 31, 2023</span>
+                Contest ends: <span className="font-medium">August 31, 2025</span>
               </div>
             </div>
             

@@ -5,11 +5,11 @@ import { Trophy } from 'lucide-react';
 const ReferralLeaderboard: React.FC = () => {
   // Sample leaderboard data - would be replaced with real data in production
   const leaderboardData = [
-    { id: 1, name: 'Alex Smith', referrals: 28, position: 1 },
-    { id: 2, name: 'Emma Johnson', referrals: 23, position: 2 },
-    { id: 3, name: 'Michael Brown', referrals: 19, position: 3 },
-    { id: 4, name: 'Sarah Williams', referrals: 17, position: 4 },
-    { id: 5, name: 'David Jones', referrals: 15, position: 5 },
+    { id: 1, name: 'Alex Smith', referrals: 6589, position: 1 },
+    { id: 2, name: 'Emma Johnson', referrals: 6269, position: 2 },
+    { id: 3, name: 'Michael Brown', referrals: 5996, position: 3 },
+    { id: 4, name: 'Sarah Williams', referrals: 5895, position: 4 },
+    { id: 5, name: 'David Jones', referrals: 4580, position: 5 },
   ];
   
   const getPositionColor = (position: number) => {
@@ -61,7 +61,7 @@ const ReferralLeaderboard: React.FC = () => {
       </div>
       
       <div className="p-3 bg-gray-50 border-t text-center text-xs text-gray-500">
-        Contest ends in 14 days
+        Contest ends in 159 days
       </div>
     </div>
   );
