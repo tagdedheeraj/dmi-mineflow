@@ -15,6 +15,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { User } from '../storage';
+import { notifyReferralCommission } from './notificationService';
 
 // Constants for commission rates
 export const REFERRAL_COMMISSION_RATE_LEVEL1 = 0.05; // 5% commission for level 1
@@ -166,6 +167,9 @@ export const awardReferralCommission = async (
         baseEarnings: earningsAmount,
         timestamp: Date.now()
       });
+      
+      // Send notification to referrer about commission
+      await notifyReferralCommission(referrerId, commissionAmount, level);
       
       console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId}`);
       

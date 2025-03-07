@@ -5,3 +5,4 @@ export * from './rewardsTracking';
 export * from './taskManagement';
 export * from './usdtEarnings';
 export * from './referralCommissions';
+export * from './notificationService';

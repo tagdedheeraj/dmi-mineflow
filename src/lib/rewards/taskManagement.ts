@@ -10,6 +10,7 @@ import {
   collection, 
   addDoc
 } from 'firebase/firestore';
+import { notifyTaskCompleted } from './notificationService';
 
 // Fetch completed tasks for a user
 export const fetchCompletedTasks = async (userId: string) => {
@@ -75,6 +76,12 @@ export const saveTaskSubmission = async (
       rewardAmount
     });
     
+    // Get task name for notification
+    const taskName = getTaskName(taskId);
+    
+    // Send notification for task submission
+    await notifyTaskCompleted(userId, taskName, rewardAmount);
+    
     return true;
   } catch (error) {
     console.error(`Error saving task submission for ${taskId}:`, error);
@@ -93,9 +100,33 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
       rewardAmount
     });
     
+    // Get task name for notification
+    const taskName = getTaskName(taskId);
+    
+    // Send notification for task completion
+    await notifyTaskCompleted(userId, taskName, rewardAmount);
+    
     return true;
   } catch (error) {
     console.error(`Error logging task completion for ${taskId}:`, error);
     return false;
+  }
+};
+
+// Helper function to get human-readable task name
+const getTaskName = (taskId: string): string => {
+  switch (taskId) {
+    case 'telegram_join':
+      return 'Join Telegram Channel';
+    case 'telegram_share':
+      return 'Share on Telegram';
+    case 'youtube_video':
+      return 'Create YouTube Video';
+    case 'instagram_post':
+      return 'Share on Instagram';
+    case 'twitter_post':
+      return 'Share on Twitter';
+    default:
+      return taskId;
   }
 };

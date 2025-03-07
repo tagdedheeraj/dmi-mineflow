@@ -10,6 +10,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { MiningProvider } from "./contexts/MiningContext";
 import { isAuthRequired } from "./lib/secureStorage";
 import AppLock from "./components/AppLock";
+import { NotificationsPanel } from "./components/NotificationsPanel";
 
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -54,6 +55,9 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <MiningProvider>
+                <div className="fixed top-4 right-4 z-50">
+                  <NotificationsPanel />
+                </div>
                 <Routes>
                   <Route path="/" element={<Navigate to="/mining" replace />} />
                   <Route path="/signin" element={<SignIn />} />
@@ -116,3 +120,4 @@ const App = () => {
 };
 
 export default App;
+

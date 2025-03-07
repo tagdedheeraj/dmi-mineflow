@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMining } from '@/contexts/MiningContext';
 import { Button } from '@/components/ui/button';
 import { Cpu, ArrowUpCircle } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { notifyMiningCompleted } from '@/lib/rewards/notificationService';
 
 const MiningCard: React.FC = () => {
   const { 
@@ -12,14 +14,38 @@ const MiningCard: React.FC = () => {
     miningProgress, 
     timeRemaining, 
     currentEarnings,
-    miningRate
+    miningRate,
+    miningCompleted
   } = useMining();
+  
+  const { user } = useAuth();
 
   // Format the time remaining into hours:minutes:seconds
   const formattedTimeRemaining = formatDuration(timeRemaining);
   
   // Format mining rate to 2 decimal places for display
   const formattedMiningRate = miningRate.toFixed(2);
+  
+  // Listen for mining completion to send notification
+  useEffect(() => {
+    const handleMiningCompleted = async (amount: number) => {
+      if (user && amount > 0) {
+        await notifyMiningCompleted(user.id, amount);
+      }
+    };
+    
+    // Add event listener for mining completed
+    if (miningCompleted) {
+      miningCompleted.on('completed', handleMiningCompleted);
+    }
+    
+    return () => {
+      // Clean up event listener
+      if (miningCompleted) {
+        miningCompleted.off('completed', handleMiningCompleted);
+      }
+    };
+  }, [user, miningCompleted]);
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in">

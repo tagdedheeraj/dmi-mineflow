@@ -1,4 +1,3 @@
-
 import { 
   db, 
   addUsdtTransaction
@@ -13,6 +12,7 @@ import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
 import { getUser } from './rewardsTracking';
 import { awardReferralCommission } from './referralCommissions';
+import { notifyUsdtEarnings } from './notificationService';
 
 // Function to get the last USDT earnings update date (in IST)
 export const getLastUsdtUpdateDate = async (userId: string): Promise<string | null> => {
@@ -71,6 +71,13 @@ export const updateUsdtEarnings = async (userId: string, amount: number, planId?
       'deposit',
       planId ? `Earnings from plan ${planId}` : 'Daily plan earnings',
       Date.now()
+    );
+    
+    // Send notification to user about USDT earnings
+    await notifyUsdtEarnings(
+      userId, 
+      amount, 
+      planId ? `plan ${planId}` : 'daily earnings'
     );
     
     console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
