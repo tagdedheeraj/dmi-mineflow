@@ -43,12 +43,12 @@ export const saveActivePlan = async (userId: string, plan: ActivePlan): Promise<
     });
     
     // Record the purchase as a USDT transaction
-    if (plan.planCost) {
+    if (plan.price) {
       await addUsdtTransaction(
         userId,
-        -plan.planCost, // Negative amount for payment
+        -plan.price, // Negative amount for payment
         'deposit',
-        `Purchase of ${plan.planName} plan`,
+        `Purchase of ${plan.name} plan`,
         Date.now()
       );
     }
@@ -81,7 +81,7 @@ export const getUserPurchasedPlans = async (userId: string): Promise<ActivePlan[
 export const hasUserPurchasedPremiumPlan = async (userId: string, premiumThreshold = 100): Promise<boolean> => {
   try {
     const plans = await getUserPurchasedPlans(userId);
-    return plans.some(plan => (plan.planCost || 0) >= premiumThreshold);
+    return plans.some(plan => (plan.price || 0) >= premiumThreshold);
   } catch (error) {
     console.error("Error checking premium plan status:", error);
     return false;

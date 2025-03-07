@@ -4,7 +4,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import AdWatchCard from './AdWatchCard';
 import HowItWorks from './HowItWorks';
 import ComingSoon from './ComingSoon';
-import ReferralSystem from './referral/ReferralSystem';
+import ReferralSystem from './ReferralSystem';
 import SocialMediaTasks from './SocialMediaTasks';
 
 interface RewardsTabContentProps {
