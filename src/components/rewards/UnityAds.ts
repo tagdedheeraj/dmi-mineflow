@@ -16,15 +16,20 @@ class UnityAdsImplementation implements UnityAdsInterface {
   private initialized: boolean = false;
   private isLoading: boolean = false;
   private sdkLoaded: boolean = false;
+  private initializationAttempts: number = 0;
+  private readonly MAX_INIT_ATTEMPTS = 3;
 
   constructor() {
     this.initialize();
   }
 
   initialize() {
-    if (this.initialized) return;
+    if (this.initialized || this.isLoading) return;
     
-    console.log('Initializing Unity Ads with Game ID:', UNITY_GAME_ID);
+    this.isLoading = true;
+    this.initializationAttempts++;
+    
+    console.log(`Initializing Unity Ads with Game ID: ${UNITY_GAME_ID} (Attempt ${this.initializationAttempts})`);
     
     // Load Unity Ads SDK script dynamically
     const script = document.createElement('script');
@@ -34,6 +39,7 @@ class UnityAdsImplementation implements UnityAdsInterface {
     script.onload = () => {
       console.log('Unity Ads SDK loaded successfully');
       this.sdkLoaded = true;
+      this.isLoading = false;
       
       // Add a short delay to ensure the SDK is fully loaded
       setTimeout(() => {
@@ -45,6 +51,13 @@ class UnityAdsImplementation implements UnityAdsInterface {
       console.error('Failed to load Unity Ads SDK:', error);
       this.sdkLoaded = false;
       this.initialized = false;
+      this.isLoading = false;
+      
+      // Retry initialization if we haven't exceeded max attempts
+      if (this.initializationAttempts < this.MAX_INIT_ATTEMPTS) {
+        console.log(`Retrying Unity Ads initialization (Attempt ${this.initializationAttempts + 1}/${this.MAX_INIT_ATTEMPTS})`);
+        setTimeout(() => this.initialize(), 3000);
+      }
     };
     
     document.head.appendChild(script);
@@ -53,6 +66,7 @@ class UnityAdsImplementation implements UnityAdsInterface {
   private initializeUnityServices() {
     if (!this.sdkLoaded || typeof window.unity === 'undefined') {
       console.error('Unity SDK not loaded properly');
+      this.isLoading = false;
       return;
     }
 
@@ -69,11 +83,13 @@ class UnityAdsImplementation implements UnityAdsInterface {
         onFailed: (error: any) => {
           console.error('Unity Ads initialization failed:', error);
           this.initialized = false;
+          this.isLoading = false;
         }
       });
     } catch (error) {
       console.error('Error during Unity initialization:', error);
       this.initialized = false;
+      this.isLoading = false;
     }
   }
 
@@ -107,6 +123,13 @@ class UnityAdsImplementation implements UnityAdsInterface {
       } else {
         console.error('Unity services or banner not available');
         this.isLoading = false;
+        
+        // Try to reinitialize
+        setTimeout(() => {
+          if (!this.initialized && this.initializationAttempts < this.MAX_INIT_ATTEMPTS) {
+            this.initialize();
+          }
+        }, 5000);
       }
     } catch (error) {
       console.error('Error loading Unity ad:', error);
@@ -117,6 +140,12 @@ class UnityAdsImplementation implements UnityAdsInterface {
   isReady(): boolean {
     if (!this.initialized || !this.sdkLoaded) {
       console.log('Unity Ads not initialized yet');
+      
+      // Re-attempt initialization if needed
+      if (!this.isLoading && this.initializationAttempts < this.MAX_INIT_ATTEMPTS) {
+        setTimeout(() => this.initialize(), 1000);
+      }
+      
       return false;
     }
     
@@ -125,6 +154,12 @@ class UnityAdsImplementation implements UnityAdsInterface {
       if (window.unity && window.unity.services && window.unity.services.banner) {
         const isReady = window.unity.services.banner.isReady(UNITY_PLACEMENT_ID);
         console.log('Unity Ad ready status:', isReady);
+        
+        // If not ready, try to load it
+        if (!isReady && !this.isLoading) {
+          setTimeout(() => this.loadAd(), 1000);
+        }
+        
         return isReady;
       }
     } catch (error) {
