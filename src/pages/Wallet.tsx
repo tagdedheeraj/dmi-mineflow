@@ -34,6 +34,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
@@ -47,6 +48,7 @@ const Wallet: React.FC = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [planDaysRemaining, setPlanDaysRemaining] = useState<Record<string, number>>({});
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -69,6 +71,30 @@ const Wallet: React.FC = () => {
       loadWithdrawalRequests();
     }
   }, [user, location.pathname]);
+
+  useEffect(() => {
+    const calculateRemainingDays = () => {
+      const daysMap: Record<string, number> = {};
+      
+      activePlans.forEach(plan => {
+        const expiryDate = new Date(plan.expiresAt);
+        const now = new Date();
+        
+        const diffTime = expiryDate.getTime() - now.getTime();
+        const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+        
+        daysMap[plan.id] = diffDays;
+      });
+      
+      setPlanDaysRemaining(daysMap);
+    };
+    
+    calculateRemainingDays();
+    
+    const intervalId = setInterval(calculateRemainingDays, 60 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [activePlans]);
 
   const loadWithdrawalRequests = async () => {
     if (!user) return;
@@ -131,7 +157,6 @@ const Wallet: React.FC = () => {
       return;
     }
 
-    // Show withdrawal amount selection modal
     setIsWithdrawalModalOpen(true);
     setWithdrawalAmount(usdtEarnings);
   };
@@ -150,7 +175,6 @@ const Wallet: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Create withdrawal request
       const requestId = await createWithdrawalRequest(
         user.id,
         user.fullName,
@@ -160,21 +184,18 @@ const Wallet: React.FC = () => {
       );
 
       if (requestId) {
-        // Deduct from user's USDT earnings
         const updatedUser = { 
           ...user, 
           usdtEarnings: user.usdtEarnings ? user.usdtEarnings - withdrawalAmount : 0 
         };
         updateUser(updatedUser);
         
-        // Close modal and show success message
         setIsWithdrawalModalOpen(false);
         toast({
           title: "Withdrawal Requested",
           description: "Your withdrawal request has been submitted and will be processed shortly.",
         });
         
-        // Reload withdrawal requests
         loadWithdrawalRequests();
       } else {
         throw new Error("Failed to create withdrawal request");
@@ -407,15 +428,28 @@ const Wallet: React.FC = () => {
           <div className="p-5">
             {activePlans.length > 0 ? (
               <div className="space-y-4">
-                {activePlans.map(plan => {
+                {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).map(plan => {
                   const planInfo = miningPlans.find(p => p.id === plan.id);
+                  const daysRemaining = planDaysRemaining[plan.id] || 0;
+                  const totalDays = planInfo?.duration || 30;
+                  const progressPercent = Math.max(0, Math.min(100, (daysRemaining / totalDays) * 100));
+                  
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
                       <div className="flex justify-between">
                         <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
                         <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                      
+                      <div className="mt-3 mb-2">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">{daysRemaining} days remaining</span>
+                          <span className="text-gray-600">{totalDays} days total</span>
+                        </div>
+                        <Progress value={progressPercent} className="h-2" />
+                      </div>
+                      
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
                         <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
                         <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
                         {planInfo && (
@@ -423,6 +457,17 @@ const Wallet: React.FC = () => {
                             <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
                           </div>
                         )}
+                      </div>
+                      
+                      <div className="mt-3 bg-blue-50 p-2 rounded flex items-center text-sm text-blue-700">
+                        <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span>
+                          {daysRemaining <= 0 
+                            ? "Plan has expired" 
+                            : daysRemaining === 1 
+                              ? "Plan expires tomorrow" 
+                              : `Plan expires in ${daysRemaining} days`}
+                        </span>
                       </div>
                     </div>
                   );
