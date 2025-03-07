@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Video, Play, Check, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { unityAds } from './UnityAds';
+import { unityAds } from './unityAds';
 
 interface AdWatchCardProps {
   isWatchingAd: boolean;
