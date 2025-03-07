@@ -1,3 +1,4 @@
+
 import { 
   db, 
   auth,
@@ -268,105 +269,92 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
 
 // Enhanced function to process daily USDT earnings with better error handling
 export const processDailyUsdtEarnings = async (
-  userId: string,
-  activePlans: ActivePlan[],
-  plansData: MiningPlan[]
+  userId: string, 
+  activePlans: any[], 
+  plansData: any[]
 ): Promise<{
   success: boolean;
   totalAmount: number;
-  details: Array<{ planId: string; planName: string; amount: number }>;
-  error?: string;
+  details: {planName: string; amount: number}[];
 }> => {
   try {
+    // Get today's date in ISO format (YYYY-MM-DD)
+    const today = new Date().toISOString().split('T')[0];
+    const lastUpdateDate = await getLastUsdtUpdateDate(userId);
+    
     console.log(`Processing daily USDT earnings for user ${userId}`);
+    console.log(`Last update: ${lastUpdateDate}, Today: ${today}`);
     
-    if (!userId || !activePlans || activePlans.length === 0) {
-      console.log("No active plans to process");
-      return { success: true, totalAmount: 0, details: [] };
+    // If already updated today, return without processing
+    if (lastUpdateDate === today) {
+      console.log(`Already processed earnings for today (${today}), skipping.`);
+      return {
+        success: true,
+        totalAmount: 0,
+        details: []
+      };
     }
     
-    // Get the current date in Indian Standard Time
-    const now = new Date();
-    const indiaTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-    const todayIST = indiaTime.toISOString().split('T')[0];
+    let totalDailyEarnings = 0;
+    const earningDetails: {planName: string; amount: number}[] = [];
     
-    console.log(`Current date in IST: ${todayIST}`);
-    
-    // Check if we already processed today's earnings
-    const lastUpdate = await getLastUsdtUpdateDate(userId);
-    console.log(`Last update date: ${lastUpdate}`);
-    
-    if (lastUpdate === todayIST) {
-      console.log("Already processed earnings for today (IST)");
-      return { success: true, totalAmount: 0, details: [] };
-    }
-    
-    let totalEarnings = 0;
-    const earningsDetails: Array<{ planId: string; planName: string; amount: number }> = [];
-    
-    // Process each active plan
+    // Process active plans that haven't expired
     for (const plan of activePlans) {
-      // Check if plan is still active
-      if (new Date(plan.expiresAt) <= now) {
-        console.log(`Plan ${plan.id} has expired, skipping`);
+      // Skip expired plans
+      if (new Date() >= new Date(plan.expiresAt)) {
+        console.log(`Plan ${plan.id} has expired, skipping.`);
         continue;
       }
       
-      // Find the plan details
-      const planInfo = plansData.find(p => p.id === plan.id);
-      if (!planInfo) {
-        console.log(`Could not find details for plan ${plan.id}, skipping`);
-        continue;
+      const planInfo = plansData.find((p: any) => p.id === plan.id);
+      if (planInfo) {
+        console.log(`Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
+        totalDailyEarnings += planInfo.dailyEarnings;
+        earningDetails.push({
+          planName: planInfo.name,
+          amount: planInfo.dailyEarnings
+        });
+      } else {
+        console.log(`Could not find plan info for id: ${plan.id}`);
       }
-      
-      // Add daily earnings for this plan
-      const amount = planInfo.dailyEarnings;
-      totalEarnings += amount;
-      earningsDetails.push({
-        planId: plan.id,
-        planName: planInfo.name,
-        amount
-      });
-      
-      console.log(`Added ${amount} USDT from ${planInfo.name} plan`);
     }
     
-    if (totalEarnings > 0) {
-      // Update user's USDT balance
-      const updatedUser = await updateUsdtEarnings(userId, totalEarnings);
-      if (!updatedUser) {
+    if (totalDailyEarnings > 0) {
+      console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings`);
+      
+      // Update user's USDT earnings
+      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
+      
+      if (updatedUser) {
+        // Update the last update date
+        await updateLastUsdtUpdateDate(userId, today);
+        console.log(`Updated last USDT earnings date to ${today}`);
+        
+        return {
+          success: true,
+          totalAmount: totalDailyEarnings,
+          details: earningDetails
+        };
+      } else {
         throw new Error("Failed to update user's USDT earnings");
       }
-      
-      // Record transaction
-      await addUsdtTransaction(
-        userId,
-        totalEarnings,
-        'deposit',
-        'Daily earnings from mining plans',
-        Date.now()
-      );
-      
-      // Update last update date to today in IST
-      await updateLastUsdtUpdateDate(userId, todayIST);
-      
-      console.log(`Successfully processed ${totalEarnings} USDT in daily earnings`);
     } else {
-      console.log("No earnings to process");
+      // Even if there are no earnings, update the date to avoid checking again today
+      console.log(`No earnings to add, updating last update date to ${today}`);
+      await updateLastUsdtUpdateDate(userId, today);
     }
     
     return {
-      success: true,
-      totalAmount: totalEarnings,
-      details: earningsDetails
+      success: totalDailyEarnings > 0,
+      totalAmount: totalDailyEarnings,
+      details: earningDetails
     };
   } catch (error) {
     console.error("Error processing daily USDT earnings:", error);
     return {
       success: false,
       totalAmount: 0,
-      details: [],
-      error: error instanceof Error ? error.message : "Unknown error"
+      details: []
     };
   }
 };

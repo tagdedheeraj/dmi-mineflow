@@ -40,12 +40,8 @@ const MiningPlans: React.FC = () => {
     setShowPaymentModal(false);
     
     try {
-      console.log(`Activating ${selectedPlan.name} plan...`);
-      
       // Call the mining boost update function which will also handle first day earnings
       await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
-      
-      console.log(`Plan activated successfully. First day earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT added.`);
       
       toast({
         title: "Plan activated!",
