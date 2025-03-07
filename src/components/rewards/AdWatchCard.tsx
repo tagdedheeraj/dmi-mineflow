@@ -67,7 +67,7 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
           // Ready to watch state
           <div className="text-center">
             <Button 
-              className="w-full py-6 text-base flex items-center justify-center"
+              className="w-full py-6 text-base flex items-center justify-center bg-dmi hover:bg-dmi/90"
               onClick={onWatchAd}
               disabled={todayAdsWatched >= maxDailyAds}
             >
@@ -80,6 +80,12 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
                 You've reached your daily limit. Come back tomorrow for more rewards!
               </p>
             )}
+            
+            <p className="text-xs text-gray-500 mt-4 italic">
+              {todayAdsWatched < maxDailyAds ? 
+                `${todayAdsWatched} of ${maxDailyAds} ads watched today` : 
+                "All daily ads completed"}
+            </p>
           </div>
         )}
       </div>
