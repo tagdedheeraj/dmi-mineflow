@@ -174,23 +174,42 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       referredBy: referrerId
     });
     
-    // Award the bonus to the referrer
-    const REFERRAL_BONUS = 200;
-    await updateUserBalance(referrerId, REFERRAL_BONUS);
+    // Award the bonus to the referrer (Level 1 = 200 DMI)
+    const REFERRAL_BONUS_L1 = 200;
+    await updateUserBalance(referrerId, REFERRAL_BONUS_L1);
     
     // Record the referral
     const referralsCollection = collection(db, 'referrals');
     await addDoc(referralsCollection, {
       referrerId: referrerId,
       referredId: userId,
+      level: 1,
       referralCode: referralCode,
-      bonusAmount: REFERRAL_BONUS,
+      bonusAmount: REFERRAL_BONUS_L1,
       timestamp: serverTimestamp()
     });
     
+    // Check for Level 2 bonus (referrer's referrer)
+    const referrerData = referrerDoc.data();
+    if (referrerData.referredBy) {
+      // Award Level 2 bonus to the original referrer
+      const REFERRAL_BONUS_L2 = 50;
+      await updateUserBalance(referrerData.referredBy, REFERRAL_BONUS_L2);
+      
+      // Record the L2 referral
+      await addDoc(referralsCollection, {
+        referrerId: referrerData.referredBy,
+        referredId: userId,
+        level: 2,
+        referralCode: referrerData.appliedReferralCode,
+        bonusAmount: REFERRAL_BONUS_L2,
+        timestamp: serverTimestamp()
+      });
+    }
+    
     return { 
       success: true, 
-      message: `Referral code applied! ${referrerDoc.data().fullName || 'User'} has received a ${REFERRAL_BONUS} DMI bonus.` 
+      message: `Referral code applied! ${referrerDoc.data().fullName || 'User'} has received a ${REFERRAL_BONUS_L1} DMI bonus.` 
     };
   } catch (error) {
     console.error("Error applying referral code:", error);
@@ -201,7 +220,11 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
 export const getReferredUsers = async (userId: string): Promise<any[]> => {
   try {
     const referralsRef = collection(db, 'referrals');
-    const q = query(referralsRef, where("referrerId", "==", userId));
+    const q = query(
+      referralsRef, 
+      where("referrerId", "==", userId),
+      where("level", "==", 1)
+    );
     const querySnapshot = await getDocs(q);
     
     const referredUsers = [];
@@ -224,6 +247,121 @@ export const getReferredUsers = async (userId: string): Promise<any[]> => {
     return referredUsers;
   } catch (error) {
     console.error("Error getting referred users:", error);
+    return [];
+  }
+};
+
+export const getReferralStats = async (userId: string): Promise<any> => {
+  try {
+    // Get Level 1 referrals
+    const l1ReferralsRef = collection(db, 'referrals');
+    const l1Query = query(
+      l1ReferralsRef, 
+      where("referrerId", "==", userId),
+      where("level", "==", 1)
+    );
+    const l1QuerySnapshot = await getDocs(l1Query);
+    const level1Count = l1QuerySnapshot.size;
+    
+    // Get Level 2 referrals
+    const l2ReferralsRef = collection(db, 'referrals');
+    const l2Query = query(
+      l2ReferralsRef, 
+      where("referrerId", "==", userId),
+      where("level", "==", 2)
+    );
+    const l2QuerySnapshot = await getDocs(l2Query);
+    const level2Count = l2QuerySnapshot.size;
+    
+    // Calculate total earnings from referrals
+    let totalEarnings = 0;
+    
+    // Add Level 1 earnings
+    l1QuerySnapshot.forEach(doc => {
+      const data = doc.data();
+      totalEarnings += data.bonusAmount || 0;
+    });
+    
+    // Add Level 2 earnings
+    l2QuerySnapshot.forEach(doc => {
+      const data = doc.data();
+      totalEarnings += data.bonusAmount || 0;
+    });
+    
+    return {
+      totalReferrals: level1Count + level2Count,
+      level1Count,
+      level2Count,
+      totalEarnings
+    };
+  } catch (error) {
+    console.error("Error getting referral stats:", error);
+    return {
+      totalReferrals: 0,
+      level1Count: 0,
+      level2Count: 0,
+      totalEarnings: 0
+    };
+  }
+};
+
+export const getReferralNetwork = async (userId: string): Promise<any[]> => {
+  try {
+    const network = [];
+    
+    // Get Level 1 referrals
+    const l1ReferralsRef = collection(db, 'referrals');
+    const l1Query = query(
+      l1ReferralsRef, 
+      where("referrerId", "==", userId),
+      where("level", "==", 1)
+    );
+    const l1QuerySnapshot = await getDocs(l1Query);
+    
+    // Add Level 1 users to network
+    for (const doc of l1QuerySnapshot.docs) {
+      const data = doc.data();
+      const referredUserRef = await getDoc(docRef(db, 'users', data.referredId));
+      
+      if (referredUserRef.exists()) {
+        const userData = referredUserRef.data();
+        network.push({
+          id: data.referredId,
+          name: userData.fullName,
+          level: 1,
+          parentId: userId
+        });
+        
+        // Get Level 2 referrals (users referred by this level 1 user)
+        const l2ReferralsRef = collection(db, 'referrals');
+        const l2Query = query(
+          l2ReferralsRef, 
+          where("referrerId", "==", data.referredId),
+          where("level", "==", 1)
+        );
+        const l2QuerySnapshot = await getDocs(l2Query);
+        
+        // Add Level 2 users to network
+        for (const l2Doc of l2QuerySnapshot.docs) {
+          const l2Data = l2Doc.data();
+          const l2UserRef = await getDoc(docRef(db, 'users', l2Data.referredId));
+          
+          if (l2UserRef.exists()) {
+            const l2UserData = l2UserRef.data();
+            network.push({
+              id: l2Data.referredId,
+              name: l2UserData.fullName,
+              level: 2,
+              parentId: data.referredId
+            });
+          }
+        }
+      }
+    }
+    
+    return network;
+  } catch (error) {
+    console.error("Error getting referral network:", error);
     return [];
   }
 };
