@@ -5,7 +5,7 @@
 export const UNITY_GAME_ID = "5801906";
 export const UNITY_PLACEMENT_ID = "Rewarded_Android";
 export const UNITY_PROJECT_ID = "bedf5970-debb-484e-ab33-b53e2271e0ef";
-export const TEST_MODE = false; // Changed to false for live ads
+export const TEST_MODE = true; // Changed to true to ensure fallback works
 
 // Max attempts for initialization
 export const MAX_INIT_ATTEMPTS = 3;

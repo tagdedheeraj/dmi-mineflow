@@ -32,6 +32,14 @@ export interface UnityAdShowOptions {
   onFailed: (error: any) => void;
 }
 
+// Unity Ads callback options (for global API)
+export interface UnityAdsShowOptions {
+  onStart?: () => void;
+  onComplete?: () => void;
+  onSkip?: () => void;
+  onError?: (error: any) => void;
+}
+
 // Global window interface extension
 declare global {
   interface Window {
@@ -44,6 +52,12 @@ declare global {
           isReady: (placementId: string) => boolean;
         };
       };
+    };
+    UnityAds?: {
+      initialize: (gameId: string, testMode: boolean) => void;
+      load: (placementId: string) => void;
+      show: (placementId: string, options?: UnityAdsShowOptions) => void;
+      isReady: (placementId: string) => boolean;
     };
   }
 }
