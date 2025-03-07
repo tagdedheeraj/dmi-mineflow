@@ -7,14 +7,7 @@ import {
   doc, 
   getDoc, 
   setDoc, 
-  updateDoc,
-  increment,
-  collection, 
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit
+  updateDoc
 } from 'firebase/firestore';
 import { getTodayDateKey } from './dateUtils';
 import { User } from '../storage';
@@ -99,27 +92,5 @@ export const getUser = async (userId: string): Promise<User | null> => {
   }
 };
 
-// Get reward sources summary
-export const getRewardSourcesSummary = async (userId: string) => {
-  try {
-    // This would be implemented to aggregate data from different collections
-    // For now, we return placeholder data
-    return {
-      dmi: {
-        mining: 850,
-        referrals: 250,
-        tasks: 120,
-        videos: 180
-      },
-      usdt: {
-        mining: 8.5,
-        referrals: 2.5,
-        tasks: 1.2,
-        videos: 0.7
-      }
-    };
-  } catch (error) {
-    console.error("Error getting reward sources summary:", error);
-    return null;
-  }
-};
+// Fix missing imports
+import { increment } from 'firebase/firestore';

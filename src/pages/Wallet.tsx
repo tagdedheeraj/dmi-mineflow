@@ -1,314 +1,599 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMining } from '@/contexts/MiningContext';
 import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Wallet as WalletIcon, 
-  ArrowDownToLine, 
-  ArrowUpToLine, 
-  History, 
-  Landmark, 
-  ExternalLink,
-  RefreshCw
+  DollarSign, 
+  Clock, 
+  CalendarDays,
+  Upload,
+  Zap,
+  CreditCard,
+  Lock,
+  History,
+  AlertTriangle
 } from 'lucide-react';
-import { DmiBalanceCard } from '@/components/DmiBalanceCard';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import PaymentModal from '@/components/PaymentModal';
-import { useNavigate } from 'react-router-dom';
-import BottomBar from '@/components/BottomBar';
-import useMobile from '@/hooks/use-mobile';
-import { useToast } from '@/components/ui/use-toast';
-import { getUser, updateUserBalance } from '@/lib/storage';
-import RewardsTrackingCard from '@/components/rewards/RewardsTrackingCard';
-import { getUsdtTransactions, getDmiTransactions } from '@/lib/transactions';
+import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
+import { formatNumber, formatCurrency } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { setUsdtAddress } from '@/lib/firestore';
+import { createWithdrawalRequest, getUserWithdrawalRequests } from '@/lib/withdrawals';
+import { WithdrawalRequest } from '@/lib/withdrawalTypes';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 const Wallet: React.FC = () => {
-  const [user, setUser] = useState(null);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, updateUser, isAdmin } = useAuth();
+  const { activePlans, miningRate } = useMining();
   const navigate = useNavigate();
-  const isMobile = useMobile();
+  const location = useLocation();
   const { toast } = useToast();
+  const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
+  const [isSettingAddress, setIsSettingAddress] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState<number>(0);
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [planDaysRemaining, setPlanDaysRemaining] = useState<Record<string, number>>({});
+
+  const dailyDmiEarnings = miningRate * 24;
+  const weeklyDmiEarnings = dailyDmiEarnings * 7;
+  const monthlyDmiEarnings = dailyDmiEarnings * 30;
   
-  useEffect(() => {
-    const fetchUser = async () => {
-      const storedUser = getUser();
-      if (storedUser) {
-        setUser(storedUser);
-      } else {
-        // Redirect to login if no user is found
-        navigate('/login');
-      }
-    };
-    
-    fetchUser();
-  }, [navigate]);
+  const dmiBalanceValue = (user?.balance || 0) * DMI_COIN_VALUE;
   
+  const usdtEarnings = user?.usdtEarnings || 0;
+  
+  const dailyUsdtEarnings = activePlans.reduce((total, plan) => {
+    const planInfo = miningPlans.find(p => p.id === plan.id);
+    return total + (planInfo?.dailyEarnings || 0);
+  }, 0);
+  
+  const weeklyUsdtEarnings = dailyUsdtEarnings * 7;
+  const monthlyUsdtEarnings = dailyUsdtEarnings * 30;
+
   useEffect(() => {
-    const loadTransactions = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch both USDT and DMI transactions
-        const usdtTransactions = await getUsdtTransactions(user?.id);
-        const dmiTransactions = await getDmiTransactions(user?.id);
-        
-        // Combine and sort transactions by timestamp
-        const allTransactions = [...(usdtTransactions || []), ...(dmiTransactions || [])].sort((a: any, b: any) => b.timestamp - a.timestamp);
-        
-        setTransactions(allTransactions);
-      } catch (error) {
-        console.error("Error loading transactions:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load transaction history."
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     if (user) {
-      loadTransactions();
+      loadWithdrawalRequests();
     }
-  }, [user, toast]);
-  
-  const refreshTransactions = async () => {
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    const calculateRemainingDays = () => {
+      const daysMap: Record<string, number> = {};
+      
+      activePlans.forEach(plan => {
+        const expiryDate = new Date(plan.expiresAt);
+        const now = new Date();
+        
+        const diffTime = expiryDate.getTime() - now.getTime();
+        const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+        
+        daysMap[plan.id] = diffDays;
+      });
+      
+      setPlanDaysRemaining(daysMap);
+    };
+    
+    calculateRemainingDays();
+    
+    const intervalId = setInterval(calculateRemainingDays, 60 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [activePlans]);
+
+  const loadWithdrawalRequests = async () => {
+    if (!user) return;
+    
+    try {
+      const requests = await getUserWithdrawalRequests(user.id);
+      setWithdrawalRequests(requests);
+    } catch (error) {
+      console.error("Failed to load withdrawal requests:", error);
+    }
+  };
+
+  if (!user) {
+    navigate('/signin');
+    return null;
+  }
+
+  const handleSetUsdtAddress = async () => {
+    if (usdtAddress.trim().length < 10) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid USDT BEP20 address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedUser = await setUsdtAddress(user.id, usdtAddress);
+      if (updatedUser) {
+        updateUser(updatedUser);
+        setIsSettingAddress(false);
+        toast({
+          title: "Address Saved",
+          description: "Your USDT withdrawal address has been saved successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error setting USDT address:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save USDT address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!user.usdtAddress) {
+      setIsSettingAddress(true);
+      return;
+    }
+
+    if (usdtEarnings < 50) {
+      toast({
+        title: "Minimum Withdrawal",
+        description: "Minimum withdrawal amount is $50 USDT",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsWithdrawalModalOpen(true);
+    setWithdrawalAmount(usdtEarnings);
+  };
+
+  const submitWithdrawalRequest = async () => {
+    if (!user) return;
+
+    if (withdrawalAmount <= 0 || withdrawalAmount > usdtEarnings) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid withdrawal amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Fetch both USDT and DMI transactions
-      const usdtTransactions = await getUsdtTransactions(user?.id);
-      const dmiTransactions = await getDmiTransactions(user?.id);
-      
-      // Combine and sort transactions by timestamp
-      const allTransactions = [...(usdtTransactions || []), ...(dmiTransactions || [])].sort((a: any, b: any) => b.timestamp - a.timestamp);
-      
-      setTransactions(allTransactions);
-      toast({
-        title: "Transactions Refreshed",
-        description: "Your transaction history has been updated."
-      });
+      const requestId = await createWithdrawalRequest(
+        user.id,
+        user.fullName,
+        user.email,
+        withdrawalAmount,
+        user.usdtAddress || ''
+      );
+
+      if (requestId) {
+        const updatedUser = { 
+          ...user, 
+          usdtEarnings: user.usdtEarnings ? user.usdtEarnings - withdrawalAmount : 0 
+        };
+        updateUser(updatedUser);
+        
+        setIsWithdrawalModalOpen(false);
+        toast({
+          title: "Withdrawal Requested",
+          description: "Your withdrawal request has been submitted and will be processed shortly.",
+        });
+        
+        loadWithdrawalRequests();
+      } else {
+        throw new Error("Failed to create withdrawal request");
+      }
     } catch (error) {
-      console.error("Error refreshing transactions:", error);
+      console.error("Error creating withdrawal request:", error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "Failed to refresh transaction history."
+        description: "Failed to submit withdrawal request. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const filteredTransactions = (type: string) => {
-    if (type === 'all') {
-      return transactions;
-    } else {
-      return transactions.filter((transaction: any) => transaction.type === type);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Approved
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            Pending
+          </span>
+        );
     }
   };
-  
-  const getTransactionDescription = (transaction: any) => {
-    if (transaction.description) {
-      return transaction.description;
-    } else if (transaction.type === 'deposit') {
-      return 'DMI Deposit';
-    } else if (transaction.type === 'withdrawal') {
-      return 'DMI Withdrawal';
-    } else {
-      return 'Transaction';
-    }
-  };
-  
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header
-        title="Wallet"
-        icon={<WalletIcon className="h-5 w-5 mr-2 text-dmi" />}
-        showBackButton={false}
-      />
+    <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
+      <Header />
       
-      <main className="flex-1 container max-w-md mx-auto px-4 pb-20">
-        <DmiBalanceCard 
-          balance={user?.balance || 0} 
-          usdtEarnings={user?.usdtEarnings || 0}
-          usdtAddress={user?.usdtAddress}
-        />
-        
-        {/* Add Rewards Tracking Card here */}
-        <div className="mt-6">
-          <RewardsTrackingCard />
-        </div>
-        
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center py-6 border-dashed border-gray-300"
-            onClick={() => setShowDepositModal(true)}
-          >
-            <ArrowDownToLine className="mr-2 h-5 w-5 text-green-600" />
-            <span>Deposit</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center py-6 border-dashed border-gray-300"
-            onClick={() => setShowWithdrawModal(true)}
-          >
-            <ArrowUpToLine className="mr-2 h-5 w-5 text-blue-600" />
-            <span>Withdraw</span>
-          </Button>
-        </div>
-        
-        {/* Transaction history section */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium flex items-center">
-              <History className="h-5 w-5 mr-2" />
-              Transaction History
-            </h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-xs"
-              onClick={refreshTransactions}
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
+      <main className="pt-24 px-4 max-w-screen-md mx-auto">
+        {isAdmin && (
+          <div className="mb-6 bg-dmi/10 rounded-xl p-4 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-medium">Admin Access</h2>
+              <p className="text-sm text-gray-600">You have administrator privileges</p>
+            </div>
+            <Button onClick={() => navigate('/admin')}>
+              Go to Admin Dashboard
             </Button>
           </div>
+        )}
+      
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-dmi/10 flex items-center justify-center mr-4">
+                <WalletIcon className="h-5 w-5 text-dmi" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">DMI Balance</h2>
+                <p className="text-sm text-gray-600">Current mining rewards</p>
+              </div>
+            </div>
+          </div>
           
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="deposits">Deposits</TabsTrigger>
-              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-            </TabsList>
+          <div className="p-5">
+            <div className="mb-5 bg-dmi/5 rounded-lg p-5 text-center">
+              <p className="text-3xl font-bold text-gray-900">{formatNumber(user.balance)} DMI</p>
+              <p className="text-gray-600 mt-1">≈ {formatCurrency(dmiBalanceValue)}</p>
+              <div className="mt-2 text-xs text-gray-500">1 DMI = {formatCurrency(DMI_COIN_VALUE)}</div>
+            </div>
             
-            <TabsContent value="all">
-              {isLoading ? (
-                <p>Loading transactions...</p>
-              ) : transactions.length === 0 ? (
-                <p>No transactions found.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {transactions.map((transaction: any, index: number) => (
-                    <li key={index} className="bg-white rounded-lg shadow-sm p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{getTransactionDescription(transaction)}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(transaction.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className={`font-bold ${transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.type === 'deposit' ? '+' : '-'} {transaction.amount} {transaction.currency || 'DMI'}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <Clock className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Daily</span>
+                </div>
+                <p className="text-base font-semibold">{formatNumber(dailyDmiEarnings.toFixed(1))}</p>
+                <p className="text-xs text-gray-500">DMI</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Weekly</span>
+                </div>
+                <p className="text-base font-semibold">{formatNumber(weeklyDmiEarnings.toFixed(1))}</p>
+                <p className="text-xs text-gray-500">DMI</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Monthly</span>
+                </div>
+                <p className="text-base font-semibold">{formatNumber(monthlyDmiEarnings.toFixed(1))}</p>
+                <p className="text-xs text-gray-500">DMI</p>
+              </div>
+            </div>
             
-            <TabsContent value="deposits">
-              {isLoading ? (
-                <p>Loading deposits...</p>
-              ) : filteredTransactions('deposit').length === 0 ? (
-                <p>No deposits found.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredTransactions('deposit').map((transaction: any, index: number) => (
-                    <li key={index} className="bg-white rounded-lg shadow-sm p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{getTransactionDescription(transaction)}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(transaction.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="font-bold text-green-600">
-                          +{transaction.amount} {transaction.currency || 'DMI'}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="withdrawals">
-              {isLoading ? (
-                <p>Loading withdrawals...</p>
-              ) : filteredTransactions('withdrawal').length === 0 ? (
-                <p>No withdrawals found.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredTransactions('withdrawal').map((transaction: any, index: number) => (
-                    <li key={index} className="bg-white rounded-lg shadow-sm p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{getTransactionDescription(transaction)}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(transaction.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="font-bold text-red-600">
-                          -{transaction.amount} {transaction.currency || 'DMI'}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-          </Tabs>
+            <Button className="w-full flex items-center justify-center" disabled>
+              <Lock className="mr-2 h-4 w-4" />
+              <span>Withdraw (Locked until mainnet)</span>
+            </Button>
+          </div>
         </div>
         
-        {/* Additional wallet info */}
-        <div className="mt-8 p-4 bg-muted rounded-lg">
-          <h3 className="text-lg font-medium mb-2">Wallet Information</h3>
-          <p className="text-sm text-gray-500">
-            <span className="font-bold">Important:</span> Keep your wallet information secure.
-            Do not share your private keys or seed phrase with anyone.
-          </p>
-          <Button 
-            variant="link" 
-            className="mt-4 text-sm"
-            onClick={() => {
-              if (isMobile) {
-                window.location.href = 'https://dminetwork.us/faq';
-              } else {
-                window.open('https://dminetwork.us/faq', '_blank');
-              }
-            }}
-          >
-            Learn More <ExternalLink className="h-4 w-4 ml-1" />
-          </Button>
-          <p className="text-xs text-gray-400 mt-2">
-            <Landmark className="inline-block h-3 w-3 mr-1 align-middle" />
-            DMI Network, Inc.
-          </p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center mr-4">
+                <DollarSign className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">USDT Earnings</h2>
+                <p className="text-sm text-gray-500">From premium mining plans</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            <div className="mb-5 bg-green-50 rounded-lg p-5 text-center">
+              <p className="text-3xl font-bold text-gray-900">{formatCurrency(usdtEarnings)}</p>
+              <p className="text-gray-600 mt-1">Available for withdrawal</p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <Clock className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Daily</span>
+                </div>
+                <p className="text-base font-semibold">{formatCurrency(dailyUsdtEarnings)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Weekly</span>
+                </div>
+                <p className="text-base font-semibold">{formatCurrency(weeklyUsdtEarnings)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-gray-500 mb-1">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Monthly</span>
+                </div>
+                <p className="text-base font-semibold">{formatCurrency(monthlyUsdtEarnings)}</p>
+              </div>
+            </div>
+            
+            {isSettingAddress ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Set your USDT BEP20 address for withdrawals:</p>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  placeholder="Enter USDT BEP20 address"
+                  value={usdtAddress}
+                  onChange={(e) => setUsdtAddressState(e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsSettingAddress(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSetUsdtAddress}>
+                    Save Address
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                className="w-full flex items-center justify-center"
+                onClick={handleWithdraw}
+                disabled={usdtEarnings < 50}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                <span>Withdraw USDT</span>
+              </Button>
+            )}
+            
+            {usdtEarnings < 50 && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Minimum withdrawal: $50 USDT
+              </p>
+            )}
+          </div>
         </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center mr-4">
+                <Zap className="h-5 w-5 text-yellow-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">Mining Speed Boost</h2>
+                <p className="text-sm text-gray-500">Boost your mining speed with premium plans or referrals!</p>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full mt-4 flex items-center justify-center"
+              onClick={() => navigate('/plans')}
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              <span>Boost Mining Speed</span>
+            </Button>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mr-4">
+                <CreditCard className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">Active Plans</h2>
+                <p className="text-sm text-gray-500">Your premium mining subscriptions</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            {activePlans.length > 0 ? (
+              <div className="space-y-4">
+                {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).map(plan => {
+                  const planInfo = miningPlans.find(p => p.id === plan.id);
+                  const daysRemaining = planDaysRemaining[plan.id] || 0;
+                  const totalDays = planInfo?.duration || 30;
+                  const progressPercent = Math.max(0, Math.min(100, (daysRemaining / totalDays) * 100));
+                  
+                  return (
+                    <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
+                        <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
+                      </div>
+                      
+                      <div className="mt-3 mb-2">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">{daysRemaining} days remaining</span>
+                          <span className="text-gray-600">{totalDays} days total</span>
+                        </div>
+                        <Progress value={progressPercent} className="h-2" />
+                      </div>
+                      
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
+                        <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
+                        {planInfo && (
+                          <div className="col-span-2 mt-1">
+                            <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 bg-blue-50 p-2 rounded flex items-center text-sm text-blue-700">
+                        <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span>
+                          {daysRemaining <= 0 
+                            ? "Plan has expired" 
+                            : daysRemaining === 1 
+                              ? "Plan expires tomorrow" 
+                              : `Plan expires in ${daysRemaining} days`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">You don't have any active plans</p>
+                <Button 
+                  className="mt-4"
+                  onClick={() => navigate('/plans')}
+                >
+                  View Available Plans
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4">
+                <History className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">USDT Transactions</h2>
+                <p className="text-sm text-gray-500">Your withdrawal history</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-5">
+            {withdrawalRequests.length > 0 ? (
+              <div className="space-y-4">
+                {withdrawalRequests.map(request => (
+                  <div key={request.id} className="border border-gray-100 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-gray-900 font-medium">{formatCurrency(request.amount)}</div>
+                        <div className="text-gray-500 text-sm">
+                          {new Date(request.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div>
+                        {getStatusBadge(request.status)}
+                      </div>
+                    </div>
+                    {request.status === 'rejected' && request.rejectionReason && (
+                      <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded flex items-start">
+                        <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5" />
+                        <span>{request.rejectionReason}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">No transactions yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Your withdrawal history will appear here
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Withdrawal Amount Modal */}
+        <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Withdraw USDT</DialogTitle>
+              <DialogDescription>
+                Enter the amount you want to withdraw. The funds will be sent to your registered USDT address.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="withdrawal-amount">Withdrawal Amount (USDT)</Label>
+                <Input
+                  id="withdrawal-amount"
+                  type="number"
+                  value={withdrawalAmount}
+                  onChange={(e) => setWithdrawalAmount(Number(e.target.value))}
+                  min={50}
+                  max={usdtEarnings}
+                  step={1}
+                />
+                <p className="text-xs text-gray-500">
+                  Available balance: {formatCurrency(usdtEarnings)}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Withdrawal Address</Label>
+                <div className="p-3 bg-gray-50 rounded-md text-sm font-mono break-all">
+                  {user.usdtAddress}
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Important Notes:</p>
+                <ul className="text-xs text-gray-600 list-disc pl-5 space-y-1">
+                  <li>Minimum withdrawal amount is $50 USDT</li>
+                  <li>Withdrawals are processed within 24-48 hours</li>
+                  <li>Make sure your withdrawal address is correct</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsWithdrawalModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={submitWithdrawalRequest} 
+                disabled={withdrawalAmount < 50 || withdrawalAmount > usdtEarnings || isLoading}
+              >
+                {isLoading ? "Processing..." : "Confirm Withdrawal"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
-      
-      <BottomBar />
-      
-      {/* Modals */}
-      <PaymentModal 
-        isOpen={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
-        type="deposit"
-        userData={user}
-      />
-      
-      <PaymentModal 
-        isOpen={showWithdrawModal}
-        onClose={() => setShowWithdrawModal(false)}
-        type="withdraw"
-        userData={user}
-      />
     </div>
   );
 };
