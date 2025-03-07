@@ -1,8 +1,13 @@
 
 // This file is now just a re-export for backward compatibility
-import { unityAds, mockUnityAds, UnityAdsInterface } from './unityAds';
+import UnityAdsImplementation from './unityAds/unityAdsImplementation';
+import mockUnityAds from './unityAds/mockUnityAds';
+import { UnityAdsInterface } from './unityAds/types';
 
-// Re-export the main implementations
+// Create instance here instead of importing it
+const unityAds: UnityAdsInterface = new UnityAdsImplementation();
+
+// Export the implementations
 export { unityAds, mockUnityAds };
 export type { UnityAdsInterface };
 

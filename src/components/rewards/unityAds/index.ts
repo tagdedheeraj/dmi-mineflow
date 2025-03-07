@@ -4,10 +4,10 @@ import mockUnityAds from './mockUnityAds';
 import { UnityAdsInterface } from './types';
 
 // Create and export singleton instance
-export const unityAds: UnityAdsInterface = new UnityAdsImplementation();
+const unityAds: UnityAdsInterface = new UnityAdsImplementation();
 
 // Export mock implementation for testing and fallback
-export { mockUnityAds };
+export { unityAds, mockUnityAds };
 
 // Re-export types
 export * from './types';
