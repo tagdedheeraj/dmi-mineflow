@@ -20,9 +20,17 @@ import {
 } from 'firebase/firestore';
 import { User } from './storage';
 
-// Function to get today's date in YYYY-MM-DD format
+// Convert to IST (UTC+5:30)
+const convertToIST = (date: Date) => {
+  // IST is UTC+5:30
+  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+  return istTime;
+};
+
+// Get today's date in YYYY-MM-DD format in IST
 export const getTodayDateKey = () => {
-  const today = new Date();
+  const today = convertToIST(new Date());
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
 
@@ -160,7 +168,7 @@ export const logTaskCompletion = async (userId: string, taskId: string, rewardAm
   }
 };
 
-// Function to get the last USDT earnings update date
+// Function to get the last USDT earnings update date (in IST)
 export const getLastUsdtUpdateDate = async (userId: string): Promise<string | null> => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -176,14 +184,14 @@ export const getLastUsdtUpdateDate = async (userId: string): Promise<string | nu
   }
 };
 
-// Function to update the last USDT earnings update date
+// Function to update the last USDT earnings update date (using IST date)
 export const updateLastUsdtUpdateDate = async (userId: string, date: string): Promise<void> => {
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       lastUsdtEarningsUpdate: date
     });
-    console.log(`Updated lastUsdtEarningsUpdate for user ${userId} to ${date}`);
+    console.log(`Updated lastUsdtEarningsUpdate for user ${userId} to ${date} (IST)`);
   } catch (error) {
     console.error("Error updating last USDT update date:", error);
   }
@@ -270,24 +278,24 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
 // Enhanced function to process daily USDT earnings with better error handling
 export const processDailyUsdtEarnings = async (
   userId: string, 
-  activePlans: any[], 
-  plansData: any[]
+  activePlans: Array<any>, 
+  plansData: Array<any>
 ): Promise<{
   success: boolean;
   totalAmount: number;
   details: {planName: string; amount: number}[];
 }> => {
   try {
-    // Get today's date in ISO format (YYYY-MM-DD)
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in IST (YYYY-MM-DD)
+    const todayIST = getTodayDateKey();
     const lastUpdateDate = await getLastUsdtUpdateDate(userId);
     
-    console.log(`Processing daily USDT earnings for user ${userId}`);
-    console.log(`Last update: ${lastUpdateDate}, Today: ${today}`);
+    console.log(`Processing daily USDT earnings for user ${userId} (IST time)`);
+    console.log(`Today (IST): ${todayIST}, Last update: ${lastUpdateDate}`);
     
-    // If already updated today, return without processing
-    if (lastUpdateDate === today) {
-      console.log(`Already processed earnings for today (${today}), skipping.`);
+    // If already updated today (IST), return without processing
+    if (lastUpdateDate === todayIST) {
+      console.log(`Already processed earnings for today (${todayIST} IST), skipping.`);
       return {
         success: true,
         totalAmount: 0,
@@ -320,15 +328,15 @@ export const processDailyUsdtEarnings = async (
     }
     
     if (totalDailyEarnings > 0) {
-      console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings`);
+      console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
       
       // Update user's USDT earnings
       const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
       
       if (updatedUser) {
-        // Update the last update date
-        await updateLastUsdtUpdateDate(userId, today);
-        console.log(`Updated last USDT earnings date to ${today}`);
+        // Update the last update date to today's IST date
+        await updateLastUsdtUpdateDate(userId, todayIST);
+        console.log(`Updated last USDT earnings date to ${todayIST} (IST)`);
         
         return {
           success: true,
@@ -340,8 +348,8 @@ export const processDailyUsdtEarnings = async (
       }
     } else {
       // Even if there are no earnings, update the date to avoid checking again today
-      console.log(`No earnings to add, updating last update date to ${today}`);
-      await updateLastUsdtUpdateDate(userId, today);
+      console.log(`No earnings to add, updating last update date to ${todayIST} (IST)`);
+      await updateLastUsdtUpdateDate(userId, todayIST);
     }
     
     return {

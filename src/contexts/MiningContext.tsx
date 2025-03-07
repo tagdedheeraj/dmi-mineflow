@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -32,6 +33,7 @@ interface MiningContextType {
   isMining: boolean;
   activePlans: ActivePlan[];
   updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
+  dailyEarningsUpdateTime: string;
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -45,6 +47,7 @@ const MiningContext = createContext<MiningContextType>({
   isMining: false,
   activePlans: [],
   updateMiningBoost: () => {},
+  dailyEarningsUpdateTime: "12:01 AM",
 });
 
 export const useMining = () => useContext(MiningContext);
@@ -60,6 +63,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
+  
+  // Time when daily earnings are credited (IST)
+  const dailyEarningsUpdateTime = "12:01 AM";
   
   const baseMiningRate = 1;
   
@@ -173,58 +179,113 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     checkMiningSession();
   }, [user, toast]);
 
+  // Helper function to convert to IST (UTC+5:30)
+  const convertToIST = (date: Date) => {
+    // IST is UTC+5:30
+    const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
+    return istTime;
+  };
+  
+  // Helper function to get IST date string (YYYY-MM-DD)
+  const getISTDateString = (date: Date) => {
+    const istDate = convertToIST(date);
+    return istDate.toISOString().split('T')[0];
+  };
+  
+  // Helper function to get IST time string with AM/PM
+  const getISTTimeString = (date: Date) => {
+    const istDate = convertToIST(date);
+    return istDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Calculate the time until midnight IST
+  const getTimeUntilMidnightIST = () => {
+    const now = new Date();
+    const istNow = convertToIST(now);
+    
+    // Create tomorrow at midnight IST
+    const tomorrow = new Date(istNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 1, 0, 0); // Set to 12:01 AM
+    
+    // Convert back to local time for calculation
+    const tomorrowLocal = new Date(
+      tomorrow.getTime() - (5.5 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60000)
+    );
+    
+    return tomorrowLocal.getTime() - now.getTime();
+  };
+
   useEffect(() => {
     if (!user || activePlans.length === 0) return;
     
     const checkAndProcessDailyEarnings = async () => {
       console.log("Checking daily USDT earnings...");
+      console.log("Current time (IST):", getISTTimeString(new Date()));
       
       try {
-        const result = await processDailyUsdtEarnings(user.id, activePlans, plansData);
+        // Use IST date for checking updates
+        const todayIST = getISTDateString(new Date());
+        console.log("Today's date (IST):", todayIST);
+        console.log("Last update date:", lastUsdtEarningsUpdate);
         
-        if (result.success && result.totalAmount > 0) {
-          const updatedUser = await getUser(user.id);
-          if (updatedUser) {
-            updateUser(updatedUser);
-            
-            result.details.forEach(detail => {
-              toast({
-                title: `Daily Earnings from ${detail.planName}`,
-                description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
+        if (lastUsdtEarningsUpdate !== todayIST) {
+          console.log("Processing daily earnings because last update was not today (IST)");
+          
+          const result = await processDailyUsdtEarnings(user.id, activePlans, plansData);
+          
+          if (result.success && result.totalAmount > 0) {
+            const updatedUser = await getUser(user.id);
+            if (updatedUser) {
+              updateUser(updatedUser);
+              
+              result.details.forEach(detail => {
+                toast({
+                  title: `Daily Earnings from ${detail.planName}`,
+                  description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
+                });
               });
-            });
-            
-            if (result.details.length > 1) {
-              toast({
-                title: "Total Daily Earnings Added!",
-                description: `$${result.totalAmount.toFixed(2)} USDT has been added from all your mining plans.`,
-              });
+              
+              if (result.details.length > 1) {
+                toast({
+                  title: "Total Daily Earnings Added!",
+                  description: `$${result.totalAmount.toFixed(2)} USDT has been added from all your mining plans.`,
+                });
+              }
+              
+              setLastUsdtEarningsUpdate(todayIST);
             }
-            
-            setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
+          } else if (result.success) {
+            // Even if no earnings were added, update the last update date
+            setLastUsdtEarningsUpdate(todayIST);
           }
+        } else {
+          console.log("Earnings already processed for today (IST)");
         }
       } catch (error) {
         console.error("Error processing daily USDT earnings:", error);
       }
     };
     
+    // Run once when component mounts to check if today's earnings have been processed
     checkAndProcessDailyEarnings();
     
-    const intervalId = setInterval(checkAndProcessDailyEarnings, 60 * 60 * 1000);
+    // Check every hour in case the app was closed during the update time
+    const hourlyCheckInterval = setInterval(checkAndProcessDailyEarnings, 60 * 60 * 1000);
     
+    // Schedule the next update at midnight IST
     const scheduleNextMidnight = () => {
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const timeUntilMidnight = getTimeUntilMidnightIST();
       
-      const timeUntilMidnight = tomorrow.getTime() - now.getTime();
-      
-      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes`);
+      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes (at midnight IST)`);
       
       return setTimeout(() => {
-        console.log("Midnight reached, processing USDT earnings...");
+        console.log("Midnight IST reached, processing USDT earnings...");
         checkAndProcessDailyEarnings();
         midnightTimerId = scheduleNextMidnight();
       }, timeUntilMidnight);
@@ -233,7 +294,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let midnightTimerId = scheduleNextMidnight();
     
     return () => {
-      clearInterval(intervalId);
+      clearInterval(hourlyCheckInterval);
       clearTimeout(midnightTimerId);
     };
   }, [user, activePlans, updateUser, toast, lastUsdtEarningsUpdate]);
@@ -425,8 +486,10 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
       
-      await updateLastUsdtUpdateDate(user.id, new Date().toISOString().split('T')[0]);
-      setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
+      // Use IST date for updating date
+      const todayIST = getISTDateString(new Date());
+      await updateLastUsdtUpdateDate(user.id, todayIST);
+      setLastUsdtEarningsUpdate(todayIST);
       
     } catch (error) {
       console.error("Error updating mining boost:", error);
@@ -451,6 +514,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMining,
         activePlans,
         updateMiningBoost,
+        dailyEarningsUpdateTime,
       }}
     >
       {children}

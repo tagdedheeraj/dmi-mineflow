@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info } from 'lucide-react';
+import { Zap, Check, ArrowRight, Info, Clock } from 'lucide-react';
 import { miningPlans, MiningPlan } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate } = useMining();
+  const { updateMiningBoost, activePlans, miningRate, dailyEarningsUpdateTime } = useMining();
   const { user, updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -119,9 +119,19 @@ const MiningPlans: React.FC = () => {
           </div>
           
           {activePlans.length > 0 && (
-            <div className="mt-3 text-sm bg-green-100 p-2 rounded-md text-green-700">
-              <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-              <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+            <div className="mt-3 space-y-2">
+              <div className="text-sm bg-green-100 p-2 rounded-md text-green-700">
+                <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
+                <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+              </div>
+              
+              <div className="flex items-center text-xs bg-blue-50 p-2 rounded-md text-blue-700">
+                <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                <span>
+                  Daily earnings are automatically credited at {dailyEarningsUpdateTime} every day
+                  (Indian Standard Time)
+                </span>
+              </div>
             </div>
           )}
         </div>
