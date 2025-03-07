@@ -1,4 +1,3 @@
-
 // Real Unity Ads SDK integration
 interface UnityAdsInterface {
   isReady: () => boolean;
@@ -10,7 +9,7 @@ interface UnityAdsInterface {
 const UNITY_GAME_ID = "5801906";
 const UNITY_PLACEMENT_ID = "Rewarded_Android";
 const UNITY_PROJECT_ID = "bedf5970-debb-484e-ab33-b53e2271e0ef";
-const TEST_MODE = true; // Enable test mode for development
+const TEST_MODE = false; // Changed to false for live ads
 
 class UnityAdsImplementation implements UnityAdsInterface {
   private initialized: boolean = false;

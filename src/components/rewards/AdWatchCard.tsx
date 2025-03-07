@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Video, Play, Check, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
         if (unityAds.isReady()) {
           setAdStatus('ready');
           setErrorMessage('');
+          console.log('Unity Ads is ready for display - LIVE MODE');
         } else {
           console.log('Unity Ads not ready yet, still loading...');
         }
