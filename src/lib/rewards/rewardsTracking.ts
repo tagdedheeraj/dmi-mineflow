@@ -1,15 +1,14 @@
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  increment
-} from 'firebase/firestore';
-import { 
   db, 
   auth,
 } from '../firebase';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc
+} from 'firebase/firestore';
 import { getTodayDateKey } from './dateUtils';
 import { User } from '../storage';
 
@@ -92,3 +91,6 @@ export const getUser = async (userId: string): Promise<User | null> => {
     return null;
   }
 };
+
+// Fix missing imports
+import { increment } from 'firebase/firestore';

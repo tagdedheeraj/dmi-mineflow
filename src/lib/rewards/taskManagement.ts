@@ -8,8 +8,7 @@ import {
   setDoc, 
   updateDoc, 
   collection, 
-  addDoc,
-  increment
+  addDoc
 } from 'firebase/firestore';
 import { notifyTaskCompleted } from './notificationService';
 
