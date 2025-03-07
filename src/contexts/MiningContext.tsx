@@ -177,12 +177,26 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user || activePlans.length === 0) return;
     
     const checkAndProcessDailyEarnings = async () => {
-      console.log("Checking daily USDT earnings...");
+      console.log("Checking daily USDT earnings for user:", user.id);
       
       try {
+        const now = new Date();
+        const indiaTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+        const indiaDate = indiaTime.toISOString().split('T')[0];
+        
+        console.log("Current India date:", indiaDate);
+        console.log("Last update date:", lastUsdtEarningsUpdate);
+        
+        if (lastUsdtEarningsUpdate === indiaDate) {
+          console.log("Already processed earnings for today (India time)");
+          return;
+        }
+        
         const result = await processDailyUsdtEarnings(user.id, activePlans, plansData);
         
         if (result.success && result.totalAmount > 0) {
+          console.log("Successfully processed daily earnings:", result);
+          
           const updatedUser = await getUser(user.id);
           if (updatedUser) {
             updateUser(updatedUser);
@@ -201,8 +215,11 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               });
             }
             
-            setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
+            await updateLastUsdtUpdateDate(user.id, indiaDate);
+            setLastUsdtEarningsUpdate(indiaDate);
           }
+        } else if (!result.success) {
+          console.error("Failed to process daily earnings:", result.error);
         }
       } catch (error) {
         console.error("Error processing daily USDT earnings:", error);
@@ -211,29 +228,31 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     checkAndProcessDailyEarnings();
     
-    const intervalId = setInterval(checkAndProcessDailyEarnings, 60 * 60 * 1000);
+    const hourlyCheckInterval = setInterval(checkAndProcessDailyEarnings, 60 * 60 * 1000);
     
-    const scheduleNextMidnight = () => {
+    const scheduleNextMidnightIST = () => {
       const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const nowIST = new Date(now.getTime() + istOffset);
       
-      const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+      const midnightIST = new Date(nowIST);
+      midnightIST.setHours(24, 0, 0, 0);
       
-      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes`);
+      const timeUntilMidnightIST = midnightIST.getTime() - now.getTime();
+      
+      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnightIST / 3600000)} hours and ${Math.floor((timeUntilMidnightIST % 3600000) / 60000)} minutes (at midnight IST)`);
       
       return setTimeout(() => {
-        console.log("Midnight reached, processing USDT earnings...");
+        console.log("Midnight IST reached, processing USDT earnings...");
         checkAndProcessDailyEarnings();
-        midnightTimerId = scheduleNextMidnight();
-      }, timeUntilMidnight);
+        midnightTimerId = scheduleNextMidnightIST();
+      }, timeUntilMidnightIST);
     };
     
-    let midnightTimerId = scheduleNextMidnight();
+    let midnightTimerId = scheduleNextMidnightIST();
     
     return () => {
-      clearInterval(intervalId);
+      clearInterval(hourlyCheckInterval);
       clearTimeout(midnightTimerId);
     };
   }, [user, activePlans, updateUser, toast, lastUsdtEarningsUpdate]);
@@ -425,8 +444,11 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
       
-      await updateLastUsdtUpdateDate(user.id, new Date().toISOString().split('T')[0]);
-      setLastUsdtEarningsUpdate(new Date().toISOString().split('T')[0]);
+      const indiaTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+      const indiaDate = indiaTime.toISOString().split('T')[0];
+      
+      await updateLastUsdtUpdateDate(user.id, indiaDate);
+      setLastUsdtEarningsUpdate(indiaDate);
       
     } catch (error) {
       console.error("Error updating mining boost:", error);
