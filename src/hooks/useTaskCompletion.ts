@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +7,7 @@ import {
   saveTaskSubmission, 
   logTaskCompletion,
   updateUserBalance 
-} from '@/lib/rewardsService';
+} from '@/lib/rewards';
 
 export const useTaskCompletion = () => {
   const { user, updateUser } = useAuth();
@@ -16,7 +15,6 @@ export const useTaskCompletion = () => {
   
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   
-  // Initialize completed tasks from Firestore
   useEffect(() => {
     const loadCompletedTasks = async () => {
       if (!user) return;
@@ -32,7 +30,6 @@ export const useTaskCompletion = () => {
     loadCompletedTasks();
   }, [user]);
   
-  // Handle task completion
   const handleCompleteTask = async (taskId: string, data?: any) => {
     if (!user) {
       toast({
@@ -43,7 +40,6 @@ export const useTaskCompletion = () => {
       throw new Error("User not logged in");
     }
     
-    // Check if task is already completed
     if (completedTasks.includes(taskId)) {
       toast({
         title: "Task Already Completed",
@@ -55,7 +51,6 @@ export const useTaskCompletion = () => {
     let rewardAmount = 0;
     let needsVerification = false;
     
-    // Set reward amount based on task type
     switch (taskId) {
       case 'telegram_join':
         rewardAmount = 10;
@@ -80,14 +75,11 @@ export const useTaskCompletion = () => {
     }
     
     try {
-      // Save submission for tasks that need verification
       if (needsVerification) {
         await saveTaskSubmission(user.id, taskId, data, rewardAmount);
         
-        // Mark the task as completed
         await markTaskAsCompleted(user.id, taskId, completedTasks);
         
-        // Update state
         setCompletedTasks(prev => [...prev, taskId]);
         
         toast({
@@ -98,7 +90,6 @@ export const useTaskCompletion = () => {
         return;
       }
       
-      // For instant tasks, update user balance immediately
       if (rewardAmount > 0) {
         const updatedUser = await updateUserBalance(user.id, rewardAmount);
         if (updatedUser) {
@@ -111,13 +102,10 @@ export const useTaskCompletion = () => {
         });
       }
       
-      // Mark task as completed
       await markTaskAsCompleted(user.id, taskId, completedTasks);
       
-      // Update state
       setCompletedTasks(prev => [...prev, taskId]);
       
-      // Log task completion
       await logTaskCompletion(user.id, taskId, rewardAmount);
       
     } catch (error) {

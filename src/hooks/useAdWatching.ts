@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +7,7 @@ import {
   updateRewardsData, 
   updateUserBalance,
   getTodayDateKey
-} from '@/lib/rewardsService';
+} from '@/lib/rewards';
 
 export const useAdWatching = () => {
   const { user, updateUser } = useAuth();
