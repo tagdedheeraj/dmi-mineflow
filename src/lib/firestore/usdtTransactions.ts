@@ -6,8 +6,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
-  limit,
   db
 } from "./core";
 
@@ -49,28 +47,30 @@ export const getUserUsdtTransactions = async (userId: string, transactionType?: 
       q = query(
         transactionsCollection, 
         where("userId", "==", userId),
-        where("type", "==", transactionType),
-        orderBy("timestamp", "desc"),
-        limit(limit_count)
+        where("type", "==", transactionType)
       );
     } else {
       q = query(
         transactionsCollection, 
-        where("userId", "==", userId),
-        orderBy("timestamp", "desc"),
-        limit(limit_count)
+        where("userId", "==", userId)
       );
     }
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
+    
+    // Sort by timestamp manually, since we're not using orderBy
+    const transactions = querySnapshot.docs.map(doc => {
       return {
         id: doc.id,
-        ...data,
-        timestamp: data.timestamp,
+        ...doc.data()
       };
     });
+    
+    // Sort by timestamp in descending order
+    transactions.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Limit results
+    return transactions.slice(0, limit_count);
   } catch (error) {
     console.error("Error getting USDT transactions:", error);
     return [];
