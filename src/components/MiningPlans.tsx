@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,11 @@ import { useAuth } from '@/contexts/AuthContext';
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
   const { updateMiningBoost, activePlans, miningRate } = useMining();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
+  // Calculate daily, weekly, and monthly earnings from active plans
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
@@ -32,17 +34,27 @@ const MiningPlans: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handlePaymentComplete = (transactionId: string) => {
-    if (!selectedPlan) return;
+  const handlePaymentComplete = async (transactionId: string) => {
+    if (!selectedPlan || !user) return;
     
     setShowPaymentModal(false);
     
-    toast({
-      title: "Plan activated!",
-      description: `Your ${selectedPlan.name} has been successfully activated.`,
-    });
-    
-    updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+    try {
+      // Call the mining boost update function which will also handle first day earnings
+      await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+      
+      toast({
+        title: "Plan activated!",
+        description: `Your ${selectedPlan.name} has been successfully activated and your first day's earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT have been added to your wallet.`,
+      });
+    } catch (error) {
+      console.error("Error activating plan:", error);
+      toast({
+        title: "Error activating plan",
+        description: "There was an error activating your plan. Please try again or contact support.",
+        variant: "destructive"
+      });
+    }
   };
 
   const totalBoost = activePlans.reduce((total, plan) => {

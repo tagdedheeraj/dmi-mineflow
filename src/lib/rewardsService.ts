@@ -1,3 +1,4 @@
+
 import { 
   db, 
   auth,
@@ -182,12 +183,13 @@ export const updateLastUsdtUpdateDate = async (userId: string, date: string): Pr
     await updateDoc(userRef, {
       lastUsdtEarningsUpdate: date
     });
+    console.log(`Updated lastUsdtEarningsUpdate for user ${userId} to ${date}`);
   } catch (error) {
     console.error("Error updating last USDT update date:", error);
   }
 };
 
-// Update user balance - MODIFIED to use increment() instead of setting the value
+// Update user balance - Uses increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -225,7 +227,18 @@ export const getUser = async (userId: string): Promise<User | null> => {
 // Function to update USDT earnings with improved logging and transaction recording
 export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
   try {
+    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT`);
+    
     const userRef = doc(db, 'users', userId);
+    const userBefore = await getDoc(userRef);
+    
+    if (!userBefore.exists()) {
+      console.error(`User ${userId} does not exist, cannot update USDT earnings`);
+      return null;
+    }
+    
+    const currentUsdtEarnings = userBefore.data().usdtEarnings || 0;
+    console.log(`Current USDT earnings: ${currentUsdtEarnings}, Adding: ${amount}`);
     
     // Use increment to add the amount to existing USDT earnings
     await updateDoc(userRef, {
@@ -241,10 +254,13 @@ export const updateUsdtEarnings = async (userId: string, amount: number): Promis
       Date.now()
     );
     
-    console.log(`Added ${amount} USDT to user ${userId}'s earnings from plan`);
+    console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
     
     // Fetch and return the updated user
-    return await getUser(userId);
+    const updatedUser = await getUser(userId);
+    console.log(`Updated user USDT earnings: ${updatedUser?.usdtEarnings}`);
+    
+    return updatedUser;
   } catch (error) {
     console.error("Error updating USDT earnings:", error);
     return null;
@@ -266,7 +282,8 @@ export const processDailyUsdtEarnings = async (
     const today = new Date().toISOString().split('T')[0];
     const lastUpdateDate = await getLastUsdtUpdateDate(userId);
     
-    console.log(`Processing daily USDT earnings - Last update: ${lastUpdateDate}, Today: ${today}`);
+    console.log(`Processing daily USDT earnings for user ${userId}`);
+    console.log(`Last update: ${lastUpdateDate}, Today: ${today}`);
     
     // If already updated today, return without processing
     if (lastUpdateDate === today) {
@@ -303,8 +320,9 @@ export const processDailyUsdtEarnings = async (
     }
     
     if (totalDailyEarnings > 0) {
-      // Update user's USDT earnings
       console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings`);
+      
+      // Update user's USDT earnings
       const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
       
       if (updatedUser) {
