@@ -39,7 +39,7 @@ import {
   REFERRAL_REWARD_COINS_LEVEL5,
   REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
   PREMIUM_PLAN_THRESHOLD
-} from '@/lib/rewards/referral';
+} from '@/lib/rewards/referralCommissions';
 
 const ReferralSystem: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -91,6 +91,7 @@ const ReferralSystem: React.FC = () => {
         setReferralNetwork(network);
       });
       
+      // Fetch commission data
       getCommissionHistory(user.id).then(history => {
         setCommissionHistory(history);
       });
@@ -103,6 +104,7 @@ const ReferralSystem: React.FC = () => {
         setCommissionBreakdown(breakdown);
       });
       
+      // Check if user has premium plan
       hasPremiumPlan(user.id).then(result => {
         setIsPremium(result);
       });
