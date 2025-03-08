@@ -1,15 +1,38 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MiningSession } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { saveCurrentMining, clearCurrentMining, addToMiningHistory } from '@/lib/firestore';
+import { getCurrentMining, saveCurrentMining, clearCurrentMining, addToMiningHistory } from '@/lib/firestore';
 
-export const useMiningSession = (userId: string | undefined, updateBalance: (balance: number) => void, calculateRate: () => number) => {
+export const useMiningSession = (
+  userId: string | undefined, 
+  updateBalance: (balance: number) => void, 
+  calculateRate: () => number
+) => {
   const { toast } = useToast();
   const [currentMining, setCurrentMining] = useState<MiningSession | null>(null);
   const [isMining, setIsMining] = useState(false);
   
-  const MINING_DURATION = 24 * 60 * 60 * 1000;
+  const MINING_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+
+  // Load current mining session on mount
+  useEffect(() => {
+    const loadCurrentMining = async () => {
+      if (!userId) return;
+      
+      try {
+        const session = await getCurrentMining(userId);
+        if (session) {
+          setCurrentMining(session);
+          setIsMining(true);
+        }
+      } catch (error) {
+        console.error("Error loading current mining session:", error);
+      }
+    };
+    
+    loadCurrentMining();
+  }, [userId]);
 
   const startMining = useCallback(async () => {
     if (!userId) return;
@@ -18,6 +41,7 @@ export const useMiningSession = (userId: string | undefined, updateBalance: (bal
     const currentRate = calculateRate();
     
     const newSession: MiningSession = {
+      id: '',
       startTime: now,
       endTime: now + MINING_DURATION,
       rate: currentRate,
@@ -27,13 +51,17 @@ export const useMiningSession = (userId: string | undefined, updateBalance: (bal
     
     try {
       await saveCurrentMining(userId, newSession);
-      setCurrentMining(newSession);
-      setIsMining(true);
+      const savedSession = await getCurrentMining(userId);
       
-      toast({
-        title: "Mining Started",
-        description: `Mining started at ${currentRate.toFixed(2)} DMI coins per hour.`,
-      });
+      if (savedSession) {
+        setCurrentMining(savedSession);
+        setIsMining(true);
+        
+        toast({
+          title: "Mining Started",
+          description: `Mining started at ${currentRate.toFixed(2)} DMI coins per hour.`,
+        });
+      }
     } catch (error) {
       console.error("Error starting mining:", error);
       toast({
@@ -59,11 +87,11 @@ export const useMiningSession = (userId: string | undefined, updateBalance: (bal
         earned: earnedCoins
       };
       
-      await clearCurrentMining(currentMining.id!);
+      await clearCurrentMining(currentMining.id);
       await addToMiningHistory(userId, completedSession);
       
       if (earnedCoins > 0) {
-        await updateBalance(earnedCoins);
+        updateBalance(earnedCoins);
       }
       
       setCurrentMining(null);

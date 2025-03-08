@@ -11,7 +11,8 @@ import {
   saveCurrentMining,
   clearCurrentMining,
   addToMiningHistory,
-  checkAndUpdateMining
+  checkAndUpdateMining,
+  getUser
 } from '@/lib/firestore';
 import { miningPlans } from '@/data/miningPlans';
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
@@ -25,7 +26,7 @@ const MiningContext = createContext<MiningContextType | undefined>(undefined);
 
 // Provider component
 export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const userId = user?.id;
   
   // Initialize state
@@ -34,18 +35,53 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
   
   // Use custom hooks for mining functionality
   const { updateMiningBoost } = usePlanManagement(userId);
-  const { miningRate } = useMiningCalculations(activePlans);
-  const { 
-    currentMining, 
-    setCurrentMining,
-    miningProgress, 
-    currentEarnings, 
+  
+  const {
+    miningProgress,
+    setMiningProgress,
+    currentEarnings,
+    setCurrentEarnings,
     timeRemaining,
-    isMining
-  } = useMiningSession(userId, miningRate);
+    setTimeRemaining,
+    calculateTotalMiningRate,
+    updateMiningProgress
+  } = useMiningCalculations({ 
+    activePlans,
+    baseMiningRate: 1
+  });
+  
+  // Calculate mining rate
+  const miningRate = calculateTotalMiningRate();
+  
+  const {
+    currentMining,
+    setCurrentMining,
+    isMining,
+    setIsMining,
+    startMining,
+    stopMining
+  } = useMiningSession(
+    userId, 
+    (balance: number) => { 
+      if (userId) updateUserBalance(userId, balance); 
+    },
+    () => miningRate
+  );
 
   // Process daily USDT earnings
-  useDailyEarnings(userId, activePlans, miningPlans, setDailyEarningsUpdateTime);
+  const {
+    lastUsdtEarningsUpdate,
+    dailyEarningsUpdateTime: earningsUpdateTime,
+    checkAndProcessDailyEarnings,
+    scheduleNextMidnight
+  } = useDailyEarnings(userId, activePlans, updateUser);
+
+  // Update dailyEarningsUpdateTime from the hook
+  useEffect(() => {
+    if (earningsUpdateTime) {
+      setDailyEarningsUpdateTime(earningsUpdateTime);
+    }
+  }, [earningsUpdateTime]);
 
   // Load active plans on mount and when user changes
   useEffect(() => {
@@ -71,71 +107,42 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
     return () => clearInterval(intervalId);
   }, [userId]);
   
-  // Start mining function
-  const startMining = useCallback(async () => {
-    if (!userId || isMining) return;
+  // Update mining progress
+  useEffect(() => {
+    if (!currentMining) return;
     
-    try {
-      const now = Date.now();
-      
-      // Calculate mining end time (limited to 4 hours)
-      const endTime = now + (4 * 60 * 60 * 1000);
-      
-      // Create new mining session
-      const newSession: MiningSession = {
-        id: '',
-        startTime: now,
-        endTime,
-        rate: miningRate,
-        earned: 0,
-        status: 'active'
-      };
-      
-      // Save to Firestore and update state
-      await saveCurrentMining(userId, newSession);
-      
-      // Get the updated session from Firestore
-      const updatedSession = await getCurrentMining(userId);
-      if (updatedSession) {
-        setCurrentMining(updatedSession);
-      }
-      
-    } catch (error) {
-      console.error("Error starting mining:", error);
-    }
-  }, [userId, isMining, miningRate, setCurrentMining]);
+    const { progress, earnings, remainingSec } = updateMiningProgress(currentMining);
+    
+    // Set mining progress state
+    setMiningProgress(progress);
+    setCurrentEarnings(earnings);
+    setTimeRemaining(remainingSec);
+    
+    // Set up interval to update mining progress
+    const intervalId = setInterval(() => {
+      const updated = updateMiningProgress(currentMining);
+      setMiningProgress(updated.progress);
+      setCurrentEarnings(updated.earnings);
+      setTimeRemaining(updated.remainingSec);
+    }, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [currentMining, updateMiningProgress]);
   
-  // Stop mining function
-  const stopMining = useCallback(async () => {
-    if (!userId || !isMining || !currentMining?.id) return;
+  // Check for daily USDT earnings
+  useEffect(() => {
+    if (!userId || activePlans.length === 0) return;
     
-    try {
-      const now = Date.now();
-      const elapsedHours = (now - currentMining.startTime) / (1000 * 60 * 60);
-      const earnedCoins = Math.floor(elapsedHours * currentMining.rate);
-      
-      // Create completed session object
-      const completedSession: MiningSession = {
-        ...currentMining,
-        endTime: now,
-        earned: earnedCoins,
-        status: 'completed'
-      };
-      
-      // Update in Firestore
-      await clearCurrentMining(currentMining.id);
-      await addToMiningHistory(userId, completedSession);
-      
-      // Update user balance
-      await updateUserBalance(userId, earnedCoins);
-      
-      // Clear current mining state
-      setCurrentMining(null);
-      
-    } catch (error) {
-      console.error("Error stopping mining:", error);
-    }
-  }, [userId, isMining, currentMining, setCurrentMining]);
+    // Process daily earnings when component mounts
+    checkAndProcessDailyEarnings(miningPlans);
+    
+    // Schedule next check at midnight IST
+    const timeoutId = scheduleNextMidnight(() => {
+      checkAndProcessDailyEarnings(miningPlans);
+    });
+    
+    return () => clearTimeout(timeoutId);
+  }, [userId, activePlans, checkAndProcessDailyEarnings, scheduleNextMidnight]);
   
   // Context value
   const value: MiningContextType = {

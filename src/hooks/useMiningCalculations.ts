@@ -2,7 +2,7 @@
 import { useCallback, useState } from 'react';
 import { MiningSession, ActivePlan } from '@/lib/storage';
 
-interface UseMiningCalculationsProps {
+export interface UseMiningCalculationsProps {
   activePlans: ActivePlan[];
   baseMiningRate?: number;
 }
@@ -46,10 +46,6 @@ export const useMiningCalculations = ({
     
     const elapsedHours = elapsed / (1000 * 60 * 60);
     const earnings = Math.floor(elapsedHours * rate);
-    
-    setMiningProgress(progress);
-    setTimeRemaining(remainingSec);
-    setCurrentEarnings(earnings);
     
     return { progress, earnings, remainingSec };
   }, []);

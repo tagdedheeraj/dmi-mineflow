@@ -3,11 +3,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/lib/mining/dateUtils';
-import { processDailyUsdtEarnings } from '@/lib/rewards/usdtEarnings';
+import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
 
-export const useDailyEarnings = (userId: string | undefined, activePlans: ActivePlan[], updateUser: (user: any) => void) => {
+export const useDailyEarnings = (
+  userId: string | undefined, 
+  activePlans: ActivePlan[], 
+  updateUser: (user: any) => void
+) => {
   const { toast } = useToast();
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   const dailyEarningsUpdateTime = "12:01 AM";
