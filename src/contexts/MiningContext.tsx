@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { 
@@ -20,7 +19,7 @@ import {
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
-import { processDailyUsdtEarnings } from '@/lib/rewardsService';
+import { processDailyUsdtEarnings } from '@/lib/rewards/usdtEarnings';
 
 interface MiningContextType {
   currentMining: MiningSession | null;
@@ -64,7 +63,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   
-  // Time when daily earnings are credited (IST)
   const dailyEarningsUpdateTime = "12:01 AM";
   
   const baseMiningRate = 1;
@@ -179,21 +177,32 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     checkMiningSession();
   }, [user, toast]);
 
-  // Helper function to convert to IST (UTC+5:30)
+  const getTimeUntilMidnightIST = () => {
+    const now = new Date();
+    const istNow = convertToIST(now);
+    
+    const tomorrow = new Date(istNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 1, 0, 0); // Set to 12:01 AM
+    
+    const tomorrowLocal = new Date(
+      tomorrow.getTime() - (5.5 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60000)
+    );
+    
+    return tomorrowLocal.getTime() - now.getTime();
+  };
+
   const convertToIST = (date: Date) => {
-    // IST is UTC+5:30
     const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
     const istTime = new Date(utcTime + (5.5 * 60 * 60 * 1000));
     return istTime;
   };
   
-  // Helper function to get IST date string (YYYY-MM-DD)
   const getISTDateString = (date: Date) => {
     const istDate = convertToIST(date);
     return istDate.toISOString().split('T')[0];
   };
   
-  // Helper function to get IST time string with AM/PM
   const getISTTimeString = (date: Date) => {
     const istDate = convertToIST(date);
     return istDate.toLocaleTimeString('en-US', {
@@ -201,24 +210,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       minute: '2-digit',
       hour12: true
     });
-  };
-
-  // Calculate the time until midnight IST
-  const getTimeUntilMidnightIST = () => {
-    const now = new Date();
-    const istNow = convertToIST(now);
-    
-    // Create tomorrow at midnight IST
-    const tomorrow = new Date(istNow);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 1, 0, 0); // Set to 12:01 AM
-    
-    // Convert back to local time for calculation
-    const tomorrowLocal = new Date(
-      tomorrow.getTime() - (5.5 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60000)
-    );
-    
-    return tomorrowLocal.getTime() - now.getTime();
   };
 
   useEffect(() => {
@@ -229,7 +220,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log("Current time (IST):", getISTTimeString(new Date()));
       
       try {
-        // Use IST date for checking updates
         const todayIST = getISTDateString(new Date());
         console.log("Today's date (IST):", todayIST);
         console.log("Last update date:", lastUsdtEarningsUpdate);
@@ -261,7 +251,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               setLastUsdtEarningsUpdate(todayIST);
             }
           } else if (result.success) {
-            // Even if no earnings were added, update the last update date
             setLastUsdtEarningsUpdate(todayIST);
           }
         } else {
@@ -272,13 +261,10 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
     
-    // Run once when component mounts to check if today's earnings have been processed
     checkAndProcessDailyEarnings();
     
-    // Check every hour in case the app was closed during the update time
     const hourlyCheckInterval = setInterval(checkAndProcessDailyEarnings, 60 * 60 * 1000);
     
-    // Schedule the next update at midnight IST
     const scheduleNextMidnight = () => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       
@@ -486,7 +472,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
       
-      // Use IST date for updating date
       const todayIST = getISTDateString(new Date());
       await updateLastUsdtUpdateDate(user.id, todayIST);
       setLastUsdtEarningsUpdate(todayIST);
