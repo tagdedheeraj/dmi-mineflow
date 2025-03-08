@@ -114,7 +114,6 @@ export const addPlanPurchaseRewards = async (
     const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId);
     
     // 2. Award commission to referrers based on plan cost
-    console.log(`Awarding immediate referral commission for plan purchase: cost ${planCost}, plan ${planId}`);
     await awardPlanPurchaseCommission(userId, planCost, planId);
     
     // 3. Update the last USDT update date to today to avoid double earnings
