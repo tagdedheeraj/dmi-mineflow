@@ -1,3 +1,4 @@
+
 import { 
   db, 
   addUsdtTransaction
@@ -212,7 +213,7 @@ export const addPlanPurchaseRewards = async (
   }
 };
 
-// Updated processDailyUsdtEarnings with better duplicate prevention
+// Updated processDailyUsdtEarnings with better duplicate prevention and explicit handling of each plan
 export const processDailyUsdtEarnings = async (
   userId: string, 
   activePlans: Array<any>, 
@@ -271,36 +272,46 @@ export const processDailyUsdtEarnings = async (
       }
     }
     
-    if (totalDailyEarnings > 0) {
-      console.log(`[DAILY EARNINGS] Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
+    // Process each plan's earnings individually to ensure proper transaction records and notifications
+    if (earningDetails.length > 0) {
+      console.log(`[DAILY EARNINGS] Processing individual earnings for ${earningDetails.length} active plans`);
       
-      // Update user's USDT earnings (skip referral commission for daily updates)
-      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true, 'daily_update');
-      
-      if (updatedUser) {
-        // Update the last update date to today's IST date
-        await updateLastUsdtUpdateDate(userId, todayIST);
-        console.log(`[DAILY EARNINGS] Updated last USDT earnings date to ${todayIST} (IST)`);
-        
-        return {
-          success: true,
-          totalAmount: totalDailyEarnings,
-          details: earningDetails
-        };
-      } else {
-        throw new Error("Failed to update user's USDT earnings");
+      for (const detail of earningDetails) {
+        const planInfo = plansData.find((p: any) => p.name === detail.planName);
+        if (planInfo) {
+          console.log(`[DAILY EARNINGS] Adding ${detail.amount} USDT for plan ${planInfo.name}`);
+          
+          // Update user's USDT earnings for this specific plan
+          await updateUsdtEarnings(
+            userId, 
+            detail.amount, 
+            planInfo.id, 
+            true, // Skip referral commission for daily updates
+            'daily_update'
+          );
+        }
       }
+      
+      // Update the last update date to today's IST date after processing all plans
+      await updateLastUsdtUpdateDate(userId, todayIST);
+      console.log(`[DAILY EARNINGS] Updated last USDT earnings date to ${todayIST} (IST)`);
+      
+      return {
+        success: true,
+        totalAmount: totalDailyEarnings,
+        details: earningDetails
+      };
     } else {
       // Even if there are no earnings, update the date to avoid checking again today
       console.log(`[DAILY EARNINGS] No earnings to add, updating last update date to ${todayIST} (IST)`);
       await updateLastUsdtUpdateDate(userId, todayIST);
+      
+      return {
+        success: false,
+        totalAmount: 0,
+        details: []
+      };
     }
-    
-    return {
-      success: totalDailyEarnings > 0,
-      totalAmount: totalDailyEarnings,
-      details: earningDetails
-    };
   } catch (error) {
     console.error("Error processing daily USDT earnings:", error);
     return {

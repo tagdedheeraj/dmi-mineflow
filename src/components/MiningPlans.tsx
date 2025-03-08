@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,8 @@ const MiningPlans: React.FC = () => {
     
     try {
       console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
+      
+      // Make sure we pass the planId so the system knows which plan to record as purchased today
       await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
       
       toast({

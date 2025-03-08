@@ -432,7 +432,17 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       
       await saveActivePlan(user.id, newPlan);
-      setActivePlans(prev => [...prev, newPlan]);
+      
+      setActivePlans(prev => {
+        const existingPlanIndex = prev.findIndex(p => p.id === planId);
+        if (existingPlanIndex >= 0) {
+          const newPlans = [...prev];
+          newPlans[existingPlanIndex] = newPlan;
+          return newPlans;
+        } else {
+          return [...prev, newPlan];
+        }
+      });
       
       const planInfo = plansData.find(p => p.id === planId);
       if (planInfo) {
