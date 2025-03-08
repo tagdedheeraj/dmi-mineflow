@@ -44,8 +44,18 @@ const MiningPlans: React.FC = () => {
     try {
       console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
       
-      // Make sure we pass the planId so the system knows which plan to record as purchased today
-      await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
+      // Make sure we pass the planId, dailyEarnings and price to properly record the purchase
+      const updatedUser = await updateMiningBoost(
+        selectedPlan.miningBoost, 
+        selectedPlan.duration, 
+        selectedPlan.id,
+        selectedPlan.dailyEarnings,
+        selectedPlan.price
+      );
+      
+      if (updatedUser) {
+        updateUser(updatedUser);
+      }
       
       toast({
         title: "Plan activated!",

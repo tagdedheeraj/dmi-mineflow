@@ -31,7 +31,7 @@ interface MiningContextType {
   stopMining: () => void;
   isMining: boolean;
   activePlans: ActivePlan[];
-  updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => void;
+  updateMiningBoost: (miningBoost: number, durationDays: number, planId: string, dailyEarnings: number, planPrice: number) => Promise<ActivePlan | null>;
   dailyEarningsUpdateTime: string;
 }
 
@@ -416,83 +416,42 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [currentMining, user, updateBalance, toast]);
 
-  const updateMiningBoost = useCallback(async (boostMultiplier: number, duration: number, planId: string) => {
-    if (!user) return;
+  const updateMiningBoost = useCallback(async (miningBoost: number, durationDays: number, planId: string, dailyEarnings: number, planPrice: number) => {
+    if (!user) return null;
     
     try {
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      console.log(`Updating mining boost with boost=${miningBoost}, duration=${durationDays}, plan=${planId}`);
       
-      const newPlan: ActivePlan = {
+      const now = new Date();
+      const expiryDate = new Date(now);
+      expiryDate.setDate(expiryDate.getDate() + durationDays);
+      
+      const newPlan = {
         id: planId,
+        boostMultiplier: miningBoost,
+        duration: durationDays,
         purchasedAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        boostMultiplier: boostMultiplier,
-        duration: duration
+        expiresAt: expiryDate.toISOString(),
       };
       
       await saveActivePlan(user.id, newPlan);
       
-      setActivePlans(prev => {
-        const existingPlanIndex = prev.findIndex(p => p.id === planId);
-        if (existingPlanIndex >= 0) {
-          const newPlans = [...prev];
-          newPlans[existingPlanIndex] = newPlan;
-          return newPlans;
-        } else {
-          return [...prev, newPlan];
-        }
-      });
+      setActivePlans(prevPlans => [...prevPlans, newPlan]);
       
-      const planInfo = plansData.find(p => p.id === planId);
-      if (planInfo) {
-        const updatedUser = await addPlanPurchaseRewards(
-          user.id,
-          planInfo.price,
-          planInfo.dailyEarnings,
-          planId
-        );
-        
-        if (updatedUser) {
-          updateUser(updatedUser);
-          
-          toast({
-            title: `${planInfo.name} Plan Activated!`,
-            description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance as your first day's earnings.`,
-          });
-        }
-        
-        const newMiningRate = calculateTotalMiningRate() + (boostMultiplier - 1);
-        
-        toast({
-          title: "Mining Boost Activated",
-          description: `Your mining speed is now increased to ${newMiningRate.toFixed(2)}x from the ${planInfo.name} plan.`,
-        });
-      }
+      const updatedUser = await addPlanPurchaseRewards(
+        user.id,
+        planPrice,
+        dailyEarnings,
+        planId
+      );
       
-      if (currentMining && currentMining.status === 'active') {
-        const newRate = calculateTotalMiningRate();
-        const updatedSession = {
-          ...currentMining,
-          rate: newRate
-        };
-        
-        await saveCurrentMining(user.id, updatedSession);
-        setCurrentMining(updatedSession);
-        
-        toast({
-          title: "Mining Speed Updated",
-          description: `Your mining speed is now ${newRate.toFixed(2)}x faster!`,
-        });
-      }
+      const newMiningRate = calculateTotalMiningRate();
+      setMiningRate(newMiningRate);
       
+      return updatedUser;
     } catch (error) {
       console.error("Error updating mining boost:", error);
-      toast({
-        title: "Error",
-        description: "Failed to activate mining boost. Please try again.",
-        variant: "destructive",
-      });
+      return null;
     }
   }, [user, calculateTotalMiningRate, currentMining, toast, updateUser]);
 
