@@ -59,7 +59,8 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
     isMining,
     setIsMining,
     startMining,
-    stopMining
+    stopMining,
+    forceRefreshMining
   } = useMiningSession(
     userId, 
     (balance: number) => { 
@@ -124,10 +125,15 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
       setMiningProgress(updated.progress);
       setCurrentEarnings(updated.earnings);
       setTimeRemaining(updated.remainingSec);
+      
+      // Auto-refresh mining when remaining time is zero
+      if (updated.remainingSec === 0 && userId) {
+        forceRefreshMining();
+      }
     }, 1000);
     
     return () => clearInterval(intervalId);
-  }, [currentMining, updateMiningProgress]);
+  }, [currentMining, updateMiningProgress, userId, forceRefreshMining]);
   
   // Check for daily USDT earnings
   useEffect(() => {
@@ -156,7 +162,8 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
     isMining,
     activePlans,
     updateMiningBoost,
-    dailyEarningsUpdateTime
+    dailyEarningsUpdateTime,
+    forceRefreshMining
   };
   
   return (

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMining } from '@/contexts/MiningContext';
 import { Button } from '@/components/ui/button';
 import { Cpu, ArrowUpCircle } from 'lucide-react';
@@ -14,10 +14,22 @@ const MiningCard: React.FC = () => {
     miningProgress, 
     timeRemaining, 
     currentEarnings,
-    miningRate
+    miningRate,
+    forceRefreshMining
   } = useMining();
   
   const { user } = useAuth();
+
+  // Check if mining is complete
+  const isMiningComplete = timeRemaining === 0 && isMining;
+  
+  // Auto-refresh mining state when timer reaches zero
+  useEffect(() => {
+    if (isMiningComplete && user?.id) {
+      // When mining completes, force refresh the mining state
+      forceRefreshMining();
+    }
+  }, [isMiningComplete, user?.id, forceRefreshMining]);
 
   // Format the time remaining into hours:minutes:seconds
   const formattedTimeRemaining = formatDuration(timeRemaining);
@@ -55,7 +67,7 @@ const MiningCard: React.FC = () => {
           </div>
         </div>
 
-        {isMining ? (
+        {isMining && timeRemaining > 0 ? (
           <div className="mt-6">
             <div className="flex justify-between text-sm mb-2">
               <span className="text-gray-600">Mining in progress</span>

@@ -37,6 +37,11 @@ export const useMiningCalculations = ({
     const now = Date.now();
     const { startTime, endTime, rate } = currentMining;
     
+    // If current time is past end time, mining is complete
+    if (now >= endTime) {
+      return { progress: 100, earnings: Math.floor((endTime - startTime) / (1000 * 60 * 60) * rate), remainingSec: 0 };
+    }
+    
     const totalDuration = endTime - startTime;
     const elapsed = now - startTime;
     const progress = Math.min((elapsed / totalDuration) * 100, 100);

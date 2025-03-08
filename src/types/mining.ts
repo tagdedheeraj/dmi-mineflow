@@ -13,6 +13,7 @@ export interface MiningContextType {
   activePlans: ActivePlan[];
   updateMiningBoost: (miningBoost: number, durationDays: number, planId: string, dailyEarnings: number, planPrice: number) => Promise<ActivePlan | null>;
   dailyEarningsUpdateTime: string;
+  forceRefreshMining: () => Promise<void>;
 }
 
 export interface MiningProviderProps {
