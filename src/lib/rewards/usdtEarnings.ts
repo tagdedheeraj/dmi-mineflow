@@ -45,7 +45,7 @@ export const updateLastUsdtUpdateDate = async (userId: string, date: string): Pr
 };
 
 // Function to update USDT earnings with improved logging and transaction recording
-export const updateUsdtEarnings = async (userId: string, amount: number, planId?: string, skipReferralCommission: boolean = false): Promise<User | null> => {
+export const updateUsdtEarnings = async (userId: string, amount: number, planId?: string): Promise<User | null> => {
   try {
     console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''}`);
     
@@ -84,8 +84,7 @@ export const updateUsdtEarnings = async (userId: string, amount: number, planId?
     console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
     
     // Process referral commission if this is from a plan and we have a plan ID
-    // Skip referral commission processing if explicitly requested
-    if (planId && !skipReferralCommission) {
+    if (planId) {
       // Award commission to the referrer (5% of earnings)
       await awardReferralCommission(userId, amount, planId);
     }
@@ -140,14 +139,6 @@ export const processDailyUsdtEarnings = async (
         continue;
       }
       
-      // Skip plans that were purchased today to avoid double-counting
-      // This is because first day's earnings are awarded immediately on purchase
-      const planPurchaseDate = new Date(plan.purchasedAt).toISOString().split('T')[0];
-      if (planPurchaseDate === todayIST) {
-        console.log(`Plan ${plan.id} was purchased today (${todayIST}), skipping to avoid double rewards.`);
-        continue;
-      }
-      
       const planInfo = plansData.find((p: any) => p.id === plan.id);
       if (planInfo) {
         console.log(`Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
@@ -164,8 +155,8 @@ export const processDailyUsdtEarnings = async (
     if (totalDailyEarnings > 0) {
       console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
       
-      // Update user's USDT earnings - Skip referral commission as this is daily processing
-      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true);
+      // Update user's USDT earnings
+      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
       
       if (updatedUser) {
         // Update the last update date to today's IST date
