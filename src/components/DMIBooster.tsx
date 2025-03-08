@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DMIBooster as DMIBoosterType, dmiBoosters } from '@/data/dmiBoosters';
 import { useMining } from '@/contexts/MiningContext';
 import { useAuth } from '@/contexts/AuthContext';
+import PaymentModal from '@/components/PaymentModal';
 
 interface DMIBoosterProps {
   dmiBoosters?: DMIBoosterType[];
@@ -16,43 +17,62 @@ const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters: propsBoosters }) =
   const { toast } = useToast();
   const [selectedBoost, setSelectedBoost] = useState<DMIBoosterType | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { updateMiningBoost } = useMining();
   const { user, updateUser } = useAuth();
   
   // Use the boosters from props or fallback to the default ones
   const boostersToUse = propsBoosters || dmiBoosters;
   
-  const handleBoostActivation = async () => {
-    if (!selectedBoost || isProcessing || !user) return;
+  const handlePurchase = (boost: DMIBoosterType) => {
+    if (isProcessing) return;
+    setSelectedBoost(boost);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = async (transactionId: string) => {
+    if (!selectedBoost || !user || isProcessing) return;
     
     setIsProcessing(true);
+    setShowPaymentModal(false);
     
     try {
-      // Update to pass all required parameters (miningBoost, durationDays, planId, dailyEarnings, planPrice)
-      // Since this is a DMI booster, we're using '0' for dailyEarnings and planPrice as they aren't relevant
-      const result = await updateMiningBoost(selectedBoost.miningMultiplier, selectedBoost.durationHours / 24, selectedBoost.id, 0, 0);
+      console.log(`Processing payment completion for DMI Booster: ${selectedBoost.id}, transaction: ${transactionId}`);
       
-      if (result) {
+      // Convert hours to days for the API
+      const durationDays = selectedBoost.durationHours / 24;
+      
+      // Pass relevant parameters (miningBoost, durationDays, planId, dailyEarnings, planPrice)
+      const activePlan = await updateMiningBoost(
+        selectedBoost.miningMultiplier, 
+        durationDays, 
+        selectedBoost.id,
+        0,  // DMI boosters don't have daily earnings as they're not arbitrage plans
+        selectedBoost.price
+      );
+      
+      if (activePlan) {
         toast({
-          title: "Boost Activated!",
-          description: `Your ${selectedBoost.name} has been successfully activated.`,
+          title: "Booster Activated!",
+          description: `Your ${selectedBoost.name} has been successfully activated and will last for ${selectedBoost.durationHours} hours.`,
         });
       } else {
         toast({
           title: "Error",
-          description: "Failed to activate boost. Please try again.",
+          description: "Failed to activate booster. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error activating boost:", error);
+      console.error("Error activating booster:", error);
       toast({
         title: "Error",
-        description: "Failed to activate boost. Please try again.",
+        description: "Failed to activate booster. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setSelectedBoost(null);
     }
   };
 
@@ -87,18 +107,31 @@ const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters: propsBoosters }) =
                 <span className="text-sm font-medium">Price:</span>
                 <span className="font-bold">${booster.price}</span>
               </div>
+              
+              <Button 
+                className="mt-4 w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePurchase(booster);
+                }}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Processing...' : 'Purchase Now'}
+              </Button>
             </CardContent>
           </Card>
         ))}
       </div>
       
-      <Button 
-        className="mt-8 w-full max-w-md"
-        onClick={handleBoostActivation}
-        disabled={!selectedBoost || isProcessing}
-      >
-        {isProcessing ? 'Activating...' : `Activate ${selectedBoost?.name || 'Booster'}`}
-      </Button>
+      {showPaymentModal && selectedBoost && (
+        <PaymentModal
+          planId={selectedBoost.id}
+          planName={selectedBoost.name}
+          planPrice={selectedBoost.price}
+          onClose={() => setShowPaymentModal(false)}
+          onComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 };
