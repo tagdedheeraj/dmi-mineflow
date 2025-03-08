@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { 
   getActivePlans, 
@@ -19,6 +20,11 @@ interface MiningContextType {
   stopMining: () => Promise<void>;
   checkMiningStatus: () => Promise<void>;
   updateMiningBoost: (boostMultiplier: number, duration: number, planId: string) => Promise<boolean>;
+  // Add missing properties to fix MiningCard.tsx errors
+  isMining: boolean;
+  miningProgress: number;
+  timeRemaining: string;
+  currentEarnings: number;
 }
 
 const MiningContext = createContext<MiningContextType>({
@@ -37,6 +43,11 @@ export const MiningProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [miningRate, setMiningRate] = useState<number>(1);
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   const [dailyEarningsUpdateTime, setDailyEarningsUpdateTime] = useState<string>("12:00 AM");
+  // Add states for new properties
+  const [isMining, setIsMining] = useState<boolean>(false);
+  const [miningProgress, setMiningProgress] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<string>("0h 0m");
+  const [currentEarnings, setCurrentEarnings] = useState<number>(0);
   const { user, updateUser } = useAuth();
 
   useEffect(() => {
@@ -210,6 +221,11 @@ export const MiningProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         stopMining,
         checkMiningStatus,
         updateMiningBoost,
+        // Add the new properties to the context value
+        isMining,
+        miningProgress,
+        timeRemaining,
+        currentEarnings
       }}
     >
       {children}
