@@ -41,8 +41,7 @@ const MiningPlans: React.FC = () => {
     
     try {
       // Call the mining boost update function which will also handle first day earnings
-      // and award instant commission to referrers
-      await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id, selectedPlan.price);
+      await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
       
       toast({
         title: "Plan activated!",
