@@ -1,8 +1,8 @@
 
 import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
-import { getUser } from './rewardsTracking';
-import { updateUsdtEarnings } from './earningsUpdater';
+import { getUser } from '../services/authService';
+import { updateUsdtEarnings } from '../services/walletService';
 import { awardPlanPurchaseCommission } from './referralCommissions';
 import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseManager';
 import { updateLastUsdtUpdateDate } from './dateTracking';
@@ -31,7 +31,7 @@ export const addPlanPurchaseRewards = async (
     
     // 1. Add first day's earnings to the user's USDT earnings with plan purchase source
     console.log(`[CRITICAL PLAN PURCHASE] Adding first day's earnings: ${dailyEarnings}`);
-    const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId, false, 'plan_purchase');
+    const updatedUser = await updateUsdtEarnings(userId, dailyEarnings);
     
     if (!updatedUser) {
       console.error(`[PLAN PURCHASE] Failed to update USDT earnings for user ${userId}`);
