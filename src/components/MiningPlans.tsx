@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ const MiningPlans: React.FC = () => {
   const { user, updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Calculate daily, weekly, and monthly earnings from active plans
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
@@ -35,8 +35,9 @@ const MiningPlans: React.FC = () => {
   };
 
   const handlePaymentComplete = async (transactionId: string) => {
-    if (!selectedPlan || !user) return;
+    if (!selectedPlan || !user || isProcessing) return;
     
+    setIsProcessing(true);
     setShowPaymentModal(false);
     
     try {
@@ -54,6 +55,8 @@ const MiningPlans: React.FC = () => {
         description: "There was an error activating your plan. Please try again or contact support.",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -183,9 +186,10 @@ const MiningPlans: React.FC = () => {
                 <Button 
                   className="w-full mt-4 flex justify-center items-center space-x-2"
                   onClick={() => handlePurchase(plan)}
+                  disabled={isProcessing}
                 >
-                  <span>{isActive ? 'Purchase Again' : 'Purchase Now'}</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <span>{isProcessing ? 'Processing...' : isActive ? 'Purchase Again' : 'Purchase Now'}</span>
+                  {!isProcessing && <ArrowRight className="h-4 w-4" />}
                 </Button>
               </div>
             );

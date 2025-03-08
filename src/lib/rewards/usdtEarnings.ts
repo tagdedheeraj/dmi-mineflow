@@ -92,10 +92,20 @@ export const updateUsdtEarnings = async (
   userId: string, 
   amount: number, 
   planId?: string, 
-  skipReferralCommission: boolean = false
+  skipReferralCommission: boolean = false,
+  source: string = 'earnings'
 ): Promise<User | null> => {
   try {
-    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''}`);
+    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''} (source: ${source})`);
+    
+    // Check if this is a duplicate update (protection against multiple calls)
+    if (source === 'plan_purchase') {
+      const wasPurchased = await wasPlanPurchasedToday(userId, planId || '');
+      if (wasPurchased) {
+        console.error(`DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping additional earnings.`);
+        return await getUser(userId);
+      }
+    }
     
     const userRef = doc(db, 'users', userId);
     const userBefore = await getDoc(userRef);
@@ -129,7 +139,7 @@ export const updateUsdtEarnings = async (
       planId ? `plan ${planId}` : 'daily earnings'
     );
     
-    console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
+    console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from ${source}`);
     
     // Process referral commission if this is from a plan and we have a plan ID
     // and we haven't been asked to skip the referral commission
@@ -159,11 +169,18 @@ export const addPlanPurchaseRewards = async (
   try {
     console.log(`Processing plan purchase rewards for user ${userId}: plan ${planId}, cost ${planCost}, daily earnings ${dailyEarnings}`);
     
+    // Check if this plan was already purchased today to prevent duplicate earnings
+    const alreadyPurchased = await wasPlanPurchasedToday(userId, planId);
+    if (alreadyPurchased) {
+      console.error(`DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping rewards.`);
+      return await getUser(userId);
+    }
+    
     // Mark this plan as purchased today to prevent double earnings
     await markPlanAsPurchasedToday(userId, planId);
     
-    // 1. Add first day's earnings to the user's USDT earnings
-    const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId);
+    // 1. Add first day's earnings to the user's USDT earnings with plan purchase source
+    const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId, false, 'plan_purchase');
     
     // 2. Award commission to referrers based on plan cost
     await awardPlanPurchaseCommission(userId, planCost, planId);
@@ -242,7 +259,7 @@ export const processDailyUsdtEarnings = async (
       console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
       
       // Update user's USDT earnings (skip referral commission for daily updates)
-      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true);
+      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true, 'daily_update');
       
       if (updatedUser) {
         // Update the last update date to today's IST date
