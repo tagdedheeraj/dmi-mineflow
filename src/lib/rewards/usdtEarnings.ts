@@ -12,7 +12,7 @@ import {
 import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
 import { getUser } from './rewardsTracking';
-import { awardReferralCommission } from './referralCommissions';
+import { awardReferralCommission, awardPlanPurchaseCommission } from './referralCommissions';
 import { notifyUsdtEarnings } from './notificationService';
 
 // Function to get the last USDT earnings update date (in IST)
@@ -96,6 +96,33 @@ export const updateUsdtEarnings = async (userId: string, amount: number, planId?
     return updatedUser;
   } catch (error) {
     console.error("Error updating USDT earnings:", error);
+    return null;
+  }
+};
+
+// New function to update USDT earnings from plan purchase and award referral commission immediately
+export const addPlanPurchaseRewards = async (
+  userId: string, 
+  planCost: number, 
+  dailyEarnings: number, 
+  planId: string
+): Promise<User | null> => {
+  try {
+    console.log(`Processing plan purchase rewards for user ${userId}: plan ${planId}, cost ${planCost}, daily earnings ${dailyEarnings}`);
+    
+    // 1. Add first day's earnings to the user's USDT earnings
+    const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId);
+    
+    // 2. Award commission to referrers based on plan cost
+    await awardPlanPurchaseCommission(userId, planCost, planId);
+    
+    // 3. Update the last USDT update date to today to avoid double earnings
+    const todayIST = getTodayDateKey();
+    await updateLastUsdtUpdateDate(userId, todayIST);
+    
+    return updatedUser;
+  } catch (error) {
+    console.error("Error processing plan purchase rewards:", error);
     return null;
   }
 };
