@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,6 @@ const MiningPlans: React.FC = () => {
     
     try {
       // Call the mining boost update function which will also handle first day earnings
-      // and immediate referral commission based on plan cost
       await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
       
       toast({

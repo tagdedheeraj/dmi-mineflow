@@ -185,7 +185,6 @@ export const awardReferralCommission = async (
 
 /**
  * Awards immediate commission to referrers when a user purchases a plan
- * This is separate from daily earnings commission and happens immediately at purchase time
  * @param userId ID of the user who purchased the plan
  * @param planCost Cost of the plan purchased
  * @param planId ID of the plan
