@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,7 @@ const MiningPlans: React.FC = () => {
       console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
       
       // Make sure we pass the planId, dailyEarnings and price to properly record the purchase
-      const updatedUser = await updateMiningBoost(
+      const activePlan = await updateMiningBoost(
         selectedPlan.miningBoost, 
         selectedPlan.duration, 
         selectedPlan.id,
@@ -53,6 +52,8 @@ const MiningPlans: React.FC = () => {
         selectedPlan.price
       );
       
+      // Get updated user data after plan activation
+      const updatedUser = await getUser(user.id);
       if (updatedUser) {
         updateUser(updatedUser);
       }

@@ -12,9 +12,6 @@ import {
   checkAndUpdateMining,
   getActivePlans,
   saveActivePlan,
-  updateUsdtEarnings,
-  getLastUsdtUpdateDate,
-  updateLastUsdtUpdateDate,
   getUser
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
@@ -45,7 +42,7 @@ const MiningContext = createContext<MiningContextType>({
   stopMining: () => {},
   isMining: false,
   activePlans: [],
-  updateMiningBoost: () => {},
+  updateMiningBoost: async () => null, // Update this to return a Promise<ActivePlan | null>
   dailyEarningsUpdateTime: "12:01 AM",
 });
 
@@ -448,7 +445,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newMiningRate = calculateTotalMiningRate();
       setMiningRate(newMiningRate);
       
-      return updatedUser;
+      return newPlan;
     } catch (error) {
       console.error("Error updating mining boost:", error);
       return null;
