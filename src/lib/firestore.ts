@@ -34,7 +34,7 @@ import {
   REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
   PREMIUM_PLAN_THRESHOLD,
   hasPremiumPlan
-} from './rewards/referralCommissions';
+} from './rewards/referral';
 
 // User operations
 export const getUser = async (userId: string): Promise<User | null> => {

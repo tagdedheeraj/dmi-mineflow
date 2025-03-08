@@ -146,7 +146,6 @@ export const MiningProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Update mining boost
   const updateMiningBoost = async (boostMultiplier: number, duration: number, planId: string): Promise<boolean> => {
     try {
       if (!user) return false;

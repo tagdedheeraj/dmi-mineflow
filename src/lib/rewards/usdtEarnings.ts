@@ -12,7 +12,7 @@ import {
 import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
 import { getUser } from './rewardsTracking';
-import { awardReferralCommission, awardPlanPurchaseCommission } from './referralCommissions';
+import { awardReferralCommission, awardPlanPurchaseCommission } from './referral'; // Updated import
 import { notifyUsdtEarnings } from './notificationService';
 
 // Function to get the last USDT earnings update date (in IST)
