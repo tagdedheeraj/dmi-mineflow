@@ -1,47 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { CheckCircle2, Circle, TrendingUp } from "lucide-react"
-import { DMIBooster as DMIBoosterType } from '@/data/dmiBoosters';
+
+import React, { useState } from 'react';
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DMIBooster as DMIBoosterType, dmiBoosters } from '@/data/dmiBoosters';
 import { useMining } from '@/contexts/MiningContext';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DMIBoosterProps {
-  dmiBoosters: DMIBoosterType[];
+  dmiBoosters?: DMIBoosterType[];
 }
 
-const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters }) => {
+const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters: propsBoosters }) => {
   const { toast } = useToast();
   const [selectedBoost, setSelectedBoost] = useState<DMIBoosterType | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { updateMiningBoost } = useMining();
   const { user, updateUser } = useAuth();
   
+  // Use the boosters from props or fallback to the default ones
+  const boostersToUse = propsBoosters || dmiBoosters;
+  
   const handleBoostActivation = async () => {
-    if (!selectedBoost || isProcessing) return;
+    if (!selectedBoost || isProcessing || !user) return;
     
     setIsProcessing(true);
     
     try {
       // Update to pass all required parameters (miningBoost, durationDays, planId, dailyEarnings, planPrice)
       // Since this is a DMI booster, we're using '0' for dailyEarnings and planPrice as they aren't relevant
-      await updateMiningBoost(selectedBoost.miningMultiplier, selectedBoost.durationHours / 24, selectedBoost.id, 0, 0);
+      const result = await updateMiningBoost(selectedBoost.miningMultiplier, selectedBoost.durationHours / 24, selectedBoost.id, 0, 0);
       
-      toast({
-        title: "Boost Activated!",
-        description: `Your ${selectedBoost.name} has been successfully activated.`,
-      });
-      
-      // Get updated user data after boost activation
-      const updatedUser = await updateUser(user);
-      
-      if (!updatedUser) {
+      if (result) {
+        toast({
+          title: "Boost Activated!",
+          description: `Your ${selectedBoost.name} has been successfully activated.`,
+        });
+      } else {
         toast({
           title: "Error",
-          description: "Failed to update user data. Please try again.",
+          description: "Failed to activate boost. Please try again.",
           variant: "destructive",
         });
       }
@@ -65,7 +64,7 @@ const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters }) => {
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
-        {dmiBoosters.map((booster) => (
+        {boostersToUse.map((booster) => (
           <Card
             key={booster.id}
             className={`border-2 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out ${selectedBoost?.id === booster.id ? 'border-blue-500' : 'border-gray-200'}`}
@@ -98,7 +97,7 @@ const DMIBooster: React.FC<DMIBoosterProps> = ({ dmiBoosters }) => {
         onClick={handleBoostActivation}
         disabled={!selectedBoost || isProcessing}
       >
-        {isProcessing ? 'Activating...' : `Activate ${selectedBoost?.name}`}
+        {isProcessing ? 'Activating...' : `Activate ${selectedBoost?.name || 'Booster'}`}
       </Button>
     </div>
   );

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import MiningPlans from '@/components/MiningPlans';
 import DMIBooster from '@/components/DMIBooster';
+import { dmiBoosters } from '@/data/dmiBoosters';
 
 const Plans: React.FC = () => {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ const Plans: React.FC = () => {
         {/* DMI Boosters section with ref for hash navigation */}
         <div className="mb-8" ref={boostersRef} id="dmi-boosters">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">DMI Boosters</h2>
-          <DMIBooster />
+          <DMIBooster dmiBoosters={dmiBoosters} />
         </div>
       </main>
     </div>

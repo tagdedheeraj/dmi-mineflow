@@ -8,6 +8,7 @@ import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUser } from '@/lib/firestore';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
