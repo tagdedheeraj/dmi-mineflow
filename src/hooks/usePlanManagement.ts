@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
-import { saveActivePlan } from '@/lib/services/planService';
+import { saveActivePlan } from '@/lib/firestore';
 import { addPlanPurchaseRewards } from '@/lib/rewards/planPurchaseRewards';
 
 export const usePlanManagement = (userId: string | undefined) => {
