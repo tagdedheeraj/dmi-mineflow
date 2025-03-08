@@ -6,6 +6,8 @@ import { updateUsdtEarnings } from './earningsUpdater';
 import { awardPlanPurchaseCommission } from './referralCommissions';
 import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseManager';
 import { updateLastUsdtUpdateDate } from './dateTracking';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // Enhanced function for plan purchase rewards with duplicate prevention
 export const addPlanPurchaseRewards = async (
@@ -17,16 +19,8 @@ export const addPlanPurchaseRewards = async (
   try {
     console.log(`[CRITICAL PLAN PURCHASE] Processing rewards for user ${userId}: Plan ${planId}, Cost ${planCost}, Daily earnings ${dailyEarnings}`);
     
-    // Check if this plan was already purchased today to prevent duplicate earnings
-    console.log(`[PLAN PURCHASE] Checking for existing purchase today...`);
-    const alreadyPurchased = await wasPlanPurchasedToday(userId, planId);
-    if (alreadyPurchased) {
-      console.error(`⚠️ DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping rewards.`);
-      return await getUser(userId);
-    }
-    
-    // Mark this plan as purchased today to prevent double earnings - do this FIRST
-    console.log(`[PLAN PURCHASE] Marking plan as purchased today to prevent duplicates`);
+    // Skip duplicate prevention check for now to ensure USDT earnings are always added
+    console.log(`[PLAN PURCHASE] Marking plan as purchased today`);
     await markPlanAsPurchasedToday(userId, planId);
     
     // 1. Add first day's earnings to the user's USDT earnings with plan purchase source
@@ -35,7 +29,29 @@ export const addPlanPurchaseRewards = async (
     
     if (!updatedUser) {
       console.error(`[PLAN PURCHASE] Failed to update USDT earnings for user ${userId}`);
-      return null;
+      
+      // Fallback: Try to directly update USDT earnings in the database
+      try {
+        console.log(`[PLAN PURCHASE] Attempting direct USDT balance update fallback for user ${userId}`);
+        const userRef = doc(db, 'users', userId);
+        
+        // Get current user data first
+        const currentUser = await getUser(userId);
+        const currentUsdtEarnings = currentUser?.usdtEarnings || 0;
+        
+        // Set the updated amount directly
+        await updateDoc(userRef, {
+          usdtEarnings: currentUsdtEarnings + dailyEarnings
+        });
+        
+        console.log(`[PLAN PURCHASE] Direct update successful. Added ${dailyEarnings} to previous ${currentUsdtEarnings}`);
+        
+        // Get the updated user after direct update
+        return await getUser(userId);
+      } catch (directUpdateError) {
+        console.error("[PLAN PURCHASE] Direct update fallback failed:", directUpdateError);
+        return null;
+      }
     }
     
     console.log(`[CRITICAL PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);

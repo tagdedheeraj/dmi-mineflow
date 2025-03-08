@@ -16,7 +16,8 @@ import {
   CreditCard,
   Lock,
   History,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
@@ -50,6 +51,7 @@ const Wallet: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [planDaysRemaining, setPlanDaysRemaining] = useState<Record<string, number>>({});
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -71,20 +73,31 @@ const Wallet: React.FC = () => {
     if (user) {
       const refreshUserData = async () => {
         try {
-          console.log("Refreshing user data from Wallet page");
+          console.log("Refreshing user data from Wallet page, user ID:", user.id);
+          setIsRefreshing(true);
           const latestUserData = await getUser(user.id);
           if (latestUserData) {
             console.log("Updated user data:", latestUserData);
             console.log("USDT Earnings:", latestUserData.usdtEarnings);
             updateUser(latestUserData);
           }
+          loadWithdrawalRequests();
+          setIsRefreshing(false);
         } catch (error) {
           console.error("Error refreshing user data:", error);
+          setIsRefreshing(false);
         }
       };
       
       refreshUserData();
-      loadWithdrawalRequests();
+
+      // Set up periodic refresh
+      const intervalId = setInterval(() => {
+        console.log("Running periodic user data refresh");
+        refreshUserData();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(intervalId);
     }
   }, [user, location.pathname, refreshTrigger]);
 
@@ -123,8 +136,33 @@ const Wallet: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      console.log("Manual refresh triggered");
+      // Wait for user data to be fetched
+      if (user) {
+        const latestUserData = await getUser(user.id);
+        if (latestUserData) {
+          console.log("Manual refresh - updated user data:", latestUserData);
+          console.log("Manual refresh - USDT Earnings:", latestUserData.usdtEarnings);
+          updateUser(latestUserData);
+          
+          toast({
+            title: "Balance Updated",
+            description: "Your wallet balance has been refreshed.",
+          });
+        }
+      }
+      
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error("Error during manual refresh:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!user) {
@@ -284,7 +322,14 @@ const Wallet: React.FC = () => {
                   <p className="text-sm text-gray-600">Current mining rewards</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleRefresh}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleRefresh} 
+                disabled={isRefreshing}
+                className="relative"
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -344,7 +389,7 @@ const Wallet: React.FC = () => {
                 </div>
               </div>
               <div className="text-xs text-gray-500">
-                ID: {user.id.substring(0, 8)}
+                ID: {user?.id?.substring(0, 8)}
               </div>
             </div>
           </div>
@@ -353,7 +398,20 @@ const Wallet: React.FC = () => {
             <div className="mb-5 bg-green-50 rounded-lg p-5 text-center">
               <p className="text-3xl font-bold text-gray-900">{formatCurrency(usdtEarnings)}</p>
               <p className="text-gray-600 mt-1">Available for withdrawal</p>
-              <p className="text-xs text-gray-500 mt-1">Last refreshed: {new Date().toLocaleTimeString()}</p>
+              <div className="flex items-center justify-center mt-2">
+                <p className="text-xs text-gray-500">
+                  Last refreshed: {new Date().toLocaleTimeString()}
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="ml-2 h-6 px-2"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-3 gap-4 mb-5">

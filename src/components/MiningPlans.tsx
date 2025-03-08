@@ -56,8 +56,18 @@ const MiningPlans: React.FC = () => {
       
       console.log(`Plan activation result:`, activePlan);
       
-      // Get updated user data after plan activation
-      const updatedUser = await getUser(user.id);
+      // Multiple attempts to get updated user data after plan activation
+      console.log("First attempt to get updated user data");
+      let updatedUser = await getUser(user.id);
+      
+      if (!updatedUser || (updatedUser.usdtEarnings === 0 && selectedPlan.dailyEarnings > 0)) {
+        console.log("First attempt didn't return expected USDT earnings, waiting and trying again");
+        // Wait a bit and try again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Second attempt to get updated user data");
+        updatedUser = await getUser(user.id);
+      }
+      
       console.log(`Updated user after plan purchase:`, updatedUser);
       
       if (updatedUser) {

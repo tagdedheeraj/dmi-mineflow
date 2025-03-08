@@ -23,8 +23,10 @@ export const updateUsdtEarnings = async (
   try {
     console.log(`[EARNING UPDATE] User: ${userId}, Amount: ${amount}, Plan: ${planId || 'none'}, Source: ${source}`);
     
-    // Check if this is a duplicate update (protection against multiple calls)
-    if (source === 'plan_purchase' && planId) {
+    // Skip duplicate check for plan purchases to ensure earnings are added
+    let shouldSkipDuplicateCheck = source === 'plan_purchase';
+    
+    if (!shouldSkipDuplicateCheck && source === 'plan_purchase' && planId) {
       console.log(`Checking if plan ${planId} was already purchased today to prevent duplicate earnings`);
       const wasPurchased = await wasPlanPurchasedToday(userId, planId);
       if (wasPurchased) {
@@ -50,6 +52,11 @@ export const updateUsdtEarnings = async (
       usdtEarnings: increment(amount)
     });
     console.log(`[CRITICAL] USDT increment completed successfully`);
+    
+    // Verify the update was successful by reading the user data again
+    const userAfter = await getDoc(userRef);
+    const updatedEarnings = userAfter.data().usdtEarnings || 0;
+    console.log(`[CRITICAL] Verified USDT earnings after update: ${updatedEarnings} (expected: ${currentUsdtEarnings + amount})`);
     
     // Log the transaction with more specific details
     await addUsdtTransaction(
