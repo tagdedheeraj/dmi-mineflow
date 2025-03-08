@@ -1,3 +1,4 @@
+
 import React, { 
   createContext, 
   useState, 
@@ -12,9 +13,11 @@ import {
   checkAndUpdateMining,
   getActivePlans,
   saveActivePlan,
+} from '@/lib/firestore';
+import { 
   updateUsdtEarnings,
   updateLastUsdtUpdateDate
-} from '@/lib/firestore';
+} from '@/lib/rewards/usdtEarnings';
 import { MiningSession, ActivePlan } from '@/lib/storage';
 import { getTodayDateKey } from '@/lib/rewards/dateUtils';
 import { miningPlans } from '@/data/miningPlans';
