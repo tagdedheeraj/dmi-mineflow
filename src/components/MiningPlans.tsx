@@ -17,7 +17,6 @@ const MiningPlans: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Calculate daily, weekly, and monthly earnings from active plans
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
     const planInfo = miningPlans.find(p => p.id === plan.id);
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
@@ -30,6 +29,7 @@ const MiningPlans: React.FC = () => {
   const currentMonthlyEarnings = currentDailyEarnings * 30;
 
   const handlePurchase = (plan: MiningPlan) => {
+    if (isProcessing) return;
     setSelectedPlan(plan);
     setShowPaymentModal(true);
   };
@@ -41,7 +41,7 @@ const MiningPlans: React.FC = () => {
     setShowPaymentModal(false);
     
     try {
-      // Call the mining boost update function which will also handle first day earnings
+      console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
       await updateMiningBoost(selectedPlan.miningBoost, selectedPlan.duration, selectedPlan.id);
       
       toast({
@@ -57,6 +57,7 @@ const MiningPlans: React.FC = () => {
       });
     } finally {
       setIsProcessing(false);
+      setSelectedPlan(null);
     }
   };
 

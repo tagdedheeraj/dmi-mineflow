@@ -19,7 +19,7 @@ import {
 } from '@/lib/firestore';
 import { miningPlans as plansData } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
-import { processDailyUsdtEarnings } from '@/lib/rewards/usdtEarnings';
+import { processDailyUsdtEarnings, addPlanPurchaseRewards } from '@/lib/rewards/usdtEarnings';
 
 interface MiningContextType {
   currentMining: MiningSession | null;
@@ -436,16 +436,20 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       const planInfo = plansData.find(p => p.id === planId);
       if (planInfo) {
-        if (planInfo.dailyEarnings > 0) {
-          const updatedUser = await updateUsdtEarnings(user.id, planInfo.dailyEarnings);
-          if (updatedUser) {
-            updateUser(updatedUser);
-            
-            toast({
-              title: `${planInfo.name} Plan Activated!`,
-              description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance immediately as your first day's earnings.`,
-            });
-          }
+        const updatedUser = await addPlanPurchaseRewards(
+          user.id,
+          planInfo.price,
+          planInfo.dailyEarnings,
+          planId
+        );
+        
+        if (updatedUser) {
+          updateUser(updatedUser);
+          
+          toast({
+            title: `${planInfo.name} Plan Activated!`,
+            description: `$${planInfo.dailyEarnings.toFixed(2)} USDT has been added to your balance as your first day's earnings.`,
+          });
         }
         
         const newMiningRate = calculateTotalMiningRate() + (boostMultiplier - 1);
@@ -471,10 +475,6 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           description: `Your mining speed is now ${newRate.toFixed(2)}x faster!`,
         });
       }
-      
-      const todayIST = getISTDateString(new Date());
-      await updateLastUsdtUpdateDate(user.id, todayIST);
-      setLastUsdtEarningsUpdate(todayIST);
       
     } catch (error) {
       console.error("Error updating mining boost:", error);

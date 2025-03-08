@@ -1,4 +1,3 @@
-
 import { 
   db, 
   addUsdtTransaction
@@ -31,9 +30,10 @@ export const getLastUsdtUpdateDate = async (userId: string): Promise<string | nu
   }
 };
 
-// Function to check if a plan was purchased today
+// Function to check if a plan was purchased today - with better logging
 export const wasPlanPurchasedToday = async (userId: string, planId: string): Promise<boolean> => {
   try {
+    console.log(`Checking if plan ${planId} was purchased today by user ${userId}`);
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
@@ -41,8 +41,13 @@ export const wasPlanPurchasedToday = async (userId: string, planId: string): Pro
       const purchases = userDoc.data().recentPlanPurchases || {};
       const todayIST = getTodayDateKey();
       
-      return purchases[planId] === todayIST;
+      const wasPurchased = purchases[planId] === todayIST;
+      console.log(`Plan ${planId} purchase check result: ${wasPurchased ? 'Already purchased today' : 'Not purchased today'}`);
+      console.log(`Purchase record: ${purchases[planId]}, Today: ${todayIST}`);
+      
+      return wasPurchased;
     }
+    console.log(`No purchase records found for user ${userId}`);
     return false;
   } catch (error) {
     console.error("Error checking plan purchase date:", error);
@@ -50,9 +55,10 @@ export const wasPlanPurchasedToday = async (userId: string, planId: string): Pro
   }
 };
 
-// Function to mark a plan as purchased today
+// Function to mark a plan as purchased today - with better logging
 export const markPlanAsPurchasedToday = async (userId: string, planId: string): Promise<void> => {
   try {
+    console.log(`Marking plan ${planId} as purchased today for user ${userId}`);
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     const todayIST = getTodayDateKey();
@@ -64,13 +70,16 @@ export const markPlanAsPurchasedToday = async (userId: string, planId: string): 
     // Add today's purchase
     purchases[planId] = todayIST;
     
+    console.log(`Setting purchase record: ${JSON.stringify(purchases)}`);
+    
     await updateDoc(userRef, {
       recentPlanPurchases: purchases
     });
     
-    console.log(`Marked plan ${planId} as purchased today (${todayIST}) for user ${userId}`);
+    console.log(`Successfully marked plan ${planId} as purchased today (${todayIST}) for user ${userId}`);
   } catch (error) {
     console.error("Error marking plan as purchased today:", error);
+    throw error; // Rethrow to ensure we know if this critical step fails
   }
 };
 
@@ -96,13 +105,14 @@ export const updateUsdtEarnings = async (
   source: string = 'earnings'
 ): Promise<User | null> => {
   try {
-    console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''} (source: ${source})`);
+    console.log(`[EARNING UPDATE] User: ${userId}, Amount: ${amount}, Plan: ${planId || 'none'}, Source: ${source}`);
     
     // Check if this is a duplicate update (protection against multiple calls)
-    if (source === 'plan_purchase') {
-      const wasPurchased = await wasPlanPurchasedToday(userId, planId || '');
+    if (source === 'plan_purchase' && planId) {
+      console.log(`Checking if plan ${planId} was already purchased today to prevent duplicate earnings`);
+      const wasPurchased = await wasPlanPurchasedToday(userId, planId);
       if (wasPurchased) {
-        console.error(`DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping additional earnings.`);
+        console.error(`⚠️ DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping additional earnings.`);
         return await getUser(userId);
       }
     }
@@ -116,7 +126,7 @@ export const updateUsdtEarnings = async (
     }
     
     const currentUsdtEarnings = userBefore.data().usdtEarnings || 0;
-    console.log(`Current USDT earnings: ${currentUsdtEarnings}, Adding: ${amount}`);
+    console.log(`[EARNING UPDATE] Current: ${currentUsdtEarnings}, Adding: ${amount}, Total: ${currentUsdtEarnings + amount}`);
     
     // Use increment to add the amount to existing USDT earnings
     await updateDoc(userRef, {
@@ -128,7 +138,7 @@ export const updateUsdtEarnings = async (
       userId,
       amount,
       'deposit',
-      planId ? `Earnings from plan ${planId}` : 'Daily plan earnings',
+      planId ? `Earnings from plan ${planId}` : `Daily plan earnings (${source})`,
       Date.now()
     );
     
@@ -139,7 +149,7 @@ export const updateUsdtEarnings = async (
       planId ? `plan ${planId}` : 'daily earnings'
     );
     
-    console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from ${source}`);
+    console.log(`[EARNING UPDATE] Successfully added ${amount} USDT to user ${userId}'s earnings from ${source}`);
     
     // Process referral commission if this is from a plan and we have a plan ID
     // and we haven't been asked to skip the referral commission
@@ -150,7 +160,7 @@ export const updateUsdtEarnings = async (
     
     // Fetch and return the updated user
     const updatedUser = await getUser(userId);
-    console.log(`Updated user USDT earnings: ${updatedUser?.usdtEarnings}`);
+    console.log(`[EARNING UPDATE] Updated user USDT earnings: ${updatedUser?.usdtEarnings}`);
     
     return updatedUser;
   } catch (error) {
@@ -159,7 +169,7 @@ export const updateUsdtEarnings = async (
   }
 };
 
-// New function to update USDT earnings from plan purchase and award referral commission immediately
+// Enhanced function for plan purchase rewards with duplicate prevention
 export const addPlanPurchaseRewards = async (
   userId: string, 
   planCost: number, 
@@ -167,28 +177,34 @@ export const addPlanPurchaseRewards = async (
   planId: string
 ): Promise<User | null> => {
   try {
-    console.log(`Processing plan purchase rewards for user ${userId}: plan ${planId}, cost ${planCost}, daily earnings ${dailyEarnings}`);
+    console.log(`[PLAN PURCHASE] Processing rewards for user ${userId}: Plan ${planId}, Cost ${planCost}, Daily earnings ${dailyEarnings}`);
     
     // Check if this plan was already purchased today to prevent duplicate earnings
+    console.log(`[PLAN PURCHASE] Checking for existing purchase today...`);
     const alreadyPurchased = await wasPlanPurchasedToday(userId, planId);
     if (alreadyPurchased) {
-      console.error(`DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping rewards.`);
+      console.error(`⚠️ DUPLICATE PREVENTION: Plan ${planId} was already purchased today. Skipping rewards.`);
       return await getUser(userId);
     }
     
-    // Mark this plan as purchased today to prevent double earnings
+    // Mark this plan as purchased today to prevent double earnings - do this FIRST
+    console.log(`[PLAN PURCHASE] Marking plan as purchased today to prevent duplicates`);
     await markPlanAsPurchasedToday(userId, planId);
     
     // 1. Add first day's earnings to the user's USDT earnings with plan purchase source
+    console.log(`[PLAN PURCHASE] Adding first day's earnings: ${dailyEarnings}`);
     const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId, false, 'plan_purchase');
     
     // 2. Award commission to referrers based on plan cost
+    console.log(`[PLAN PURCHASE] Awarding commission based on plan cost: ${planCost}`);
     await awardPlanPurchaseCommission(userId, planCost, planId);
     
     // 3. Update the last USDT update date to today to avoid double earnings
     const todayIST = getTodayDateKey();
+    console.log(`[PLAN PURCHASE] Updating last USDT earnings date to ${todayIST}`);
     await updateLastUsdtUpdateDate(userId, todayIST);
     
+    console.log(`[PLAN PURCHASE] Plan purchase rewards processing completed successfully`);
     return updatedUser;
   } catch (error) {
     console.error("Error processing plan purchase rewards:", error);
@@ -196,7 +212,7 @@ export const addPlanPurchaseRewards = async (
   }
 };
 
-// Enhanced function to process daily USDT earnings with better error handling
+// Updated processDailyUsdtEarnings with better duplicate prevention
 export const processDailyUsdtEarnings = async (
   userId: string, 
   activePlans: Array<any>, 
@@ -211,12 +227,12 @@ export const processDailyUsdtEarnings = async (
     const todayIST = getTodayDateKey();
     const lastUpdateDate = await getLastUsdtUpdateDate(userId);
     
-    console.log(`Processing daily USDT earnings for user ${userId} (IST time)`);
-    console.log(`Today (IST): ${todayIST}, Last update: ${lastUpdateDate}`);
+    console.log(`[DAILY EARNINGS] Processing for user ${userId} (IST time)`);
+    console.log(`[DAILY EARNINGS] Today (IST): ${todayIST}, Last update: ${lastUpdateDate}`);
     
     // If already updated today (IST), return without processing
     if (lastUpdateDate === todayIST) {
-      console.log(`Already processed earnings for today (${todayIST} IST), skipping.`);
+      console.log(`[DAILY EARNINGS] Already processed earnings for today (${todayIST} IST), skipping.`);
       return {
         success: true,
         totalAmount: 0,
@@ -231,32 +247,32 @@ export const processDailyUsdtEarnings = async (
     for (const plan of activePlans) {
       // Skip expired plans
       if (new Date() >= new Date(plan.expiresAt)) {
-        console.log(`Plan ${plan.id} has expired, skipping.`);
+        console.log(`[DAILY EARNINGS] Plan ${plan.id} has expired, skipping.`);
         continue;
       }
       
       // Skip plans that were purchased today to avoid double earnings
       const wasPurchasedToday = await wasPlanPurchasedToday(userId, plan.id);
       if (wasPurchasedToday) {
-        console.log(`Plan ${plan.id} was purchased today, already received first day earnings, skipping.`);
+        console.log(`[DAILY EARNINGS] Plan ${plan.id} was purchased today, already received first day earnings, skipping.`);
         continue;
       }
       
       const planInfo = plansData.find((p: any) => p.id === plan.id);
       if (planInfo) {
-        console.log(`Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
+        console.log(`[DAILY EARNINGS] Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
         totalDailyEarnings += planInfo.dailyEarnings;
         earningDetails.push({
           planName: planInfo.name,
           amount: planInfo.dailyEarnings
         });
       } else {
-        console.log(`Could not find plan info for id: ${plan.id}`);
+        console.log(`[DAILY EARNINGS] Could not find plan info for id: ${plan.id}`);
       }
     }
     
     if (totalDailyEarnings > 0) {
-      console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
+      console.log(`[DAILY EARNINGS] Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
       
       // Update user's USDT earnings (skip referral commission for daily updates)
       const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true, 'daily_update');
@@ -264,7 +280,7 @@ export const processDailyUsdtEarnings = async (
       if (updatedUser) {
         // Update the last update date to today's IST date
         await updateLastUsdtUpdateDate(userId, todayIST);
-        console.log(`Updated last USDT earnings date to ${todayIST} (IST)`);
+        console.log(`[DAILY EARNINGS] Updated last USDT earnings date to ${todayIST} (IST)`);
         
         return {
           success: true,
@@ -276,7 +292,7 @@ export const processDailyUsdtEarnings = async (
       }
     } else {
       // Even if there are no earnings, update the date to avoid checking again today
-      console.log(`No earnings to add, updating last update date to ${todayIST} (IST)`);
+      console.log(`[DAILY EARNINGS] No earnings to add, updating last update date to ${todayIST} (IST)`);
       await updateLastUsdtUpdateDate(userId, todayIST);
     }
     
