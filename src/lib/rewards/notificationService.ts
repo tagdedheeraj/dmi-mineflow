@@ -15,7 +15,8 @@ import {
   limit,
   getDocs,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  collectionGroup
 } from 'firebase/firestore';
 import { toast } from "@/hooks/use-toast";
 
@@ -31,7 +32,8 @@ export enum NotificationType {
   WITHDRAWAL_REQUESTED = 'withdrawal_requested',
   WITHDRAWAL_APPROVED = 'withdrawal_approved',
   WITHDRAWAL_REJECTED = 'withdrawal_rejected',
-  UPDATE_AVAILABLE = 'update_available'
+  UPDATE_AVAILABLE = 'update_available',
+  CUSTOM_NOTIFICATION = 'custom_notification'
 }
 
 // Notification interface
@@ -406,4 +408,46 @@ export const notifyAppUpdate = async (
     undefined,
     { version, updateUrl }
   );
+};
+
+/**
+ * Send a custom notification to all users
+ * @param title The notification title
+ * @param message The notification message
+ * @returns Whether the operation was successful
+ */
+export const sendCustomNotificationToAllUsers = async (
+  title: string,
+  message: string
+): Promise<boolean> => {
+  try {
+    console.log(`Sending custom notification to all users: ${title}`);
+    
+    // Get all users
+    const usersRef = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersRef);
+    
+    if (usersSnapshot.empty) {
+      console.log("No users found to send notifications to");
+      return false;
+    }
+    
+    const notificationPromises = usersSnapshot.docs.map(userDoc => {
+      const userId = userDoc.id;
+      return createNotification(
+        userId,
+        NotificationType.CUSTOM_NOTIFICATION,
+        title,
+        message
+      );
+    });
+    
+    await Promise.all(notificationPromises);
+    
+    console.log(`Successfully sent custom notification to ${usersSnapshot.size} users`);
+    return true;
+  } catch (error) {
+    console.error("Error sending custom notification to all users:", error);
+    return false;
+  }
 };

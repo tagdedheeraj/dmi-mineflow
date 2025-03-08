@@ -19,6 +19,7 @@ import WithdrawalTabs from '@/components/admin/WithdrawalTabs';
 import RejectionDialog from '@/components/admin/RejectionDialog';
 import RejectionDetailsDialog from '@/components/admin/RejectionDetailsDialog';
 import AppSettingsPanel from '@/components/admin/AppSettingsPanel';
+import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -157,6 +158,9 @@ const Admin: React.FC = () => {
           currentUpdateUrl={appSettings.updateUrl}
           onSettingsUpdated={loadWithdrawalRequests}
         />
+        
+        {/* Custom Notification Panel - New Addition */}
+        <CustomNotificationPanel />
         
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-6">Withdrawal Requests Management</h2>
