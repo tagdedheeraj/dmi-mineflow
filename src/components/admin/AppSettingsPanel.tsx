@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  AlertCircle,
+  InfoIcon
+} from 'lucide-react';
+import { 
+  Alert,
+  AlertDescription
+} from "@/components/ui/alert";
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -26,6 +34,16 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       toast({
         title: "Validation Error",
         description: "Both version and update URL are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate version format (semver)
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      toast({
+        title: "Invalid Version Format",
+        description: "Version must be in format X.Y.Z (e.g., 1.0.0)",
         variant: "destructive",
       });
       return;
@@ -71,6 +89,15 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
       <h2 className="text-2xl font-semibold mb-4">App Settings</h2>
+      
+      <Alert className="mb-4">
+        <InfoIcon className="h-4 w-4" />
+        <AlertDescription>
+          When you update the app version, users with older versions will receive notifications 
+          three times daily until they update.
+        </AlertDescription>
+      </Alert>
+      
       <div className="space-y-4">
         <div>
           <label htmlFor="appVersion" className="block text-sm font-medium text-gray-700 mb-1">
@@ -83,6 +110,9 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
             placeholder="1.0.0"
             className="w-full"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Use semantic versioning (X.Y.Z). Increase version to notify users about updates.
+          </p>
         </div>
         
         <div>
@@ -96,6 +126,9 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
             placeholder="https://example.com/download"
             className="w-full"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            URL where users can download the latest version of the app.
+          </p>
         </div>
         
         <Button 
