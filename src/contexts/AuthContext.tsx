@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,6 +13,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, AuthError } from 'firebase/auth';
+import { notifyAppUpdate } from '@/lib/rewards/notificationService';
 
 // Add AppSettings interface
 interface AppSettings {
@@ -72,6 +72,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const settings = await getAppSettings();
         if (settings) {
           setAppSettings(settings);
+          
+          // Compare with stored version and update localStorage if admin
+          const storedVersion = localStorage.getItem('appVersion');
+          
+          // If user is admin, update the stored version to match the current version
+          if (isAdmin) {
+            localStorage.setItem('appVersion', settings.version);
+          } 
+          // If versions don't match and user isn't admin, this indicates an update is needed
+          else if (storedVersion !== settings.version && user) {
+            console.log(`App update available: stored=${storedVersion}, current=${settings.version}`);
+          }
         }
       } catch (error) {
         console.error("Error fetching app settings:", error);
@@ -79,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     fetchAppSettings();
-  }, []);
+  }, [isAdmin, user?.id]);
 
   // Listen for auth state changes
   useEffect(() => {

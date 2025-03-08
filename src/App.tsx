@@ -11,6 +11,7 @@ import { MiningProvider } from "./contexts/MiningContext";
 import { isAuthRequired } from "./lib/secureStorage";
 import AppLock from "./components/AppLock";
 import { NotificationsPanel } from "./components/NotificationsPanel";
+import AppUpdateNotification from "./components/AppUpdateNotification";
 
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -34,6 +35,12 @@ const App = () => {
     const authRequired = isAuthRequired();
     setIsLocked(authRequired);
     setAppReady(true);
+    
+    // Initialize app version in localStorage if it doesn't exist
+    if (!localStorage.getItem('appVersion')) {
+      // We'll use a dummy version initially, the real version will be set after auth
+      localStorage.setItem('appVersion', '0.0.0');
+    }
   }, []);
 
   const handleUnlock = () => {
@@ -120,4 +127,3 @@ const App = () => {
 };
 
 export default App;
-

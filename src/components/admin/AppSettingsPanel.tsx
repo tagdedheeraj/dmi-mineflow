@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { notifyAppUpdate } from '@/lib/rewards/notificationService';
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -48,10 +49,15 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       const success = await updateAppSettings(version, updateUrl);
       
       if (success) {
+        // Update local storage for admin's own version
+        localStorage.setItem('appVersion', version);
+        
         toast({
           title: "Settings Updated",
           description: "App version and update URL have been successfully updated.",
         });
+        
+        // This will trigger the settings update in the parent component
         onSettingsUpdated();
       } else {
         throw new Error("Failed to update settings");

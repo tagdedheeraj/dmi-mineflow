@@ -1,4 +1,3 @@
-
 import { 
   db, 
   addUsdtTransaction
@@ -31,7 +30,8 @@ export enum NotificationType {
   TASK_COMPLETED = 'task_completed',
   WITHDRAWAL_REQUESTED = 'withdrawal_requested',
   WITHDRAWAL_APPROVED = 'withdrawal_approved',
-  WITHDRAWAL_REJECTED = 'withdrawal_rejected'
+  WITHDRAWAL_REJECTED = 'withdrawal_rejected',
+  UPDATE_AVAILABLE = 'update_available'
 }
 
 // Notification interface
@@ -389,5 +389,21 @@ export const notifyWithdrawalRejected = async (
     `Your withdrawal request for ${amount} ${currency} has been rejected. Reason: ${reason}`,
     amount,
     { currency, reason }
+  );
+};
+
+// Add notification function for app updates
+export const notifyAppUpdate = async (
+  userId: string, 
+  version: string, 
+  updateUrl: string
+): Promise<void> => {
+  await createNotification(
+    userId,
+    NotificationType.UPDATE_AVAILABLE,
+    "App Update Available",
+    `A new version (${version}) of the DMI app is available. Please update now.`,
+    undefined,
+    { version, updateUrl }
   );
 };

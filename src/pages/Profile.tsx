@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
+import AppUpdateNotification from '@/components/AppUpdateNotification';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
 } from '@/lib/secureStorage';
 import { useToast } from '@/hooks/use-toast';
 import { updateAppSettings } from '@/lib/firestore';
+import { useAppVersionCheck } from '@/hooks/useAppVersionCheck';
 
 const Profile: React.FC = () => {
   const { user, signOut, isAdmin, appSettings } = useAuth();
@@ -42,9 +44,9 @@ const Profile: React.FC = () => {
   const [newUpdateUrl, setNewUpdateUrl] = useState<string>("");
   const [isEditingAppSettings, setIsEditingAppSettings] = useState(false);
   const { toast } = useToast();
+  const { needsUpdate, updateUrl, markAsUpdated } = useAppVersionCheck();
 
   useEffect(() => {
-    // Load saved authentication preferences
     const prefs = getAuthPreferences();
     setBiometricEnabled(!!prefs.biometricEnabled);
   }, []);
@@ -64,7 +66,6 @@ const Profile: React.FC = () => {
   const handlePinSetup = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate PIN - must be 4 digits
     if (!/^\d{4}$/.test(pin)) {
       toast({
         title: "Invalid PIN",
@@ -74,7 +75,6 @@ const Profile: React.FC = () => {
       return;
     }
     
-    // Save the PIN
     setupPinAuth(pin);
     
     toast({
@@ -86,7 +86,6 @@ const Profile: React.FC = () => {
   };
 
   const handleBiometricToggle = (enabled: boolean) => {
-    // Check if Web Authentication API is available
     if (enabled && !window.PublicKeyCredential) {
       toast({
         title: "Not Supported",
@@ -97,7 +96,6 @@ const Profile: React.FC = () => {
       return;
     }
     
-    // Save the biometric preference
     enableBiometric(enabled);
     setBiometricEnabled(enabled);
     
@@ -114,7 +112,7 @@ const Profile: React.FC = () => {
   };
 
   const handleUpdate = () => {
-    window.open(appSettings.updateUrl, '_blank');
+    window.open(updateUrl || appSettings.updateUrl, '_blank');
   };
 
   const handleSaveAppSettings = async () => {
@@ -138,16 +136,13 @@ const Profile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
-      {/* Header */}
       <Header />
       
-      {/* Change Password Modal */}
       <ChangePasswordModal 
         open={changePasswordModalOpen}
         onOpenChange={setChangePasswordModalOpen}
       />
       
-      {/* Main content */}
       <main className="pt-24 px-4 max-w-screen-md mx-auto">
         <Button 
           variant="ghost"
@@ -158,6 +153,8 @@ const Profile: React.FC = () => {
           Back to Mining
         </Button>
         
+        {needsUpdate && <AppUpdateNotification />}
+        
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -166,7 +163,6 @@ const Profile: React.FC = () => {
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
           
-          {/* Profile Tab Content */}
           <TabsContent value="profile">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="bg-dmi-light/10 border-b border-gray-100 p-6">
@@ -208,7 +204,6 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* App Version and Update Section */}
                 <div className="mb-6 bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center text-gray-600">
@@ -267,13 +262,18 @@ const Profile: React.FC = () => {
                     <>
                       <p className="text-gray-900 font-medium mb-2">
                         {appSettings.version}
+                        {needsUpdate && (
+                          <span className="ml-2 text-amber-500 text-xs font-normal">
+                            (Update Available)
+                          </span>
+                        )}
                       </p>
                       <Button 
-                        className="w-full" 
+                        className={`w-full ${needsUpdate ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
                         onClick={handleUpdate}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        Update Now
+                        {needsUpdate ? 'Update Required' : 'Update Now'}
                       </Button>
                     </>
                   )}
@@ -310,7 +310,6 @@ const Profile: React.FC = () => {
             </div>
           </TabsContent>
           
-          {/* Security Tab Content */}
           <TabsContent value="security">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
               <div className="mb-6">
@@ -321,7 +320,6 @@ const Profile: React.FC = () => {
                 <p className="text-gray-600">Manage your security preferences and account protection.</p>
               </div>
               
-              {/* Password Change Option */}
               <div className="border-t border-gray-100 pt-6 mb-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
@@ -341,7 +339,6 @@ const Profile: React.FC = () => {
                 </Button>
               </div>
               
-              {/* PIN Setup */}
               <div className="border-t border-gray-100 pt-6 mb-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
@@ -375,7 +372,6 @@ const Profile: React.FC = () => {
                 </form>
               </div>
               
-              {/* Biometric */}
               <div className="border-t border-gray-100 pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center">
@@ -401,7 +397,6 @@ const Profile: React.FC = () => {
             </div>
           </TabsContent>
           
-          {/* KYC Tab Content */}
           <TabsContent value="kyc">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
               <div className="mb-6">
@@ -425,7 +420,6 @@ const Profile: React.FC = () => {
             </div>
           </TabsContent>
           
-          {/* Support Tab Content */}
           <TabsContent value="support">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
               <div className="mb-6">
@@ -436,7 +430,6 @@ const Profile: React.FC = () => {
                 <p className="text-gray-600">Get assistance and learn more about DMI Network.</p>
               </div>
               
-              {/* Contact Support */}
               <div className="border-t border-gray-100 pt-6 mb-6">
                 <div className="flex items-center mb-4">
                   <Mail className="h-5 w-5 mr-3 text-gray-600" />
@@ -450,7 +443,6 @@ const Profile: React.FC = () => {
                 </Button>
               </div>
               
-              {/* Documentation & Resources */}
               <div className="border-t border-gray-100 pt-6">
                 <div className="flex items-center mb-4">
                   <FileText className="h-5 w-5 mr-3 text-gray-600" />
