@@ -33,6 +33,13 @@ export const addPlanPurchaseRewards = async (
     console.log(`[PLAN PURCHASE] Adding first day's earnings: ${dailyEarnings}`);
     const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId, false, 'plan_purchase');
     
+    if (!updatedUser) {
+      console.error(`[PLAN PURCHASE] Failed to update USDT earnings for user ${userId}`);
+      return null;
+    }
+    
+    console.log(`[PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
+    
     // 2. Award commission to referrers based on plan cost
     console.log(`[PLAN PURCHASE] Awarding commission based on plan cost: ${planCost}`);
     await awardPlanPurchaseCommission(userId, planCost, planId);

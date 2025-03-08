@@ -43,6 +43,7 @@ const MiningPlans: React.FC = () => {
     
     try {
       console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
+      console.log(`Plan details - boost: ${selectedPlan.miningBoost}, duration: ${selectedPlan.duration}, dailyEarnings: ${selectedPlan.dailyEarnings}, price: ${selectedPlan.price}`);
       
       // Make sure we pass the planId, dailyEarnings and price to properly record the purchase
       const activePlan = await updateMiningBoost(
@@ -53,16 +54,22 @@ const MiningPlans: React.FC = () => {
         selectedPlan.price
       );
       
+      console.log(`Plan activation result:`, activePlan);
+      
       // Get updated user data after plan activation
       const updatedUser = await getUser(user.id);
+      console.log(`Updated user after plan purchase:`, updatedUser);
+      
       if (updatedUser) {
         updateUser(updatedUser);
+        
+        console.log(`User USDT earnings after update: ${updatedUser.usdtEarnings}`);
+        
+        toast({
+          title: "Plan activated!",
+          description: `Your ${selectedPlan.name} has been successfully activated and your first day's earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT have been added to your wallet.`,
+        });
       }
-      
-      toast({
-        title: "Plan activated!",
-        description: `Your ${selectedPlan.name} has been successfully activated and your first day's earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT have been added to your wallet.`,
-      });
     } catch (error) {
       console.error("Error activating plan:", error);
       toast({
