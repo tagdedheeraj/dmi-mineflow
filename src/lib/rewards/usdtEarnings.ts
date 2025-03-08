@@ -31,6 +31,49 @@ export const getLastUsdtUpdateDate = async (userId: string): Promise<string | nu
   }
 };
 
+// Function to check if a plan was purchased today
+export const wasPlanPurchasedToday = async (userId: string, planId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists() && userDoc.data().recentPlanPurchases) {
+      const purchases = userDoc.data().recentPlanPurchases || {};
+      const todayIST = getTodayDateKey();
+      
+      return purchases[planId] === todayIST;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error checking plan purchase date:", error);
+    return false;
+  }
+};
+
+// Function to mark a plan as purchased today
+export const markPlanAsPurchasedToday = async (userId: string, planId: string): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const todayIST = getTodayDateKey();
+    
+    // Get existing purchases or initialize new object
+    const purchases = userDoc.exists() && userDoc.data().recentPlanPurchases 
+      ? userDoc.data().recentPlanPurchases : {};
+    
+    // Add today's purchase
+    purchases[planId] = todayIST;
+    
+    await updateDoc(userRef, {
+      recentPlanPurchases: purchases
+    });
+    
+    console.log(`Marked plan ${planId} as purchased today (${todayIST}) for user ${userId}`);
+  } catch (error) {
+    console.error("Error marking plan as purchased today:", error);
+  }
+};
+
 // Function to update the last USDT earnings update date (using IST date)
 export const updateLastUsdtUpdateDate = async (userId: string, date: string): Promise<void> => {
   try {
@@ -45,7 +88,12 @@ export const updateLastUsdtUpdateDate = async (userId: string, date: string): Pr
 };
 
 // Function to update USDT earnings with improved logging and transaction recording
-export const updateUsdtEarnings = async (userId: string, amount: number, planId?: string): Promise<User | null> => {
+export const updateUsdtEarnings = async (
+  userId: string, 
+  amount: number, 
+  planId?: string, 
+  skipReferralCommission: boolean = false
+): Promise<User | null> => {
   try {
     console.log(`Updating USDT earnings for user ${userId}: +${amount} USDT${planId ? ` from plan ${planId}` : ''}`);
     
@@ -84,7 +132,8 @@ export const updateUsdtEarnings = async (userId: string, amount: number, planId?
     console.log(`Successfully added ${amount} USDT to user ${userId}'s earnings from plan`);
     
     // Process referral commission if this is from a plan and we have a plan ID
-    if (planId) {
+    // and we haven't been asked to skip the referral commission
+    if (planId && !skipReferralCommission) {
       // Award commission to the referrer (5% of earnings)
       await awardReferralCommission(userId, amount, planId);
     }
@@ -109,6 +158,9 @@ export const addPlanPurchaseRewards = async (
 ): Promise<User | null> => {
   try {
     console.log(`Processing plan purchase rewards for user ${userId}: plan ${planId}, cost ${planCost}, daily earnings ${dailyEarnings}`);
+    
+    // Mark this plan as purchased today to prevent double earnings
+    await markPlanAsPurchasedToday(userId, planId);
     
     // 1. Add first day's earnings to the user's USDT earnings
     const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId);
@@ -166,6 +218,13 @@ export const processDailyUsdtEarnings = async (
         continue;
       }
       
+      // Skip plans that were purchased today to avoid double earnings
+      const wasPurchasedToday = await wasPlanPurchasedToday(userId, plan.id);
+      if (wasPurchasedToday) {
+        console.log(`Plan ${plan.id} was purchased today, already received first day earnings, skipping.`);
+        continue;
+      }
+      
       const planInfo = plansData.find((p: any) => p.id === plan.id);
       if (planInfo) {
         console.log(`Processing earnings for plan: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
@@ -182,8 +241,8 @@ export const processDailyUsdtEarnings = async (
     if (totalDailyEarnings > 0) {
       console.log(`Adding total of ${totalDailyEarnings} USDT to user ${userId}'s earnings (IST time update)`);
       
-      // Update user's USDT earnings
-      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings);
+      // Update user's USDT earnings (skip referral commission for daily updates)
+      const updatedUser = await updateUsdtEarnings(userId, totalDailyEarnings, undefined, true);
       
       if (updatedUser) {
         // Update the last update date to today's IST date
