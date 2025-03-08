@@ -77,15 +77,19 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
   }
 };
 
-// Get user data
+// Get user data with enhanced logging
 export const getUser = async (userId: string): Promise<User | null> => {
   try {
+    console.log(`Getting user data for userId: ${userId}`);
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
     
     if (userSnap.exists()) {
-      return userSnap.data() as User;
+      const userData = userSnap.data() as User;
+      console.log(`Retrieved user data. USDT earnings: ${userData.usdtEarnings}`);
+      return userData;
     }
+    console.log(`No user data found for userId: ${userId}`);
     return null;
   } catch (error) {
     console.error("Error fetching user:", error);

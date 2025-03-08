@@ -15,7 +15,7 @@ export const addPlanPurchaseRewards = async (
   planId: string
 ): Promise<User | null> => {
   try {
-    console.log(`[PLAN PURCHASE] Processing rewards for user ${userId}: Plan ${planId}, Cost ${planCost}, Daily earnings ${dailyEarnings}`);
+    console.log(`[CRITICAL PLAN PURCHASE] Processing rewards for user ${userId}: Plan ${planId}, Cost ${planCost}, Daily earnings ${dailyEarnings}`);
     
     // Check if this plan was already purchased today to prevent duplicate earnings
     console.log(`[PLAN PURCHASE] Checking for existing purchase today...`);
@@ -30,7 +30,7 @@ export const addPlanPurchaseRewards = async (
     await markPlanAsPurchasedToday(userId, planId);
     
     // 1. Add first day's earnings to the user's USDT earnings with plan purchase source
-    console.log(`[PLAN PURCHASE] Adding first day's earnings: ${dailyEarnings}`);
+    console.log(`[CRITICAL PLAN PURCHASE] Adding first day's earnings: ${dailyEarnings}`);
     const updatedUser = await updateUsdtEarnings(userId, dailyEarnings, planId, false, 'plan_purchase');
     
     if (!updatedUser) {
@@ -38,7 +38,7 @@ export const addPlanPurchaseRewards = async (
       return null;
     }
     
-    console.log(`[PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
+    console.log(`[CRITICAL PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
     
     // 2. Award commission to referrers based on plan cost
     console.log(`[PLAN PURCHASE] Awarding commission based on plan cost: ${planCost}`);

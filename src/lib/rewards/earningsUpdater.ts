@@ -45,9 +45,11 @@ export const updateUsdtEarnings = async (
     console.log(`[EARNING UPDATE] Current: ${currentUsdtEarnings}, Adding: ${amount}, Total: ${currentUsdtEarnings + amount}`);
     
     // Use increment to add the amount to existing USDT earnings
+    console.log(`[CRITICAL] Attempting to update USDT earnings with amount: ${amount} for user: ${userId}`);
     await updateDoc(userRef, {
       usdtEarnings: increment(amount)
     });
+    console.log(`[CRITICAL] USDT increment completed successfully`);
     
     // Log the transaction with more specific details
     await addUsdtTransaction(
@@ -57,6 +59,7 @@ export const updateUsdtEarnings = async (
       planId ? `Earnings from plan ${planId}` : `Daily plan earnings (${source})`,
       Date.now()
     );
+    console.log(`[CRITICAL] Transaction recorded successfully`);
     
     // Send notification to user about USDT earnings
     await notifyUsdtEarnings(

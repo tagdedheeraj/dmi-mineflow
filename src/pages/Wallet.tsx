@@ -21,7 +21,7 @@ import {
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { setUsdtAddress } from '@/lib/firestore';
+import { setUsdtAddress, getUser } from '@/lib/firestore';
 import { createWithdrawalRequest, getUserWithdrawalRequests } from '@/lib/withdrawals';
 import { WithdrawalRequest } from '@/lib/withdrawalTypes';
 import {
@@ -49,6 +49,7 @@ const Wallet: React.FC = () => {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [planDaysRemaining, setPlanDaysRemaining] = useState<Record<string, number>>({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -68,9 +69,24 @@ const Wallet: React.FC = () => {
 
   useEffect(() => {
     if (user) {
+      const refreshUserData = async () => {
+        try {
+          console.log("Refreshing user data from Wallet page");
+          const latestUserData = await getUser(user.id);
+          if (latestUserData) {
+            console.log("Updated user data:", latestUserData);
+            console.log("USDT Earnings:", latestUserData.usdtEarnings);
+            updateUser(latestUserData);
+          }
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+      };
+      
+      refreshUserData();
       loadWithdrawalRequests();
     }
-  }, [user, location.pathname]);
+  }, [user, location.pathname, refreshTrigger]);
 
   useEffect(() => {
     const calculateRemainingDays = () => {
@@ -105,6 +121,10 @@ const Wallet: React.FC = () => {
     } catch (error) {
       console.error("Failed to load withdrawal requests:", error);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   if (!user) {
@@ -254,14 +274,19 @@ const Wallet: React.FC = () => {
       
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
-            <div className="flex items-center">
-              <div className="h-10 w-10 rounded-full bg-dmi/10 flex items-center justify-center mr-4">
-                <WalletIcon className="h-5 w-5 text-dmi" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-dmi/10 flex items-center justify-center mr-4">
+                  <WalletIcon className="h-5 w-5 text-dmi" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900">DMI Balance</h2>
+                  <p className="text-sm text-gray-600">Current mining rewards</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">DMI Balance</h2>
-                <p className="text-sm text-gray-600">Current mining rewards</p>
-              </div>
+              <Button variant="ghost" size="sm" onClick={handleRefresh}>
+                Refresh
+              </Button>
             </div>
           </div>
           
@@ -308,13 +333,18 @@ const Wallet: React.FC = () => {
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
-            <div className="flex items-center">
-              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center mr-4">
-                <DollarSign className="h-5 w-5 text-green-500" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center mr-4">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900">USDT Earnings</h2>
+                  <p className="text-sm text-gray-500">From premium mining plans</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">USDT Earnings</h2>
-                <p className="text-sm text-gray-500">From premium mining plans</p>
+              <div className="text-xs text-gray-500">
+                ID: {user.id.substring(0, 8)}
               </div>
             </div>
           </div>
@@ -323,6 +353,7 @@ const Wallet: React.FC = () => {
             <div className="mb-5 bg-green-50 rounded-lg p-5 text-center">
               <p className="text-3xl font-bold text-gray-900">{formatCurrency(usdtEarnings)}</p>
               <p className="text-gray-600 mt-1">Available for withdrawal</p>
+              <p className="text-xs text-gray-500 mt-1">Last refreshed: {new Date().toLocaleTimeString()}</p>
             </div>
             
             <div className="grid grid-cols-3 gap-4 mb-5">
