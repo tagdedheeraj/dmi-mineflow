@@ -617,7 +617,11 @@ export const getActivePlans = async (userId: string): Promise<ActivePlan[]> => {
         data.id = doc.id;
         return data;
       })
-      .filter(plan => new Date(plan.expiresAt) > now);
+      .filter(plan => {
+        // Convert string dates to Date objects for comparison
+        const expiryDate = new Date(plan.expiresAt);
+        return expiryDate > now;
+      });
   } catch (error) {
     console.error("Error fetching active plans:", error);
     return [];

@@ -1,3 +1,4 @@
+
 /**
  * Local storage service to persist user and mining data
  */
@@ -16,6 +17,7 @@ export interface User {
   referralCode?: string;
   appliedReferralCode?: string;
   referredBy?: string;
+  lastUsdtEarningsUpdate?: string;
 }
 
 export interface MiningSession {

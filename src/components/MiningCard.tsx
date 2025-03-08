@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useMining } from '@/contexts/MiningContext';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,11 @@ const MiningCard: React.FC = () => {
   
   // Format mining rate to 2 decimal places for display
   const formattedMiningRate = miningRate.toFixed(2);
+
+  // Fix the error with percentage calculation
+  const percentComplete = timeRemaining > 0 
+    ? Math.floor(((24 * 60 * 60) - timeRemaining) / (24 * 60 * 60) * 100) 
+    : 0;
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in">
