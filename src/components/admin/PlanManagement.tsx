@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
-import { miningPlans, MiningPlan } from '@/data/miningPlans';
+import { miningPlans, MiningPlan, reloadPlans } from '@/data/miningPlans';
 import { 
   Dialog,
   DialogContent,
@@ -24,17 +24,25 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { updateMiningPlans } from '@/lib/planManagement';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const PlanManagement: React.FC = () => {
   const [plans, setPlans] = useState<MiningPlan[]>([]);
   const [editingPlan, setEditingPlan] = useState<MiningPlan | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
   const { toast } = useToast();
 
-  // Initialize plans from the data file
+  // Initialize plans from the data file or Firestore
   useEffect(() => {
-    setPlans([...miningPlans]);
+    const loadPlans = async () => {
+      const loadedPlans = await reloadPlans();
+      setPlans(loadedPlans);
+    };
+    
+    loadPlans();
   }, []);
 
   const handleEditPlan = (plan: MiningPlan) => {
@@ -74,17 +82,23 @@ const PlanManagement: React.FC = () => {
       const updatedPlans = [...plans];
       updatedPlans[planIndex] = editingPlan;
       
-      // Save to data file
+      // Save to Firestore
       await updateMiningPlans(updatedPlans);
       
       // Update local state
       setPlans(updatedPlans);
       setShowDialog(false);
+      setSavedSuccess(true);
       
       toast({
         title: "Success",
         description: `${editingPlan.name} has been updated successfully.`,
       });
+      
+      // Reload plans from Firestore to ensure cache is updated
+      const refreshedPlans = await reloadPlans();
+      setPlans(refreshedPlans);
+      
     } catch (error) {
       console.error("Error saving plan:", error);
       toast({
@@ -103,6 +117,16 @@ const PlanManagement: React.FC = () => {
         <CardTitle className="text-2xl font-semibold">Arbitrage Plan Management</CardTitle>
       </CardHeader>
       <CardContent>
+        {savedSuccess && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <AlertCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Plans Updated Successfully</AlertTitle>
+            <AlertDescription className="text-green-700">
+              The plans have been updated in the database. Users will see the updated plans when they reload the app or visit the plans page.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

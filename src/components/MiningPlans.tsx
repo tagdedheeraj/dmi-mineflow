@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info, Clock } from 'lucide-react';
-import { miningPlans, MiningPlan } from '@/data/miningPlans';
+import { Zap, Check, ArrowRight, Info, Clock, RefreshCw } from 'lucide-react';
+import { miningPlans, MiningPlan, getPlans, reloadPlans } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
@@ -17,9 +18,47 @@ const MiningPlans: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<MiningPlan[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  
+  useEffect(() => {
+    loadPlans();
+  }, []);
+  
+  const loadPlans = async () => {
+    setIsLoadingPlans(true);
+    try {
+      const plans = await getPlans();
+      setAvailablePlans(plans);
+    } catch (error) {
+      console.error("Error loading plans:", error);
+      setAvailablePlans(miningPlans); // Fallback to default plans
+    } finally {
+      setIsLoadingPlans(false);
+    }
+  };
+  
+  const handleRefreshPlans = async () => {
+    try {
+      const refreshedPlans = await reloadPlans();
+      setAvailablePlans(refreshedPlans);
+      toast({
+        title: "Plans Refreshed",
+        description: "The latest mining plans have been loaded.",
+      });
+    } catch (error) {
+      console.error("Error refreshing plans:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh plans. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const currentDailyEarnings = activePlans.reduce((total, plan) => {
-    const planInfo = miningPlans.find(p => p.id === plan.id);
+    const planInfo = availablePlans.find(p => p.id === plan.id) || 
+                    miningPlans.find(p => p.id === plan.id);
     if (planInfo && new Date() < new Date(plan.expiresAt)) {
       return total + planInfo.dailyEarnings;
     }
@@ -102,6 +141,17 @@ const MiningPlans: React.FC = () => {
   
   const boostPercentage = Math.round((totalBoost * 100) - 100);
 
+  if (isLoadingPlans) {
+    return (
+      <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 p-6 animate-fade-in mt-6">
+        <div className="flex justify-center items-center py-12">
+          <RefreshCw className="h-8 w-8 animate-spin text-dmi" />
+          <span className="ml-2 text-gray-600">Loading plans...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">
       <div className="p-6">
@@ -112,8 +162,19 @@ const MiningPlans: React.FC = () => {
               Boost your mining speed and increase your earnings with our premium arbitrage plans.
             </p>
           </div>
-          <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
-            <Zap className="h-5 w-5" />
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center" 
+              onClick={handleRefreshPlans}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
+            <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
+              <Zap className="h-5 w-5" />
+            </div>
           </div>
         </div>
 
@@ -173,7 +234,7 @@ const MiningPlans: React.FC = () => {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4">
-          {miningPlans.map((plan) => {
+          {availablePlans.map((plan) => {
             const isActive = activePlans.some(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
             
             return (

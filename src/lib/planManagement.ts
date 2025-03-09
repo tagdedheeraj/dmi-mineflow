@@ -1,6 +1,6 @@
 
 import { MiningPlan } from '@/data/miningPlans';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 // Function to update mining plans in Firestore
@@ -22,11 +22,15 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
   }
 };
 
-// Function to load plans from Firestore (for future implementation)
+// Function to load plans from Firestore
 export const loadMiningPlansFromFirestore = async (): Promise<MiningPlan[] | null> => {
   try {
-    // This is a placeholder for future implementation
-    // Currently, plans are loaded from the local file
+    const plansDocRef = doc(db, 'app_settings', 'mining_plans');
+    const plansDoc = await getDoc(plansDocRef);
+    
+    if (plansDoc.exists() && plansDoc.data().plans) {
+      return plansDoc.data().plans as MiningPlan[];
+    }
     return null;
   } catch (error) {
     console.error("Error loading mining plans from Firestore:", error);

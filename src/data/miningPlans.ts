@@ -1,4 +1,6 @@
 
+import { loadMiningPlansFromFirestore } from '@/lib/planManagement';
+
 export interface MiningPlan {
   id: string;
   name: string;
@@ -104,9 +106,35 @@ export const DMI_COIN_VALUE = 0.0521;
 // NowPayments API key
 export const NOW_PAYMENTS_API_KEY = "0BYK16S-PK24G13-NQ0TYHR-61DR2R4";
 
-// Add a dynamic import method for potential loading from database in the future
-export const reloadPlans = () => {
-  // This is currently a placeholder function that would be used
-  // if we implement remote plan loading in the future
-  return miningPlans;
+// Cache for loaded plans
+let cachedPlans: MiningPlan[] | null = null;
+
+// Add a dynamic import method for loading from Firestore
+export const reloadPlans = async (): Promise<MiningPlan[]> => {
+  try {
+    // Try to get plans from Firestore
+    const firestorePlans = await loadMiningPlansFromFirestore();
+    
+    if (firestorePlans && firestorePlans.length > 0) {
+      console.log("Loaded mining plans from Firestore:", firestorePlans.length);
+      cachedPlans = firestorePlans;
+      return firestorePlans;
+    }
+    
+    // If no plans in Firestore, use local plans
+    console.log("Using default mining plans");
+    return miningPlans;
+  } catch (error) {
+    console.error("Error loading plans:", error);
+    return miningPlans;
+  }
+};
+
+// Get plans (from cache, Firestore, or local)
+export const getPlans = async (): Promise<MiningPlan[]> => {
+  if (cachedPlans) {
+    return cachedPlans;
+  }
+  
+  return await reloadPlans();
 };
