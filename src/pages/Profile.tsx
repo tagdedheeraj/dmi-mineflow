@@ -44,7 +44,7 @@ const Profile: React.FC = () => {
   const [newUpdateUrl, setNewUpdateUrl] = useState<string>("");
   const [isEditingAppSettings, setIsEditingAppSettings] = useState(false);
   const { toast } = useToast();
-  const { needsUpdate, updateUrl, markAsUpdated } = useAppVersionCheck();
+  const { needsUpdate, updateUrl, isUpdated, markAsUpdated } = useAppVersionCheck();
 
   useEffect(() => {
     const prefs = getAuthPreferences();
@@ -113,6 +113,7 @@ const Profile: React.FC = () => {
 
   const handleUpdate = () => {
     window.open(updateUrl || appSettings.updateUrl, '_blank');
+    markAsUpdated();
   };
 
   const handleSaveAppSettings = async () => {
@@ -153,7 +154,7 @@ const Profile: React.FC = () => {
           Back to Mining
         </Button>
         
-        {needsUpdate && <AppUpdateNotification />}
+        {(needsUpdate || isUpdated) && <AppUpdateNotification />}
         
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
@@ -264,16 +265,22 @@ const Profile: React.FC = () => {
                         {appSettings.version}
                         {needsUpdate && (
                           <span className="ml-2 text-amber-500 text-xs font-normal">
-                            (Update Available)
+                            (Update Required)
+                          </span>
+                        )}
+                        {isUpdated && (
+                          <span className="ml-2 text-green-500 text-xs font-normal">
+                            (Updated)
                           </span>
                         )}
                       </p>
                       <Button 
-                        className={`w-full ${needsUpdate ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
+                        className={`w-full ${needsUpdate ? 'bg-amber-500 hover:bg-amber-600' : 
+                                              isUpdated ? 'bg-green-500 hover:bg-green-600' : ''}`}
                         onClick={handleUpdate}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        {needsUpdate ? 'Update Required' : 'Update Now'}
+                        {needsUpdate ? 'Update Required' : isUpdated ? 'Updated' : 'Update Now'}
                       </Button>
                     </>
                   )}

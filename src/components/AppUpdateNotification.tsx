@@ -1,19 +1,43 @@
 
 import React from 'react';
-import { AlertTriangle, Download } from 'lucide-react';
+import { AlertTriangle, Download, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppVersionCheck } from '@/hooks/useAppVersionCheck';
 
 const AppUpdateNotification = () => {
-  const { needsUpdate, updateUrl, currentVersion, markAsUpdated } = useAppVersionCheck();
+  const { needsUpdate, updateUrl, currentVersion, lastVersion, isUpdated, markAsUpdated } = useAppVersionCheck();
 
-  if (!needsUpdate) return null;
+  // Don't show anything if there's no update to show
+  if (!needsUpdate && !isUpdated) return null;
 
+  // Show different UI based on update status
   const handleUpdate = () => {
     window.open(updateUrl, '_blank');
     // We don't mark as updated here because the user needs to actually install the update
   };
 
+  if (isUpdated) {
+    // Show green "Updated" notification
+    return (
+      <div className="bg-green-50 border-l-4 border-green-400 p-4 my-4 rounded-md">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <CheckCircle className="h-5 w-5 text-green-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-green-800">App Updated</h3>
+            <div className="mt-2 text-sm text-green-700">
+              <p>
+                Your app is up to date with the latest version ({currentVersion}).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show update required notification
   return (
     <div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-4 rounded-md">
       <div className="flex items-start">
@@ -25,7 +49,7 @@ const AppUpdateNotification = () => {
           <div className="mt-2 text-sm text-amber-700">
             <p>
               A new version ({currentVersion}) of the DMI app is available. 
-              Please update to access new features and improvements.
+              {lastVersion && <span> You currently have version {lastVersion}.</span>}
             </p>
           </div>
           <div className="mt-4">

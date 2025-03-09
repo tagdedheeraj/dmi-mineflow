@@ -9,6 +9,7 @@ const NOTIFICATION_HOURS = [8, 14, 20];
 export const useAppVersionCheck = () => {
   const { user, appSettings } = useAuth();
   const [needsUpdate, setNeedsUpdate] = useState(false);
+  const [isUpdated, setIsUpdated] = useState(false);
   const [lastVersion, setLastVersion] = useState<string | null>(null);
   const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
 
@@ -19,9 +20,18 @@ export const useAppVersionCheck = () => {
       
       if (storedVersion !== appSettings.version) {
         setNeedsUpdate(true);
+        setIsUpdated(false);
         setLastVersion(storedVersion);
       } else {
         setNeedsUpdate(false);
+        
+        // Check if this was recently updated
+        const lastUpdateTime = localStorage.getItem('lastUpdateTime');
+        if (lastUpdateTime && Date.now() - parseInt(lastUpdateTime) < 7 * 24 * 60 * 60 * 1000) { // 7 days
+          setIsUpdated(true);
+        } else {
+          setIsUpdated(false);
+        }
       }
     };
 
@@ -81,11 +91,14 @@ export const useAppVersionCheck = () => {
   // Mark the app as updated by storing the current version in localStorage
   const markAsUpdated = () => {
     localStorage.setItem('appVersion', appSettings.version);
+    localStorage.setItem('lastUpdateTime', Date.now().toString());
     setNeedsUpdate(false);
+    setIsUpdated(true);
   };
 
   return { 
     needsUpdate, 
+    isUpdated,
     currentVersion: appSettings.version, 
     lastVersion,
     updateUrl: appSettings.updateUrl,
