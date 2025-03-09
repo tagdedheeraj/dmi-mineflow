@@ -103,3 +103,10 @@ export const DMI_COIN_VALUE = 0.0521;
 
 // NowPayments API key
 export const NOW_PAYMENTS_API_KEY = "0BYK16S-PK24G13-NQ0TYHR-61DR2R4";
+
+// Add a dynamic import method for potential loading from database in the future
+export const reloadPlans = () => {
+  // This is currently a placeholder function that would be used
+  // if we implement remote plan loading in the future
+  return miningPlans;
+};
