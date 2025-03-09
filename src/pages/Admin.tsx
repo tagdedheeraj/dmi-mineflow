@@ -20,6 +20,7 @@ import RejectionDetailsDialog from '@/components/admin/RejectionDetailsDialog';
 import AppSettingsPanel from '@/components/admin/AppSettingsPanel';
 import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel';
 import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
+import UserManagement from '@/components/admin/UserManagement';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -158,6 +159,9 @@ const Admin: React.FC = () => {
           currentUpdateUrl={appSettings.updateUrl}
           onSettingsUpdated={loadWithdrawalRequests}
         />
+        
+        {/* User Management Panel */}
+        <UserManagement />
         
         {/* User Coins Management Panel */}
         <UserCoinsManagement />
