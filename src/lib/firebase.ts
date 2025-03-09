@@ -6,6 +6,8 @@ import {
   signInWithEmailAndPassword as firebaseSignInWithEmail,
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
   AuthErrorCodes
 } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
@@ -102,11 +104,38 @@ export const signOutUser = () => {
   return firebaseSignOut(auth);
 };
 
+export const resetPassword = async (email: string) => {
+  try {
+    email = email.toLowerCase().trim();
+    
+    if (!email) {
+      throw new Error('Email is required');
+    }
+    
+    await sendPasswordResetEmail(auth, email);
+    return true;
+  } catch (error) {
+    console.error("Error sending password reset email:", error);
+    throw error;
+  }
+};
+
+export const confirmPasswordChange = async (oobCode: string, newPassword: string) => {
+  try {
+    await confirmPasswordReset(auth, oobCode, newPassword);
+    return true;
+  } catch (error) {
+    console.error("Error confirming password reset:", error);
+    throw error;
+  }
+};
+
 // Firestore collection references
 export const usersCollection = collection(db, 'users');
 export const miningSessionsCollection = collection(db, 'mining_sessions');
 export const deviceRegistrationsCollection = collection(db, 'device_registrations');
 export const plansCollection = collection(db, 'plans');
+export const membershipCardsCollection = collection(db, 'membership_cards');
 
 // Helper function for USDT transactions
 export const addUsdtTransaction = async (
@@ -131,6 +160,103 @@ export const addUsdtTransaction = async (
   } catch (error) {
     console.error("Error adding USDT transaction:", error);
     throw error;
+  }
+};
+
+// Check if user has an active membership
+export const hasActiveMembership = async (userId: string): Promise<boolean> => {
+  try {
+    const membershipRef = collection(db, 'membership_cards');
+    const q = query(
+      membershipRef,
+      where("userId", "==", userId),
+      where("isActive", "==", true),
+      where("expiresAt", ">=", new Date())
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking active membership:", error);
+    return false;
+  }
+};
+
+// Get user's active membership details
+export const getActiveMembership = async (userId: string): Promise<any | null> => {
+  try {
+    const membershipRef = collection(db, 'membership_cards');
+    const q = query(
+      membershipRef,
+      where("userId", "==", userId),
+      where("isActive", "==", true),
+      where("expiresAt", ">=", new Date())
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return {
+        id: doc.id,
+        ...doc.data()
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error getting active membership:", error);
+    return null;
+  }
+};
+
+// Save membership card data
+export const saveMembershipCard = async (
+  userId: string,
+  planId: string,
+  price: number,
+  durationDays: number,
+  boostMultiplier: number,
+  transactionId?: string
+): Promise<string> => {
+  try {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (durationDays * 24 * 60 * 60 * 1000));
+    
+    const membershipData = {
+      userId,
+      planId,
+      price,
+      purchasedAt: now,
+      expiresAt,
+      durationDays,
+      boostMultiplier,
+      isActive: transactionId ? true : false,
+      transactionId
+    };
+    
+    const docRef = await addDoc(membershipCardsCollection, membershipData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving membership card:", error);
+    throw error;
+  }
+};
+
+// Activate membership card with transaction ID
+export const activateMembershipCard = async (cardId: string, transactionId: string): Promise<boolean> => {
+  try {
+    const cardRef = doc(db, 'membership_cards', cardId);
+    await updateDoc(cardRef, {
+      isActive: true,
+      transactionId,
+      activatedAt: new Date()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Error activating membership card:", error);
+    return false;
   }
 };
 
