@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +19,7 @@ import RejectionDialog from '@/components/admin/RejectionDialog';
 import RejectionDetailsDialog from '@/components/admin/RejectionDetailsDialog';
 import AppSettingsPanel from '@/components/admin/AppSettingsPanel';
 import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel';
+import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -159,7 +159,10 @@ const Admin: React.FC = () => {
           onSettingsUpdated={loadWithdrawalRequests}
         />
         
-        {/* Custom Notification Panel - New Addition */}
+        {/* User Coins Management Panel */}
+        <UserCoinsManagement />
+        
+        {/* Custom Notification Panel */}
         <CustomNotificationPanel />
         
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">

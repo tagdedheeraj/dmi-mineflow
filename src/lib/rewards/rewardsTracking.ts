@@ -8,7 +8,11 @@ import {
   getDoc, 
   setDoc, 
   updateDoc,
-  increment
+  increment,
+  collection,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { getTodayDateKey } from './dateUtils';
 import { User } from '../storage';
@@ -93,6 +97,31 @@ export const getUser = async (userId: string): Promise<User | null> => {
     return null;
   } catch (error) {
     console.error("Error fetching user:", error);
+    return null;
+  }
+};
+
+// Get user by email
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  try {
+    console.log(`Searching for user with email: ${email}`);
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data() as User;
+      userData.id = userDoc.id; // Make sure ID is included
+      
+      console.log(`Found user: ${userData.fullName}, ID: ${userData.id}, Balance: ${userData.balance}`);
+      return userData;
+    }
+    
+    console.log(`No user found with email: ${email}`);
+    return null;
+  } catch (error) {
+    console.error("Error fetching user by email:", error);
     return null;
   }
 };
