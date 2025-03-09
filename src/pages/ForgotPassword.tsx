@@ -1,56 +1,49 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
-const SignIn: React.FC = () => {
+const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn } = useAuth();
+  const [success, setSuccess] = useState(false);
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
     
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (!email) {
+      setError('Please enter your email address');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      console.log("Submitting login form with email:", email, "and password length:", password.length);
-      
-      // Convert email to lowercase and trim both fields
+      // Convert email to lowercase and trim
       const trimmedEmail = email.trim().toLowerCase();
-      const trimmedPassword = password;
       
-      await signIn(trimmedEmail, trimmedPassword);
-      // Redirect happens in the signIn function
+      await resetPassword(trimmedEmail);
+      setSuccess(true);
     } catch (err: any) {
-      console.error("Sign in component error:", err);
-      console.error("Error code:", err.code);
-      console.error("Error message:", err.message);
+      console.error("Password reset error:", err);
       
-      // Display a more user-friendly error message
-      if (err.code === 'auth/invalid-credential' || 
-          err.code === 'auth/user-not-found' || 
-          err.code === 'auth/wrong-password' || 
-          err.code === 'auth/invalid-email') {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many failed login attempts. Please try again later or reset your password.');
+      // Display a user-friendly error message
+      if (err.code === 'auth/user-not-found') {
+        setError('No account exists with this email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
       } else if (err.code === 'auth/network-request-failed') {
         setError('Network error. Please check your internet connection and try again.');
       } else {
-        setError(err.message || 'Failed to sign in. Please check your credentials.');
+        setError(err.message || 'Failed to send password reset email. Please try again later.');
       }
     } finally {
       setIsSubmitting(false);
@@ -68,9 +61,9 @@ const SignIn: React.FC = () => {
             className="h-20 w-auto mx-auto mb-6"
           />
           
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Reset your password</h2>
           <p className="mt-2 text-gray-600">
-            Start mining DMI coins today
+            Enter your email address and we'll send you a link to reset your password
           </p>
         </div>
         
@@ -79,6 +72,13 @@ const SignIn: React.FC = () => {
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md flex items-center text-red-800 text-sm">
               <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
               <p>{error}</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-md flex items-center text-green-800 text-sm">
+              <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+              <p>Password reset email sent. Please check your inbox including spam folder.</p>
             </div>
           )}
           
@@ -96,37 +96,21 @@ const SignIn: React.FC = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-sm text-dmi hover:underline">Forgot password?</Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                className="w-full"
-              />
-            </div>
-            
             <Button 
               type="submit" 
               className="w-full bg-dmi hover:bg-dmi-dark text-white button-hover-effect"
-              disabled={isSubmitting}
+              disabled={isSubmitting || success}
             >
-              {isSubmitting ? "Signing in..." : "Sign in"}
+              {isSubmitting ? "Sending..." : "Send Reset Link"}
             </Button>
           </form>
         </div>
         
         <div className="text-center">
           <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-dmi hover:underline font-medium">
-              Sign up now
+            Remember your password?{' '}
+            <Link to="/signin" className="text-dmi hover:underline font-medium">
+              Sign in
             </Link>
           </p>
         </div>
@@ -135,4 +119,4 @@ const SignIn: React.FC = () => {
   );
 };
 
-export default SignIn;
+export default ForgotPassword;

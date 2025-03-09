@@ -11,7 +11,14 @@ import {
   getAppSettings
 } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
+import { 
+  auth, 
+  signInWithEmail, 
+  createUserWithEmail, 
+  signOutUser, 
+  sendPasswordResetEmail, 
+  confirmPasswordResetCode 
+} from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, AuthError } from 'firebase/auth';
 import { notifyAppUpdate } from '@/lib/rewards/notificationService';
 
@@ -33,6 +40,8 @@ interface AuthContextType {
   updateBalance: (newBalance: number) => void;
   updateUser: (updatedUser: User) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<void>;
+  confirmPasswordReset: (oobCode: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -47,6 +56,8 @@ const AuthContext = createContext<AuthContextType>({
   updateBalance: () => {},
   updateUser: () => {},
   changePassword: async () => false,
+  resetPassword: async () => {},
+  confirmPasswordReset: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -400,6 +411,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      console.log(`Sending password reset email to: ${email}`);
+      
+      // Validate email
+      if (!email) {
+        throw new Error("Email is required");
+      }
+      
+      // Ensure email is lowercase
+      email = email.toLowerCase().trim();
+      
+      // Send password reset email
+      await sendPasswordResetEmail(email);
+      
+      console.log("Password reset email sent successfully");
+      
+      toast({
+        title: "Reset Email Sent",
+        description: "Check your email for a password reset link. Also check your spam folder.",
+      });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      
+      let errorMessage = "Failed to send password reset email.";
+      
+      // Handle specific Firebase auth errors
+      if (error.code === 'auth/user-not-found') {
+        // Don't reveal that the user doesn't exist for security reasons
+        // Just show the same message as success to prevent user enumeration
+        toast({
+          title: "Reset Email Sent",
+          description: "If an account exists with this email, you will receive a password reset link.",
+        });
+        return; // Return early without throwing
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please provide a valid email address.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Password Reset Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      throw error; // Re-throw for component handling
+    }
+  };
+
+  const confirmPasswordReset = async (oobCode: string, newPassword: string): Promise<void> => {
+    try {
+      console.log("Confirming password reset");
+      
+      // Validate input
+      if (!oobCode || !newPassword) {
+        throw new Error("Reset code and new password are required");
+      }
+      
+      // Confirm password reset
+      await confirmPasswordResetCode(oobCode, newPassword);
+      
+      console.log("Password reset confirmed successfully");
+      
+      toast({
+        title: "Password Reset Successful",
+        description: "Your password has been reset. You can now sign in with your new password.",
+      });
+    } catch (error: any) {
+      console.error("Confirm password reset error:", error);
+      
+      let errorMessage = "Failed to reset password.";
+      
+      // Handle specific Firebase auth errors
+      if (error.code === 'auth/invalid-action-code') {
+        errorMessage = "The reset link has expired or already been used. Please request a new one.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please use a stronger password.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Password Reset Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      throw error; // Re-throw for component handling
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -414,6 +522,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBalance,
         updateUser,
         changePassword,
+        resetPassword,
+        confirmPasswordReset,
       }}
     >
       {children}

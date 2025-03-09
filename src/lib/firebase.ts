@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -6,6 +5,9 @@ import {
   signInWithEmailAndPassword as firebaseSignInWithEmail,
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
   AuthErrorCodes
 } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
@@ -100,6 +102,63 @@ export const createUserWithEmail = async (email: string, password: string) => {
 
 export const signOutUser = () => {
   return firebaseSignOut(auth);
+};
+
+// Send password reset email function
+export const sendPasswordResetEmail = async (email: string) => {
+  try {
+    // Make sure email is lowercase and trimmed
+    email = email.toLowerCase().trim();
+    
+    console.log(`Attempting to send password reset email to: ${email}`);
+    
+    // Ensure auth is initialized
+    if (!auth) {
+      console.error("Auth not initialized");
+      throw new Error("Authentication service not initialized");
+    }
+    
+    await firebaseSendPasswordResetEmail(auth, email);
+    console.log("Password reset email sent successfully");
+    return true;
+  } catch (error: any) {
+    console.error("Firebase sendPasswordResetEmail error:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    
+    // Make sure the error object is properly passed through
+    throw error;
+  }
+};
+
+// Confirm password reset function
+export const confirmPasswordResetCode = async (oobCode: string, newPassword: string) => {
+  try {
+    console.log("Verifying password reset code");
+    
+    // Ensure auth is initialized
+    if (!auth) {
+      console.error("Auth not initialized");
+      throw new Error("Authentication service not initialized");
+    }
+    
+    // First verify the action code
+    const email = await verifyPasswordResetCode(auth, oobCode);
+    console.log(`Password reset code verified for email: ${email}`);
+    
+    // Then confirm the password reset
+    await confirmPasswordReset(auth, oobCode, newPassword);
+    console.log("Password reset confirmed successfully");
+    
+    return true;
+  } catch (error: any) {
+    console.error("Firebase confirmPasswordReset error:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    
+    // Make sure the error object is properly passed through
+    throw error;
+  }
 };
 
 // Firestore collection references
