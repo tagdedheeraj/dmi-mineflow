@@ -81,8 +81,9 @@ const MiningPlans: React.FC = () => {
     setShowPaymentModal(false);
     
     try {
-      console.log(`Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
-      console.log(`Plan details - boost: ${selectedPlan.miningBoost}, duration: ${selectedPlan.duration}, dailyEarnings: ${selectedPlan.dailyEarnings}, price: ${selectedPlan.price}`);
+      console.log(`[PURCHASE DEBUG] Processing payment completion for plan: ${selectedPlan.id}, transaction: ${transactionId}`);
+      console.log(`[PURCHASE DEBUG] Plan details - boost: ${selectedPlan.miningBoost}, duration: ${selectedPlan.duration}, dailyEarnings: ${selectedPlan.dailyEarnings}, price: ${selectedPlan.price}`);
+      console.log(`[PURCHASE DEBUG] User purchasing plan: ${user.id}, has referrer: ${user.appliedReferralCode ? 'yes' : 'no'}`);
       
       // Make sure we pass the planId, dailyEarnings and price to properly record the purchase
       const activePlan = await updateMiningBoost(
@@ -93,26 +94,26 @@ const MiningPlans: React.FC = () => {
         selectedPlan.price
       );
       
-      console.log(`Plan activation result:`, activePlan);
+      console.log(`[PURCHASE DEBUG] Plan activation result:`, activePlan);
       
       // Multiple attempts to get updated user data after plan activation
-      console.log("First attempt to get updated user data");
+      console.log("[PURCHASE DEBUG] First attempt to get updated user data");
       let updatedUser = await getUser(user.id);
       
       if (!updatedUser || (updatedUser.usdtEarnings === 0 && selectedPlan.dailyEarnings > 0)) {
-        console.log("First attempt didn't return expected USDT earnings, waiting and trying again");
+        console.log("[PURCHASE DEBUG] First attempt didn't return expected USDT earnings, waiting and trying again");
         // Wait a bit and try again
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("Second attempt to get updated user data");
+        console.log("[PURCHASE DEBUG] Second attempt to get updated user data");
         updatedUser = await getUser(user.id);
       }
       
-      console.log(`Updated user after plan purchase:`, updatedUser);
+      console.log(`[PURCHASE DEBUG] Updated user after plan purchase:`, updatedUser);
       
       if (updatedUser) {
         updateUser(updatedUser);
         
-        console.log(`User USDT earnings after update: ${updatedUser.usdtEarnings}`);
+        console.log(`[PURCHASE DEBUG] User USDT earnings after update: ${updatedUser.usdtEarnings}`);
         
         toast({
           title: "Plan activated!",
@@ -120,7 +121,7 @@ const MiningPlans: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error("Error activating plan:", error);
+      console.error("[PURCHASE DEBUG] Error activating plan:", error);
       toast({
         title: "Error activating plan",
         description: "There was an error activating your plan. Please try again or contact support.",

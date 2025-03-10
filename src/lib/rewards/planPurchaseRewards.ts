@@ -56,9 +56,10 @@ export const addPlanPurchaseRewards = async (
     
     console.log(`[CRITICAL PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
     
-    // 2. Award commission to referrers based on plan cost
-    console.log(`[PLAN PURCHASE] Awarding commission based on plan cost: ${planCost}`);
-    await awardPlanPurchaseCommission(userId, planCost, planId);
+    // 2. Award commission to referrers based on plan cost - FIXED THIS CALL
+    console.log(`[PLAN PURCHASE DEBUG] Awarding commission based on plan cost: ${planCost} for plan: ${planId}`);
+    const commissionResult = await awardPlanPurchaseCommission(userId, planCost, planId);
+    console.log(`[PLAN PURCHASE DEBUG] Commission award result: ${commissionResult ? 'success' : 'failed'}`);
     
     // 3. Update the last USDT update date to today to avoid double earnings
     const todayIST = getTodayDateKey();
@@ -68,7 +69,7 @@ export const addPlanPurchaseRewards = async (
     console.log(`[PLAN PURCHASE] Plan purchase rewards processing completed successfully`);
     return updatedUser;
   } catch (error) {
-    console.error("Error processing plan purchase rewards:", error);
+    console.error("[PLAN PURCHASE ERROR] Error processing plan purchase rewards:", error);
     return null;
   }
 };
