@@ -320,39 +320,31 @@ export const awardPlanPurchaseCommission = async (
         console.log(`[DEBUG FIX] Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId} for plan purchase`);
         
         try {
-          // Get current USDT earnings
+          // Update the referrer's USDT earnings
           const referrerRef = doc(db, 'users', referrerId);
-          const referrerDoc = await getDoc(referrerRef);
-          
-          if (referrerDoc.exists()) {
-            // Get current earnings and add commission
-            const currentEarnings = referrerDoc.data().usdtEarnings || 0;
-            const newEarnings = currentEarnings + commissionAmount;
-            
-            // Update with new total
-            await updateDoc(referrerRef, {
-              usdtEarnings: newEarnings
-            });
-            
-            console.log(`[DEBUG CRITICAL] Successfully updated USDT earnings for referrer ${referrerId} from ${currentEarnings} to ${newEarnings}`);
-          } else {
-            console.error(`[DEBUG ERROR] Referrer document does not exist for ${referrerId}`);
-          }
+          await updateDoc(referrerRef, {
+            usdtEarnings: increment(commissionAmount)
+          });
+          console.log(`[DEBUG FIX] Successfully updated USDT earnings for referrer ${referrerId}`);
         } catch (updateError) {
           console.error(`[DEBUG ERROR] Failed to update USDT earnings: ${updateError}`);
           
-          // Try a different approach with multiple retries
+          // Try a fallback approach with multiple retries
           let retrySuccess = false;
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
               console.log(`[DEBUG] Retry attempt ${attempt} to update USDT earnings`);
               const referrerRef = doc(db, 'users', referrerId);
-              await updateDoc(referrerRef, {
-                usdtEarnings: increment(commissionAmount)
-              });
-              console.log(`[DEBUG] Retry ${attempt} successful, incremented USDT earnings by ${commissionAmount}`);
-              retrySuccess = true;
-              break;
+              const referrerDoc = await getDoc(referrerRef);
+              if (referrerDoc.exists()) {
+                const currentEarnings = referrerDoc.data().usdtEarnings || 0;
+                await updateDoc(referrerRef, {
+                  usdtEarnings: currentEarnings + commissionAmount
+                });
+                console.log(`[DEBUG] Retry ${attempt} successful. Set USDT earnings to ${currentEarnings + commissionAmount}`);
+                retrySuccess = true;
+                break;
+              }
             } catch (retryError) {
               console.error(`[DEBUG ERROR] Retry ${attempt} failed: ${retryError}`);
               if (attempt < 3) {

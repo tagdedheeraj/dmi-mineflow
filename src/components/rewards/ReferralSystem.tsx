@@ -91,31 +91,23 @@ const ReferralSystem: React.FC = () => {
         setReferralNetwork(network);
       });
       
-      const fetchCommissionData = async () => {
-        try {
-          const history = await getCommissionHistory(user.id);
-          setCommissionHistory(history);
-          
-          const total = await getTotalCommissionEarned(user.id);
-          setTotalCommission(total);
-          
-          const breakdown = await getCommissionBreakdown(user.id);
-          setCommissionBreakdown(breakdown);
-          
-          console.log("[DEBUG] Fetched commission data:", { total, breakdown });
-        } catch (error) {
-          console.error("[DEBUG] Error fetching commission data:", error);
-        }
-      };
+      // Fetch commission data
+      getCommissionHistory(user.id).then(history => {
+        setCommissionHistory(history);
+      });
       
-      fetchCommissionData();
-      const refreshInterval = setInterval(fetchCommissionData, 30000);
+      getTotalCommissionEarned(user.id).then(total => {
+        setTotalCommission(total);
+      });
       
+      getCommissionBreakdown(user.id).then(breakdown => {
+        setCommissionBreakdown(breakdown);
+      });
+      
+      // Check if user has premium plan
       hasPremiumPlan(user.id).then(result => {
         setIsPremium(result);
       });
-      
-      return () => clearInterval(refreshInterval);
     }
   }, [user, updateUser]);
   

@@ -43,31 +43,15 @@ export const updateUsdtEarnings = async (
       return null;
     }
     
-    // Get current USDT earnings
     const currentUsdtEarnings = userBefore.data().usdtEarnings || 0;
     console.log(`[EARNING UPDATE] Current: ${currentUsdtEarnings}, Adding: ${amount}, Total: ${currentUsdtEarnings + amount}`);
     
-    // Use direct update to ensure accuracy
-    try {
-      console.log(`[CRITICAL] Attempting to update USDT earnings with amount: ${amount} for user: ${userId}`);
-      await updateDoc(userRef, {
-        usdtEarnings: currentUsdtEarnings + amount
-      });
-      console.log(`[CRITICAL] USDT update completed successfully using direct calculation`);
-    } catch (directUpdateError) {
-      console.error(`[CRITICAL ERROR] Direct update failed: ${directUpdateError}, trying increment method`);
-      
-      // Fallback to increment method
-      try {
-        await updateDoc(userRef, {
-          usdtEarnings: increment(amount)
-        });
-        console.log(`[CRITICAL] USDT increment completed as fallback`);
-      } catch (incrementError) {
-        console.error(`[CRITICAL ERROR] Increment method also failed: ${incrementError}`);
-        return null;
-      }
-    }
+    // Use increment to add the amount to existing USDT earnings
+    console.log(`[CRITICAL] Attempting to update USDT earnings with amount: ${amount} for user: ${userId}`);
+    await updateDoc(userRef, {
+      usdtEarnings: increment(amount)
+    });
+    console.log(`[CRITICAL] USDT increment completed successfully`);
     
     // Verify the update was successful by reading the user data again
     const userAfter = await getDoc(userRef);
