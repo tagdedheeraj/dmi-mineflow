@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -129,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: firebaseUser.uid,
               fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
               email: firebaseUser.email || '',
-              balance: 100,
+              balance: 100, // Default balance for new users
               createdAt: Date.now(),
               deviceId: getDeviceId(),
             };
@@ -180,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: firebaseUser.uid,
         fullName,
         email,
-        balance: 100,
+        balance: 100, // Default balance for new users
         createdAt: Date.now(),
         deviceId,
       };
@@ -259,11 +260,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error("Account suspended");
         }
         
-        // Update deviceId
-        const deviceId = getDeviceId();
+        // Update deviceId while preserving existing balance and other user data
         const updatedUser = {
           ...firestoreUser,
-          deviceId
+          deviceId: getDeviceId()
         };
         await saveFirestoreUser(updatedUser);
         setUser(updatedUser);
@@ -273,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: firebaseUser.uid,
           fullName: firebaseUser.displayName || email.split('@')[0] || 'User',
           email: email,
-          balance: 100,
+          balance: 100, // Default balance only for brand new users
           createdAt: Date.now(),
           deviceId: getDeviceId(),
         };
