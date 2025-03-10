@@ -115,39 +115,7 @@ export const awardReferralCommission = async (
       const isPremium = await hasPremiumPlan(referrerId);
       const hasActiveM = await hasActiveMembership(referrerId);
       
-      // Skip if the referrer doesn't have an active membership or a premium plan
-      if (!isPremium && !hasActiveM) {
-        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
-        
-        // Still award DMI coins based on level
-        let dmiCoinsAmount = 0;
-        
-        if (level === 1) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL1;
-        } else if (level === 2) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL2;
-        } else if (level === 3) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL3;
-        } else if (level === 4) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL4;
-        } else if (level === 5) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL5;
-        }
-        
-        if (dmiCoinsAmount > 0) {
-          // Update the referrer's DMI coin balance
-          const referrerRef = doc(db, 'users', referrerId);
-          await updateDoc(referrerRef, {
-            balance: increment(dmiCoinsAmount)
-          });
-          
-          console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
-        }
-        
-        // Move to the next level
-        currentUserId = referrerId;
-        continue;
-      }
+      console.log(`Referrer ${referrerId} at level ${level}: isPremium=${isPremium}, hasActiveMembership=${hasActiveM}`);
       
       // Determine commission rate based on level and plan type
       let commissionRate = 0;
@@ -167,6 +135,8 @@ export const awardReferralCommission = async (
       // Calculate the commission amount
       const commissionAmount = earningsAmount * commissionRate;
       
+      console.log(`Calculated commission for level ${level}: rate=${commissionRate}, amount=${commissionAmount}`);
+      
       if (commissionAmount <= 0) {
         console.log(`Commission amount for level ${level} is zero or negative: ${commissionAmount}, skipping`);
         // Continue to next level
@@ -174,6 +144,41 @@ export const awardReferralCommission = async (
         continue;
       }
       
+      // Award DMI coins based on level and premium status (this happens regardless of active membership)
+      let dmiCoinsAmount = 0;
+      
+      if (level === 1) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
+      } else if (level === 2) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2;
+      } else if (level === 3) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3;
+      } else if (level === 4) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4;
+      } else if (level === 5) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5;
+      }
+      
+      // Update the referrer's DMI coin balance if there are coins to award
+      if (dmiCoinsAmount > 0) {
+        const referrerRef = doc(db, 'users', referrerId);
+        await updateDoc(referrerRef, {
+          balance: increment(dmiCoinsAmount)
+        });
+        
+        console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
+      }
+      
+      // If the referrer doesn't have an active membership or a premium plan, skip USDT commission
+      if (!isPremium && !hasActiveM) {
+        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
+        
+        // Move to the next level
+        currentUserId = referrerId;
+        continue;
+      }
+      
+      // If we get here, the referrer is eligible for USDT commission
       console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId}`);
       
       // Update the referrer's USDT earnings
@@ -207,30 +212,6 @@ export const awardReferralCommission = async (
       await notifyReferralCommission(referrerId, commissionAmount, level);
       
       console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId}`);
-      
-      // Also award DMI coins based on level and premium status
-      let dmiCoinsAmount = 0;
-      
-      if (level === 1) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
-      } else if (level === 2) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2;
-      } else if (level === 3) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3;
-      } else if (level === 4) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4;
-      } else if (level === 5) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5;
-      }
-      
-      if (dmiCoinsAmount > 0) {
-        // Update the referrer's DMI coin balance
-        await updateDoc(referrerRef, {
-          balance: increment(dmiCoinsAmount)
-        });
-        
-        console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
-      }
       
       // Move up to the next level
       currentUserId = referrerId;
@@ -275,39 +256,7 @@ export const awardPlanPurchaseCommission = async (
       const isPremium = await hasPremiumPlan(referrerId);
       const hasActiveM = await hasActiveMembership(referrerId);
       
-      // Skip if the referrer doesn't have an active membership or a premium plan
-      if (!isPremium && !hasActiveM) {
-        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
-        
-        // Still award DMI coins based on level
-        let dmiCoinsAmount = 0;
-        
-        if (level === 1) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL1;
-        } else if (level === 2) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL2;
-        } else if (level === 3) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL3;
-        } else if (level === 4) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL4;
-        } else if (level === 5) {
-          dmiCoinsAmount = REFERRAL_REWARD_COINS_LEVEL5;
-        }
-        
-        if (dmiCoinsAmount > 0) {
-          // Update the referrer's DMI coin balance
-          const referrerRef = doc(db, 'users', referrerId);
-          await updateDoc(referrerRef, {
-            balance: increment(dmiCoinsAmount)
-          });
-          
-          console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
-        }
-        
-        // Move to the next level
-        currentUserId = referrerId;
-        continue;
-      }
+      console.log(`Referrer ${referrerId} at level ${level}: isPremium=${isPremium}, hasActiveMembership=${hasActiveM}`);
       
       // Determine commission rate based on level and plan type
       let commissionRate = 0;
@@ -327,6 +276,8 @@ export const awardPlanPurchaseCommission = async (
       // Calculate the commission amount based on plan cost
       const commissionAmount = planCost * commissionRate;
       
+      console.log(`Calculated purchase commission for level ${level}: rate=${commissionRate}, amount=${commissionAmount}`);
+      
       if (commissionAmount <= 0) {
         console.log(`Commission amount for level ${level} is zero or negative: ${commissionAmount}, skipping`);
         // Continue to next level
@@ -334,6 +285,41 @@ export const awardPlanPurchaseCommission = async (
         continue;
       }
       
+      // Award DMI coins based on level and premium status (this happens regardless of active membership)
+      let dmiCoinsAmount = 0;
+      
+      if (level === 1) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
+      } else if (level === 2) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2;
+      } else if (level === 3) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3;
+      } else if (level === 4) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4;
+      } else if (level === 5) {
+        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5;
+      }
+      
+      // Update the referrer's DMI coin balance if there are coins to award
+      if (dmiCoinsAmount > 0) {
+        const referrerRef = doc(db, 'users', referrerId);
+        await updateDoc(referrerRef, {
+          balance: increment(dmiCoinsAmount)
+        });
+        
+        console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
+      }
+      
+      // If the referrer doesn't have an active membership or a premium plan, skip USDT commission
+      if (!isPremium && !hasActiveM) {
+        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
+        
+        // Move to the next level
+        currentUserId = referrerId;
+        continue;
+      }
+      
+      // If we get here, the referrer is eligible for USDT commission
       console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId} for plan purchase`);
       
       // Update the referrer's USDT earnings
@@ -368,30 +354,6 @@ export const awardPlanPurchaseCommission = async (
       await notifyReferralCommission(referrerId, commissionAmount, level);
       
       console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId} from plan purchase`);
-      
-      // Also award DMI coins based on level and premium status
-      let dmiCoinsAmount = 0;
-      
-      if (level === 1) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
-      } else if (level === 2) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL2_PREMIUM : REFERRAL_REWARD_COINS_LEVEL2;
-      } else if (level === 3) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL3_PREMIUM : REFERRAL_REWARD_COINS_LEVEL3;
-      } else if (level === 4) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL4_PREMIUM : REFERRAL_REWARD_COINS_LEVEL4;
-      } else if (level === 5) {
-        dmiCoinsAmount = isPremium ? REFERRAL_REWARD_COINS_LEVEL5_PREMIUM : REFERRAL_REWARD_COINS_LEVEL5;
-      }
-      
-      if (dmiCoinsAmount > 0) {
-        // Update the referrer's DMI coin balance
-        await updateDoc(referrerRef, {
-          balance: increment(dmiCoinsAmount)
-        });
-        
-        console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
-      }
       
       // Move up to the next level
       currentUserId = referrerId;
