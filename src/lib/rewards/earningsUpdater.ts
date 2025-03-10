@@ -1,3 +1,4 @@
+
 import { 
   doc, 
   getDoc, 
@@ -10,7 +11,6 @@ import { getUser } from './rewardsTracking';
 import { notifyUsdtEarnings } from './notificationService';
 import { wasPlanPurchasedToday } from './planPurchaseManager';
 import { awardReferralCommission } from './referralCommissions';
-import { awardPlanPurchaseCommission } from './services/commissionProcessor';
 
 // Function to update USDT earnings with improved logging and transaction recording
 export const updateUsdtEarnings = async (
@@ -82,12 +82,6 @@ export const updateUsdtEarnings = async (
     if (planId && !skipReferralCommission) {
       // Award commission to the referrer (5% of earnings)
       await awardReferralCommission(userId, amount, planId);
-    }
-    
-    // Process plan purchase commission if this is from a plan and we have a plan ID
-    if (planId) {
-      // Award commission to the referrer (5% of earnings)
-      await awardPlanPurchaseCommission(userId, amount, planId);
     }
     
     // Fetch and return the updated user

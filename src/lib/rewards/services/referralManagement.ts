@@ -1,8 +1,7 @@
 
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { User } from '../../storage';
-import { PREMIUM_PLAN_THRESHOLD } from '../constants/referralRates';
 
 export const getReferrerId = async (userId: string): Promise<string | null> => {
   try {
