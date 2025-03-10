@@ -33,7 +33,8 @@ import {
   REFERRAL_REWARD_COINS_LEVEL4_PREMIUM,
   REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
   PREMIUM_PLAN_THRESHOLD,
-  hasPremiumPlan
+  hasPremiumPlan,
+  hasActiveMembership
 } from './rewards/referralCommissions';
 
 // User operations
@@ -190,10 +191,43 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
     
     // Check if referrer has premium plan status
     const isPremium = await hasPremiumPlan(referrerId);
+    const hasActiveM = await hasActiveMembership(referrerId);
     
     // Award the bonus to the referrer based on premium status (Level 1)
     const LEVEL1_BONUS = isPremium ? REFERRAL_REWARD_COINS_LEVEL1_PREMIUM : REFERRAL_REWARD_COINS_LEVEL1;
     await updateUserBalance(referrerId, LEVEL1_BONUS);
+    
+    // Also give a USDT bonus to the referrer if eligible (premium or active membership)
+    if (isPremium || hasActiveM) {
+      // $1 USDT bonus for each referral
+      const USDT_BONUS = 1;
+      
+      try {
+        // Get current USDT earnings
+        const referrerRef = doc(db, 'users', referrerId);
+        const currentReferrerDoc = await getDoc(referrerRef);
+        
+        if (currentReferrerDoc.exists()) {
+          const currentUsdtEarnings = currentReferrerDoc.data().usdtEarnings || 0;
+          await updateDoc(referrerRef, {
+            usdtEarnings: currentUsdtEarnings + USDT_BONUS
+          });
+          
+          // Log the transaction
+          await addUsdtTransaction(
+            referrerId,
+            USDT_BONUS,
+            'bonus',
+            `Referral bonus for user ${userId} joining with your code`,
+            Date.now()
+          );
+          
+          console.log(`[REFERRAL] Added ${USDT_BONUS} USDT bonus to referrer ${referrerId}`);
+        }
+      } catch (error) {
+        console.error("[REFERRAL] Error adding USDT bonus:", error);
+      }
+    }
     
     // Record the referral
     const referralsCollection = collection(db, 'referrals');
@@ -225,6 +259,7 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       
       // Check if the higher level referrer has premium status
       const isHigherReferrerPremium = await hasPremiumPlan(higherReferrerId);
+      const hasHigherReferrerActiveM = await hasActiveMembership(higherReferrerId);
       
       // Determine the bonus amount based on level and premium status
       let bonusAmount = 0;
@@ -242,6 +277,38 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       // Award the bonus to the higher level referrer
       if (bonusAmount > 0) {
         await updateUserBalance(higherReferrerId, bonusAmount);
+        
+        // Also give USDT bonus for higher levels if eligible
+        if (isHigherReferrerPremium || hasHigherReferrerActiveM) {
+          // Smaller USDT bonus for higher levels ($0.50 for level 2, $0.25 for level 3+)
+          const HIGHER_LEVEL_USDT_BONUS = currentLevel === 2 ? 0.5 : 0.25;
+          
+          try {
+            // Get current USDT earnings
+            const higherReferrerRef = doc(db, 'users', higherReferrerId);
+            const higherReferrerDoc = await getDoc(higherReferrerRef);
+            
+            if (higherReferrerDoc.exists()) {
+              const currentUsdtEarnings = higherReferrerDoc.data().usdtEarnings || 0;
+              await updateDoc(higherReferrerRef, {
+                usdtEarnings: currentUsdtEarnings + HIGHER_LEVEL_USDT_BONUS
+              });
+              
+              // Log the transaction
+              await addUsdtTransaction(
+                higherReferrerId,
+                HIGHER_LEVEL_USDT_BONUS,
+                'bonus',
+                `Level ${currentLevel} referral bonus for user ${userId} joining`,
+                Date.now()
+              );
+              
+              console.log(`[REFERRAL] Added ${HIGHER_LEVEL_USDT_BONUS} USDT bonus to level ${currentLevel} referrer ${higherReferrerId}`);
+            }
+          } catch (error) {
+            console.error(`[REFERRAL] Error adding USDT bonus to level ${currentLevel} referrer:`, error);
+          }
+        }
         
         // Record the referral at this level
         await addDoc(referralsCollection, {
