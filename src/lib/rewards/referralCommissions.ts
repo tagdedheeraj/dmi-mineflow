@@ -173,49 +173,45 @@ export const awardReferralCommission = async (
         console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
       }
       
-      // If the referrer doesn't have an active membership or a premium plan, skip USDT commission
-      if (!isPremium && !hasActiveM) {
-        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
+      // FIX: Award USDT commission only if they have premium OR active membership
+      if (isPremium || hasActiveM) {
+        // If we get here, the referrer is eligible for USDT commission
+        console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId}`);
         
-        // Move to the next level
-        currentUserId = referrerId;
-        continue;
+        // Update the referrer's USDT earnings
+        const referrerRef = doc(db, 'users', referrerId);
+        await updateDoc(referrerRef, {
+          usdtEarnings: increment(commissionAmount)
+        });
+        
+        // Log the transaction
+        await addUsdtTransaction(
+          referrerId,
+          commissionAmount,
+          'deposit',
+          `Level ${level} referral commission from plan ${planId}`,
+          Date.now()
+        );
+        
+        // Add commission record
+        const commissionsRef = collection(db, 'referral_commissions');
+        await addDoc(commissionsRef, {
+          referrerId,
+          referredId: userId,
+          level,
+          amount: commissionAmount,
+          planId,
+          baseEarnings: earningsAmount,
+          timestamp: Date.now()
+        });
+        
+        // Send notification to referrer about commission
+        await notifyReferralCommission(referrerId, commissionAmount, level);
+        
+        console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId}`);
+      } else {
+        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
       }
-      
-      // If we get here, the referrer is eligible for USDT commission
-      console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId}`);
-      
-      // Update the referrer's USDT earnings
-      const referrerRef = doc(db, 'users', referrerId);
-      await updateDoc(referrerRef, {
-        usdtEarnings: increment(commissionAmount)
-      });
-      
-      // Log the transaction
-      await addUsdtTransaction(
-        referrerId,
-        commissionAmount,
-        'deposit',
-        `Level ${level} referral commission from plan ${planId}`,
-        Date.now()
-      );
-      
-      // Add commission record
-      const commissionsRef = collection(db, 'referral_commissions');
-      await addDoc(commissionsRef, {
-        referrerId,
-        referredId: userId,
-        level,
-        amount: commissionAmount,
-        planId,
-        baseEarnings: earningsAmount,
-        timestamp: Date.now()
-      });
-      
-      // Send notification to referrer about commission
-      await notifyReferralCommission(referrerId, commissionAmount, level);
-      
-      console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId}`);
       
       // Move up to the next level
       currentUserId = referrerId;
