@@ -1,3 +1,4 @@
+
 import { 
   db, 
   addUsdtTransaction,
@@ -68,6 +69,7 @@ export const getReferrerId = async (userId: string): Promise<string | null> => {
  */
 export const hasPremiumPlan = async (userId: string): Promise<boolean> => {
   try {
+    console.log(`[DEBUG] Checking premium plan for user ${userId}`);
     const plansRef = collection(db, 'plans');
     const q = query(
       plansRef, 
@@ -76,9 +78,11 @@ export const hasPremiumPlan = async (userId: string): Promise<boolean> => {
     );
     const querySnapshot = await getDocs(q);
     
-    return !querySnapshot.empty;
+    const result = !querySnapshot.empty;
+    console.log(`[DEBUG] User ${userId} premium plan status: ${result}`);
+    return result;
   } catch (error) {
-    console.error("Error checking premium plan:", error);
+    console.error("[DEBUG] Error checking premium plan:", error);
     return false;
   }
 };
@@ -237,7 +241,7 @@ export const awardPlanPurchaseCommission = async (
   planId: string
 ): Promise<boolean> => {
   try {
-    console.log(`Processing plan purchase commission for user ${userId} with plan cost ${planCost}`);
+    console.log(`[DEBUG CRITICAL] Processing plan purchase commission for user ${userId} with plan cost ${planCost}`);
     
     // Current user we're processing
     let currentUserId = userId;
@@ -248,7 +252,7 @@ export const awardPlanPurchaseCommission = async (
       const referrerId = await getReferrerId(currentUserId);
       
       if (!referrerId) {
-        console.log(`User ${currentUserId} at level ${level} doesn't have a referrer, stopping chain`);
+        console.log(`[DEBUG] User ${currentUserId} at level ${level} doesn't have a referrer, stopping chain`);
         break;
       }
       
@@ -256,7 +260,7 @@ export const awardPlanPurchaseCommission = async (
       const isPremium = await hasPremiumPlan(referrerId);
       const hasActiveM = await hasActiveMembership(referrerId);
       
-      console.log(`Referrer ${referrerId} at level ${level}: isPremium=${isPremium}, hasActiveMembership=${hasActiveM}`);
+      console.log(`[DEBUG] Referrer ${referrerId} at level ${level}: isPremium=${isPremium}, hasActiveMembership=${hasActiveM}`);
       
       // Determine commission rate based on level and plan type
       let commissionRate = 0;
@@ -276,10 +280,10 @@ export const awardPlanPurchaseCommission = async (
       // Calculate the commission amount based on plan cost
       const commissionAmount = planCost * commissionRate;
       
-      console.log(`Calculated purchase commission for level ${level}: rate=${commissionRate}, amount=${commissionAmount}`);
+      console.log(`[DEBUG] Calculated purchase commission for level ${level}: rate=${commissionRate}, amount=${commissionAmount}`);
       
       if (commissionAmount <= 0) {
-        console.log(`Commission amount for level ${level} is zero or negative: ${commissionAmount}, skipping`);
+        console.log(`[DEBUG] Commission amount for level ${level} is zero or negative: ${commissionAmount}, skipping`);
         // Continue to next level
         currentUserId = referrerId;
         continue;
@@ -307,53 +311,85 @@ export const awardPlanPurchaseCommission = async (
           balance: increment(dmiCoinsAmount)
         });
         
-        console.log(`Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
+        console.log(`[DEBUG] Awarded ${dmiCoinsAmount} DMI coins to level ${level} referrer ${referrerId}`);
       }
       
-      // If the referrer doesn't have an active membership or a premium plan, skip USDT commission
-      if (!isPremium && !hasActiveM) {
-        console.log(`Referrer ${referrerId} doesn't have an active membership or premium plan, skipping USDT commission`);
+      // CRITICAL BUGFIX: Don't skip USDT commission for premium users
+      // We should be awarding commission if they have premium OR active membership
+      if (isPremium || hasActiveM) {
+        // If we get here, the referrer is eligible for USDT commission
+        console.log(`[DEBUG CRITICAL] Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId} for plan purchase`);
         
-        // Move to the next level
-        currentUserId = referrerId;
-        continue;
+        // Update the referrer's USDT earnings
+        const referrerRef = doc(db, 'users', referrerId);
+        
+        try {
+          await updateDoc(referrerRef, {
+            usdtEarnings: increment(commissionAmount)
+          });
+          console.log(`[DEBUG CRITICAL] Successfully updated USDT earnings for referrer ${referrerId}`);
+        } catch (updateError) {
+          console.error(`[DEBUG ERROR] Failed to update USDT earnings: ${updateError}`);
+          
+          // Try to get the current USDT earnings and set it directly as a fallback
+          try {
+            const referrerDoc = await getDoc(referrerRef);
+            if (referrerDoc.exists()) {
+              const currentEarnings = referrerDoc.data().usdtEarnings || 0;
+              await updateDoc(referrerRef, {
+                usdtEarnings: currentEarnings + commissionAmount
+              });
+              console.log(`[DEBUG] Fallback update successful. Set USDT earnings to ${currentEarnings + commissionAmount}`);
+            }
+          } catch (fallbackError) {
+            console.error(`[DEBUG ERROR] Fallback update also failed: ${fallbackError}`);
+          }
+        }
+        
+        // Log the transaction
+        try {
+          await addUsdtTransaction(
+            referrerId,
+            commissionAmount,
+            'deposit',
+            `Level ${level} referral commission from plan purchase ${planId}`,
+            Date.now()
+          );
+          console.log(`[DEBUG CRITICAL] Transaction recorded for referrer ${referrerId}`);
+        } catch (transactionError) {
+          console.error(`[DEBUG ERROR] Failed to record transaction: ${transactionError}`);
+        }
+        
+        // Add commission record
+        try {
+          const commissionsRef = collection(db, 'referral_commissions');
+          await addDoc(commissionsRef, {
+            referrerId,
+            referredId: userId,
+            level,
+            amount: commissionAmount,
+            planId,
+            isFromPurchase: true,
+            baseCost: planCost,
+            timestamp: Date.now()
+          });
+          console.log(`[DEBUG CRITICAL] Commission record added for referrer ${referrerId}`);
+        } catch (recordError) {
+          console.error(`[DEBUG ERROR] Failed to add commission record: ${recordError}`);
+        }
+        
+        // Send notification to referrer about commission
+        try {
+          await notifyReferralCommission(referrerId, commissionAmount, level);
+          console.log(`[DEBUG] Notification sent to referrer ${referrerId}`);
+        } catch (notifyError) {
+          console.error(`[DEBUG ERROR] Failed to send notification: ${notifyError}`);
+        }
+        
+        console.log(`[DEBUG CRITICAL] Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId} from plan purchase`);
+      } else {
+        console.log(`[DEBUG] Referrer ${referrerId} doesn't have premium plan or active membership, skipping USDT commission`);
       }
-      
-      // If we get here, the referrer is eligible for USDT commission
-      console.log(`Awarding ${commissionAmount} USDT commission to level ${level} referrer ${referrerId} for plan purchase`);
-      
-      // Update the referrer's USDT earnings
-      const referrerRef = doc(db, 'users', referrerId);
-      await updateDoc(referrerRef, {
-        usdtEarnings: increment(commissionAmount)
-      });
-      
-      // Log the transaction
-      await addUsdtTransaction(
-        referrerId,
-        commissionAmount,
-        'deposit',
-        `Level ${level} referral commission from plan purchase ${planId}`,
-        Date.now()
-      );
-      
-      // Add commission record
-      const commissionsRef = collection(db, 'referral_commissions');
-      await addDoc(commissionsRef, {
-        referrerId,
-        referredId: userId,
-        level,
-        amount: commissionAmount,
-        planId,
-        isFromPurchase: true,
-        baseCost: planCost,
-        timestamp: Date.now()
-      });
-      
-      // Send notification to referrer about commission
-      await notifyReferralCommission(referrerId, commissionAmount, level);
-      
-      console.log(`Successfully recorded ${commissionAmount} USDT commission for level ${level} referrer ${referrerId} from plan purchase`);
       
       // Move up to the next level
       currentUserId = referrerId;
@@ -361,7 +397,7 @@ export const awardPlanPurchaseCommission = async (
     
     return true;
   } catch (error) {
-    console.error("Error awarding plan purchase referral commission:", error);
+    console.error("[DEBUG CRITICAL ERROR] Error awarding plan purchase referral commission:", error);
     return false;
   }
 };
