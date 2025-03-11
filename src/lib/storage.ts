@@ -33,7 +33,12 @@ export interface ActivePlan {
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
-  planCost?: number; // Add planCost property
+}
+
+export interface DeviceRegistration {
+  deviceId: string;
+  accountIds: string[];
+  firstAccountCreatedAt: number;
 }
 
 const STORAGE_KEYS = {

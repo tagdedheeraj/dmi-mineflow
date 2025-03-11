@@ -530,12 +530,6 @@ const Wallet: React.FC = () => {
                         <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
                       </div>
                       
-                      {plan.planCost && (
-                        <div className="mt-1 text-sm text-gray-600">
-                          Plan Cost: {formatCurrency(plan.planCost)}
-                        </div>
-                      )}
-                      
                       <div className="mt-3 mb-2">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-gray-600">{daysRemaining} days remaining</span>
@@ -631,6 +625,7 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
+        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>
