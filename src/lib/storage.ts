@@ -29,10 +29,12 @@ export interface MiningSession {
 
 export interface ActivePlan {
   id: string;
+  name: string;  // Added plan name
   purchasedAt: string;
   expiresAt: string;
   boostMultiplier: number;
   duration: number;
+  planCost: number;
 }
 
 export interface DeviceRegistration {

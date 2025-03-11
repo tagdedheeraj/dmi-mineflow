@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
 import { saveActivePlan } from '@/lib/firestore';
 import { addPlanPurchaseRewards } from '@/lib/rewards/planPurchaseRewards';
+import { miningPlans } from '@/data/miningPlans';
 
 export const usePlanManagement = (userId: string | undefined) => {
   const updateMiningBoost = useCallback(async (
@@ -21,13 +22,18 @@ export const usePlanManagement = (userId: string | undefined) => {
       const expiryDate = new Date(now);
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
+      // Find the plan name from miningPlans
+      const plan = miningPlans.find(p => p.id === planId);
+      const planName = plan ? plan.name : planId;
+
       const newPlan = {
         id: planId,
+        name: planName, // Add plan name
         boostMultiplier: miningBoost,
         duration: durationDays,
         purchasedAt: now.toISOString(),
         expiresAt: expiryDate.toISOString(),
-        planCost: planPrice // Add plan cost to active plan for reference
+        planCost: planPrice
       };
       
       // First save the active plan
