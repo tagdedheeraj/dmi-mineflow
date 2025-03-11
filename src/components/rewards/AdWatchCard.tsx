@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Video, Play, Check, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { unityAds } from './unityAds';
+import { adMob } from './admob';
 
 interface AdWatchCardProps {
   isWatchingAd: boolean;
@@ -28,12 +29,12 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
   useEffect(() => {
     const checkAdStatus = () => {
       try {
-        if (unityAds.isReady()) {
+        if (adMob.isReady()) {
           setAdStatus('ready');
           setErrorMessage('');
-          console.log('Unity Ads is ready for display - LIVE MODE');
+          console.log('AdMob is ready for display');
         } else {
-          console.log('Unity Ads not ready yet, still loading...');
+          console.log('AdMob not ready yet, still loading...');
         }
       } catch (error) {
         console.error('Error checking ad status:', error);

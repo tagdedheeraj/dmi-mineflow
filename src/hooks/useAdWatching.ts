@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { unityAds, mockUnityAds } from '@/components/rewards/UnityAds';
+import { adMob, mockAdMob } from '@/components/rewards/admob';
 import { 
   fetchRewardsData, 
   updateRewardsData, 
@@ -23,11 +24,11 @@ export const useAdWatching = () => {
   // Maximum daily ad limit
   const MAX_DAILY_ADS = 20;
   
-  // Initialize Unity Ads and state on component mount
+  // Initialize AdMob and state on component mount
   useEffect(() => {
-    // Initialize Unity Ads
-    unityAds.initialize();
-    console.log('Unity Ads initialization requested from useAdWatching hook');
+    // Initialize AdMob
+    adMob.initialize();
+    console.log('AdMob initialization requested from useAdWatching hook');
     
     // Fetch rewards data from Firestore if user is logged in
     const loadRewardsData = async () => {
@@ -117,20 +118,20 @@ export const useAdWatching = () => {
     
     // Start watching ad
     setIsWatchingAd(true);
-    console.log('Attempting to show Unity Ad...');
+    console.log('Attempting to show AdMob Ad...');
     
-    // Try to use Unity Ads, fall back to mock if needed
+    // Try to use AdMob, fall back to mock if needed
     try {
-      if (unityAds.isReady()) {
-        console.log('Unity Ads is ready, showing ad...');
-        unityAds.show(onAdComplete);
+      if (adMob.isReady()) {
+        console.log('AdMob is ready, showing ad...');
+        adMob.show(onAdComplete);
       } else {
-        console.warn('Unity Ad not ready, falling back to mock implementation');
-        mockUnityAds.show(onAdComplete);
+        console.warn('AdMob not ready, falling back to mock implementation');
+        mockAdMob.show(onAdComplete);
       }
     } catch (error) {
-      console.error('Error showing Unity Ad:', error);
-      mockUnityAds.show(onAdComplete);
+      console.error('Error showing AdMob Ad:', error);
+      mockAdMob.show(onAdComplete);
     }
   };
   
