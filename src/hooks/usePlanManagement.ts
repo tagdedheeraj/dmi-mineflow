@@ -36,6 +36,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       // Then process rewards (first day earnings, etc.)
       console.log(`[CRITICAL] Processing plan purchase rewards for user ${userId}`);
+      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${dailyEarnings}, planId=${planId}`);
       const updatedUser = await addPlanPurchaseRewards(
         userId,
         planPrice,

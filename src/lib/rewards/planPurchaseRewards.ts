@@ -3,10 +3,10 @@ import { User } from '../storage';
 import { getTodayDateKey } from './dateUtils';
 import { getUser } from './rewardsTracking';
 import { updateUsdtEarnings } from './earningsUpdater';
-import { awardPlanPurchaseCommission } from './referralCommissions';
+import { awardPlanPurchaseCommission, verifyReferralConnection } from './referralCommissions';
 import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseManager';
 import { updateLastUsdtUpdateDate } from './dateTracking';
-import { updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Enhanced function for plan purchase rewards with duplicate prevention
@@ -56,10 +56,17 @@ export const addPlanPurchaseRewards = async (
     
     console.log(`[CRITICAL PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
     
-    // 2. Award commission to referrers based on plan cost - FIXED THIS CALL
-    console.log(`[PLAN PURCHASE DEBUG] Awarding commission based on plan cost: ${planCost} for plan: ${planId}`);
-    const commissionResult = await awardPlanPurchaseCommission(userId, planCost, planId);
-    console.log(`[PLAN PURCHASE DEBUG] Commission award result: ${commissionResult ? 'success' : 'failed'}`);
+    // Check if the user has a referral connection
+    const hasReferralConnection = await verifyReferralConnection(userId);
+    
+    if (hasReferralConnection) {
+      // 2. Award commission to referrers based on plan cost
+      console.log(`[PLAN PURCHASE DEBUG] User has referral connection. Awarding commission based on plan cost: ${planCost} for plan: ${planId}`);
+      const commissionResult = await awardPlanPurchaseCommission(userId, planCost, planId);
+      console.log(`[PLAN PURCHASE DEBUG] Commission award result: ${commissionResult ? 'success' : 'failed'}`);
+    } else {
+      console.log(`[PLAN PURCHASE DEBUG] User ${userId} has no referral connection, skipping commission`);
+    }
     
     // 3. Update the last USDT update date to today to avoid double earnings
     const todayIST = getTodayDateKey();
