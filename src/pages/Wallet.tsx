@@ -17,7 +17,8 @@ import {
   Lock,
   History,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
@@ -525,8 +526,15 @@ const Wallet: React.FC = () => {
                   
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex justify-between">
-                        <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{planInfo?.name || 'Mining Plan'}</h3>
+                          {plan.planCost && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Investment: ${plan.planCost}
+                            </p>
+                          )}
+                        </div>
                         <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
                       </div>
                       
@@ -541,12 +549,24 @@ const Wallet: React.FC = () => {
                       <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
                         <div>Purchased: {new Date(plan.purchasedAt).toLocaleDateString()}</div>
                         <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
-                        {planInfo && (
-                          <div className="col-span-2 mt-1">
-                            <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
-                          </div>
-                        )}
                       </div>
+
+                      {planInfo && (
+                        <div className="mt-3 bg-green-50 p-3 rounded-md space-y-2">
+                          <div className="flex items-center text-green-700">
+                            <Check className="h-4 w-4 mr-2" />
+                            <span>Daily USDT Earnings: ${planInfo.dailyEarnings}</span>
+                          </div>
+                          <div className="flex items-center text-green-700">
+                            <Check className="h-4 w-4 mr-2" />
+                            <span>Total USDT Earnings: ${planInfo.totalEarnings}</span>
+                          </div>
+                          <div className="flex items-center text-green-700">
+                            <Check className="h-4 w-4 mr-2" />
+                            <span>{planInfo.withdrawalTime}</span>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="mt-3 bg-blue-50 p-2 rounded flex items-center text-sm text-blue-700">
                         <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -625,7 +645,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
-        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>
