@@ -526,7 +526,7 @@ const Wallet: React.FC = () => {
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
                       <div className="flex justify-between">
-                        <h3 className="font-medium">{planInfo?.name || plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} Plan</h3>
+                        <h3 className="font-medium">{plan.name || planInfo?.name || "Mining Plan"}</h3>
                         <span className="text-green-600 text-sm font-medium">{plan.boostMultiplier}x Boost</span>
                       </div>
                       
@@ -544,6 +544,11 @@ const Wallet: React.FC = () => {
                         {planInfo && (
                           <div className="col-span-2 mt-1">
                             <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                          </div>
+                        )}
+                        {plan.planCost > 0 && (
+                          <div className="col-span-2 mt-1">
+                            Plan cost: <span className="text-gray-800 font-medium">{formatCurrency(plan.planCost)}</span>
                           </div>
                         )}
                       </div>
