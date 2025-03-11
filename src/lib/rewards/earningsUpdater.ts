@@ -58,6 +58,19 @@ export const updateUsdtEarnings = async (
     const updatedEarnings = userAfter.data().usdtEarnings || 0;
     console.log(`[CRITICAL] Verified USDT earnings after update: ${updatedEarnings} (expected: ${currentUsdtEarnings + amount})`);
     
+    // If the update wasn't successful, try a direct update
+    if (updatedEarnings !== currentUsdtEarnings + amount) {
+      console.log(`[EARNING FIX] Increment didn't work correctly, trying direct update`);
+      try {
+        await updateDoc(userRef, {
+          usdtEarnings: currentUsdtEarnings + amount
+        });
+        console.log(`[EARNING FIX] Direct update successful`);
+      } catch (directUpdateError) {
+        console.error(`[EARNING ERROR] Direct update failed: ${directUpdateError}`);
+      }
+    }
+    
     // Log the transaction with more specific details
     await addUsdtTransaction(
       userId,
@@ -81,6 +94,7 @@ export const updateUsdtEarnings = async (
     // and we haven't been asked to skip the referral commission
     if (planId && !skipReferralCommission) {
       // Award commission to the referrer (5% of earnings)
+      console.log(`[EARNING UPDATE] Processing referral commission for earnings: ${amount}`);
       await awardReferralCommission(userId, amount, planId);
     }
     
@@ -91,6 +105,42 @@ export const updateUsdtEarnings = async (
     return updatedUser;
   } catch (error) {
     console.error("Error updating USDT earnings:", error);
-    return null;
+    
+    // Fallback: Try to directly update USDT earnings in the database
+    try {
+      console.log(`[EARNING UPDATE] Attempting direct USDT balance update fallback for user ${userId}`);
+      const userRef = doc(db, 'users', userId);
+      
+      // Get current user data first
+      const currentUser = await getUser(userId);
+      if (!currentUser) {
+        console.error("User not found in fallback update");
+        return null;
+      }
+      
+      const currentUsdtEarnings = currentUser.usdtEarnings || 0;
+      
+      // Set the updated amount directly
+      await updateDoc(userRef, {
+        usdtEarnings: currentUsdtEarnings + amount
+      });
+      
+      console.log(`[EARNING UPDATE] Direct update successful. Added ${amount} to previous ${currentUsdtEarnings}`);
+      
+      // Log the transaction
+      await addUsdtTransaction(
+        userId,
+        amount,
+        'deposit',
+        planId ? `Earnings from plan ${planId} (fallback)` : `Daily plan earnings (${source}) (fallback)`,
+        Date.now()
+      );
+      
+      // Get the updated user after direct update
+      return await getUser(userId);
+    } catch (directUpdateError) {
+      console.error("[EARNING UPDATE] Direct update fallback failed:", directUpdateError);
+      return null;
+    }
   }
 };

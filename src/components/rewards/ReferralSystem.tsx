@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,30 @@ const ReferralSystem: React.FC = () => {
     level5: 0
   });
   const [isPremium, setIsPremium] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Function to refresh commission data
+  const refreshCommissionData = useCallback(async () => {
+    if (!user?.id) return;
+    
+    console.log("Refreshing commission data...");
+    
+    try {
+      const [history, total, breakdown] = await Promise.all([
+        getCommissionHistory(user.id),
+        getTotalCommissionEarned(user.id),
+        getCommissionBreakdown(user.id)
+      ]);
+      
+      setCommissionHistory(history);
+      setTotalCommission(total);
+      setCommissionBreakdown(breakdown);
+      
+      console.log("Commission data refreshed:", { totalCommission: total, breakdown });
+    } catch (error) {
+      console.error("Error refreshing commission data:", error);
+    }
+  }, [user?.id]);
   
   useEffect(() => {
     if (user && !user.referralCode) {
@@ -92,24 +117,33 @@ const ReferralSystem: React.FC = () => {
       });
       
       // Fetch commission data
-      getCommissionHistory(user.id).then(history => {
-        setCommissionHistory(history);
-      });
-      
-      getTotalCommissionEarned(user.id).then(total => {
-        setTotalCommission(total);
-      });
-      
-      getCommissionBreakdown(user.id).then(breakdown => {
-        setCommissionBreakdown(breakdown);
-      });
+      refreshCommissionData();
       
       // Check if user has premium plan
       hasPremiumPlan(user.id).then(result => {
         setIsPremium(result);
       });
     }
-  }, [user, updateUser]);
+  }, [user, updateUser, refreshKey, refreshCommissionData]);
+  
+  // Set up interval to refresh commission data every 30 seconds
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const intervalId = setInterval(() => {
+      refreshCommissionData();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [user?.id, refreshCommissionData]);
+  
+  // Handle tab change - refresh data when switching to commission tab
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "commission") {
+      refreshCommissionData();
+    }
+  };
   
   const copyReferralCode = () => {
     navigator.clipboard.writeText(referralCode);
@@ -144,6 +178,8 @@ const ReferralSystem: React.FC = () => {
         }
         
         setInputCode('');
+        // Refresh commission data after applying code
+        setRefreshKey(prev => prev + 1);
       } else {
         toast({
           title: "Error",
@@ -209,7 +245,7 @@ const ReferralSystem: React.FC = () => {
           </div>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">My Network</TabsTrigger>
@@ -308,6 +344,14 @@ const ReferralSystem: React.FC = () => {
                 <div className="flex-1">
                   <p className="text-xs text-gray-500">Commission Earnings</p>
                   <p className="font-semibold text-lg">{totalCommission.toFixed(2)} USDT</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs text-blue-500 p-0 h-auto" 
+                    onClick={refreshCommissionData}
+                  >
+                    Refresh
+                  </Button>
                   <p className="text-xs text-gray-600">
                     You earn commissions on all 5 levels of your referral network
                   </p>
@@ -410,8 +454,19 @@ const ReferralSystem: React.FC = () => {
               <p className="text-sm text-gray-700 mb-2">
                 Earn commission on all earnings from users in your 5-level referral network who purchase arbitrage plans.
               </p>
-              <div className="text-sm bg-white bg-opacity-60 p-2 rounded text-gray-700">
-                Total commissions earned: <span className="font-medium">{totalCommission.toFixed(2)} USDT</span>
+              
+              <div className="flex justify-between items-center">
+                <div className="text-sm bg-white bg-opacity-60 p-2 rounded text-gray-700">
+                  Total commissions earned: <span className="font-medium">{totalCommission.toFixed(2)} USDT</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshCommissionData}
+                  className="bg-white bg-opacity-70 text-xs"
+                >
+                  Refresh Data
+                </Button>
               </div>
             </div>
             

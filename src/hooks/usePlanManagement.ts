@@ -27,6 +27,7 @@ export const usePlanManagement = (userId: string | undefined) => {
         duration: durationDays,
         purchasedAt: now.toISOString(),
         expiresAt: expiryDate.toISOString(),
+        planCost: planPrice // Add plan cost to active plan for reference
       };
       
       // First save the active plan
