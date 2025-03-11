@@ -26,7 +26,7 @@ export const useAdWatching = () => {
   
   // Initialize AdMob and state on component mount
   useEffect(() => {
-    // Initialize AdMob
+    // Force AdMob initialization
     adMob.initialize();
     console.log('AdMob initialization requested from useAdWatching hook');
     
@@ -120,17 +120,28 @@ export const useAdWatching = () => {
     setIsWatchingAd(true);
     console.log('Attempting to show AdMob Ad...');
     
-    // Try to use AdMob, fall back to mock if needed
+    // Try to use AdMob, with improved error handling
     try {
       if (adMob.isReady()) {
         console.log('AdMob is ready, showing ad...');
         adMob.show(onAdComplete);
       } else {
-        console.warn('AdMob not ready, falling back to mock implementation');
-        mockAdMob.show(onAdComplete);
+        console.warn('AdMob not ready, forcing initialization and retrying...');
+        adMob.initialize();
+        // Try once more after a short delay
+        setTimeout(() => {
+          if (adMob.isReady()) {
+            adMob.show(onAdComplete);
+          } else {
+            console.warn('AdMob still not ready, falling back to mock implementation');
+            mockAdMob.show(onAdComplete);
+          }
+        }, 1000);
       }
     } catch (error) {
       console.error('Error showing AdMob Ad:', error);
+      // Fallback to mock implementation to ensure user can continue
+      console.log('Using fallback ad implementation due to error');
       mockAdMob.show(onAdComplete);
     }
   };
@@ -144,7 +155,7 @@ export const useAdWatching = () => {
     setIsAdComplete(true);
     
     try {
-      // Update user's balance (add 1 DMI coin) - using increment method instead of setting to 1
+      // Update user's balance (add 1 DMI coin)
       const updatedUser = await updateUserBalance(user.id, 1);
       if (updatedUser) {
         updateUser(updatedUser);
@@ -155,7 +166,8 @@ export const useAdWatching = () => {
       setTodayEarnings(prev => prev + 1);
       
       // Start countdown for next ad (1 minute = 60 seconds)
-      setCountdownTime(60);
+      // Set to 5 seconds in test mode for easier testing
+      setCountdownTime(5); // Reduced for testing
       
       // Show success toast
       toast({

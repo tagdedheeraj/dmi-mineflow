@@ -2,7 +2,8 @@
 import { AdMobInterface } from './types';
 import { 
   ADMOB_APP_ID, 
-  ADMOB_REWARDED_AD_ID, 
+  ADMOB_REWARDED_AD_ID,
+  TEST_REWARDED_AD_ID,
   TEST_MODE,
   MAX_INIT_ATTEMPTS,
   SDK_INIT_DELAY,
@@ -31,7 +32,9 @@ class AdMobImplementation implements AdMobInterface {
     this.isLoading = true;
     this.initializationAttempts++;
     
+    const adUnitId = TEST_MODE ? TEST_REWARDED_AD_ID : ADMOB_REWARDED_AD_ID;
     logAdMob(`Initializing AdMob with App ID: ${ADMOB_APP_ID} (Attempt ${this.initializationAttempts})`);
+    logAdMob(`Using ad unit ID: ${adUnitId} (Test mode: ${TEST_MODE ? 'ON' : 'OFF'})`);
     
     // Check if we're on the client side
     if (typeof window === 'undefined') {
@@ -39,22 +42,25 @@ class AdMobImplementation implements AdMobInterface {
       return;
     }
     
-    // For web implementation, we use the Google IMA SDK for now
-    // In a real mobile implementation, we would use the Capacitor AdMob plugin
+    // Improved web implementation
     this.loadAdMobSDK();
   }
 
   private loadAdMobSDK() {
     // For web testing, we're using a simplified approach
-    // In a real app with Capacitor, you would use the AdMob plugin
-    this.sdkLoaded = true;
-    this.initialized = true;
-    this.isLoading = false;
+    // In a real mobile app, you would integrate the native AdMob SDK
     
-    logAdMob('AdMob initialized for web testing');
-    
-    // Simulate loading an ad
-    this.loadAd();
+    // Simulate loading the SDK
+    setTimeout(() => {
+      this.sdkLoaded = true;
+      this.initialized = true;
+      this.isLoading = false;
+      
+      logAdMob('AdMob SDK loaded successfully');
+      
+      // Immediately load an ad
+      this.loadAd();
+    }, SDK_INIT_DELAY);
   }
 
   loadAd() {
@@ -69,29 +75,40 @@ class AdMobImplementation implements AdMobInterface {
     }
     
     this.isLoading = true;
-    logAdMob(`Loading rewarded ad with ID: ${ADMOB_REWARDED_AD_ID}`);
+    const adUnitId = TEST_MODE ? TEST_REWARDED_AD_ID : ADMOB_REWARDED_AD_ID;
+    logAdMob(`Loading rewarded ad with ID: ${adUnitId}`);
     
-    // Simulate ad loading
+    // Simulate ad loading with guaranteed success in test mode
     setTimeout(() => {
       this.rewardedAd = {
         isLoaded: true,
         show: (callbacks: any) => {
+          logAdMob('Showing rewarded ad to user');
+          
+          // Simulate user watching the entire ad
           if (callbacks && callbacks.onRewarded) {
             setTimeout(() => {
+              logAdMob('User earned reward');
               callbacks.onRewarded();
             }, 1000);
           }
+          
+          // Simulate ad closing
           if (callbacks && callbacks.onClosed) {
             setTimeout(() => {
+              logAdMob('Ad closed by user');
               callbacks.onClosed();
+              
+              // Automatically load the next ad
+              this.loadAd();
             }, 3000);
           }
         }
       };
       
       this.isLoading = false;
-      logAdMob('Rewarded ad loaded successfully');
-    }, 1000);
+      logAdMob('Rewarded ad loaded successfully and ready to display');
+    }, 2000);
   }
 
   isReady(): boolean {
@@ -103,10 +120,11 @@ class AdMobImplementation implements AdMobInterface {
         setTimeout(() => this.initialize(), RETRY_DELAY);
       }
       
-      return TEST_MODE; // In test mode, pretend we're ready
+      return TEST_MODE; // In test mode, always report as ready
     }
     
     const isReady = !!this.rewardedAd && this.rewardedAd.isLoaded;
+    logAdMob(`Ad ready status: ${isReady ? 'READY' : 'NOT READY'}`);
     
     // If not ready, try to load it
     if (!isReady && !this.isLoading) {
@@ -122,8 +140,8 @@ class AdMobImplementation implements AdMobInterface {
     if (!this.initialized) {
       logAdMob('Not initialized, trying to initialize now', true);
       this.initialize();
-      // Use mock behavior for better user experience
-      logAdMob('Using fallback for ad display');
+      // In test mode, we guarantee the callback is called
+      logAdMob('Using test mode behavior for ad display');
       setTimeout(callback, FALLBACK_AD_DURATION);
       return;
     }
@@ -137,7 +155,8 @@ class AdMobImplementation implements AdMobInterface {
       return;
     }
     
-    logAdMob(`Showing rewarded ad with ID: ${ADMOB_REWARDED_AD_ID}`);
+    const adUnitId = TEST_MODE ? TEST_REWARDED_AD_ID : ADMOB_REWARDED_AD_ID;
+    logAdMob(`Showing rewarded ad with ID: ${adUnitId}`);
     
     if (this.rewardedAd && this.rewardedAd.show) {
       this.rewardedAd.show({

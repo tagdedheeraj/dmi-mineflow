@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Video, Play, Check, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adMob } from './admob';
+import { TEST_MODE } from './admob/config';
 
 interface AdWatchCardProps {
   isWatchingAd: boolean;
@@ -26,9 +27,15 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
   const [adStatus, setAdStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
+  // Check AdMob status more frequently
   useEffect(() => {
     const checkAdStatus = () => {
       try {
+        // Force initialization on component mount
+        if (!adMob.isReady()) {
+          adMob.initialize();
+        }
+        
         if (adMob.isReady()) {
           setAdStatus('ready');
           setErrorMessage('');
@@ -43,9 +50,11 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
       }
     };
 
+    // Check immediately
     checkAdStatus();
 
-    const intervalId = setInterval(checkAdStatus, 5000);
+    // Then check every 3 seconds
+    const intervalId = setInterval(checkAdStatus, 3000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -58,6 +67,7 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
 
   const handleAdClick = () => {
     setErrorMessage('');
+    console.log('Ad button clicked, attempting to show ad...');
     onWatchAd();
   };
 
@@ -71,6 +81,9 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
           <div>
             <h2 className="text-lg font-medium text-gray-900">Watch Ads to Earn DMI</h2>
             <p className="text-sm text-gray-500">Watch short ads and earn 1 DMI coin per ad</p>
+            {TEST_MODE && (
+              <p className="text-xs text-amber-600 mt-1">Test Mode Active</p>
+            )}
           </div>
         </div>
         
@@ -121,7 +134,7 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
               disabled={todayAdsWatched >= maxDailyAds || (adStatus === 'loading' && !errorMessage)}
             >
               <Play className="mr-2 h-5 w-5" />
-              Watch Ad to Earn 1 DMI
+              {TEST_MODE ? "Watch Test Ad to Earn 1 DMI" : "Watch Ad to Earn 1 DMI"}
             </Button>
             
             {todayAdsWatched >= maxDailyAds && (
