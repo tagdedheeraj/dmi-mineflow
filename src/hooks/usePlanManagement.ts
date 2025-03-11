@@ -24,11 +24,11 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       // Find the plan name from miningPlans
       const plan = miningPlans.find(p => p.id === planId);
-      const planName = plan ? plan.name : planId;
+      const planName = plan ? plan.name : `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`;
 
       const newPlan = {
         id: planId,
-        name: planName, // Add plan name
+        name: planName, // Store the proper plan name
         boostMultiplier: miningBoost,
         duration: durationDays,
         purchasedAt: now.toISOString(),
