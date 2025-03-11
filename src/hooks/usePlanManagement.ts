@@ -23,12 +23,15 @@ export const usePlanManagement = (userId: string | undefined) => {
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
       // Find the plan name from miningPlans
-      const plan = miningPlans.find(p => p.id === planId);
-      const planName = plan ? plan.name : `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`;
+      const planInfo = miningPlans.find(p => p.id === planId);
+      if (!planInfo) {
+        console.error(`Plan with id ${planId} not found in miningPlans`);
+        return null;
+      }
 
       const newPlan = {
         id: planId,
-        name: planName, // Store the proper plan name
+        name: planInfo.name, // Store the exact plan name from miningPlans
         boostMultiplier: miningBoost,
         duration: durationDays,
         purchasedAt: now.toISOString(),
