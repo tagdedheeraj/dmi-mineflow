@@ -22,7 +22,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       const expiryDate = new Date(now);
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
-      // Get most up-to-date plan data
+      // Get most up-to-date plan data - force a reload to ensure latest values
       console.log("[CRITICAL] Fetching latest plan data");
       const latestPlans = await getPlans();
       
@@ -37,6 +37,10 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       console.log(`[CRITICAL] Found plan info:`, planInfo);
       console.log(`[CRITICAL] Plan daily earnings value: ${planInfo.dailyEarnings}`);
+
+      // Important: Use the daily earnings from the fresh plan data, not from parameters
+      const actualDailyEarnings = planInfo.dailyEarnings;
+      console.log(`[CRITICAL] Using actual daily earnings from plan data: ${actualDailyEarnings}`);
 
       const newPlan = {
         id: planId,
@@ -54,11 +58,11 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       // Then process rewards (first day earnings, etc.)
       console.log(`[CRITICAL] Processing plan purchase rewards for user ${userId}`);
-      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${planInfo.dailyEarnings}, planId=${planId}`);
+      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${actualDailyEarnings}, planId=${planId}`);
       const updatedUser = await addPlanPurchaseRewards(
         userId,
         planPrice,
-        planInfo.dailyEarnings, // Use the most up-to-date daily earnings value
+        actualDailyEarnings, // Use the most up-to-date daily earnings value
         planId
       );
       

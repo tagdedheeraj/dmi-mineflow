@@ -1,4 +1,3 @@
-
 import { loadMiningPlansFromFirestore } from '@/lib/planManagement';
 
 export interface MiningPlan {
@@ -115,6 +114,9 @@ export const reloadPlans = async (): Promise<MiningPlan[]> => {
     console.log("Reloading mining plans from Firestore...");
     // Clear cache to force fresh reload
     cachedPlans = null;
+    // Clear localStorage cache
+    window.localStorage.removeItem('cachedPlans');
+    window.localStorage.removeItem('plansLastUpdated');
     
     // Try to get plans from Firestore
     const firestorePlans = await loadMiningPlansFromFirestore();
@@ -122,11 +124,26 @@ export const reloadPlans = async (): Promise<MiningPlan[]> => {
     if (firestorePlans && firestorePlans.length > 0) {
       console.log("Loaded mining plans from Firestore:", firestorePlans);
       cachedPlans = firestorePlans;
+      
+      // Store in localStorage for faster access
+      window.localStorage.setItem('cachedPlans', JSON.stringify(firestorePlans));
+      window.localStorage.setItem('plansLastUpdated', Date.now().toString());
+      
       return firestorePlans;
     }
     
-    // If no plans in Firestore, use local plans
-    console.log("Using default mining plans");
+    // If no plans in Firestore, use local plans and update Firestore with them
+    console.log("Using default mining plans and updating Firestore with them");
+    
+    // Update Firestore with default plans if nothing was found
+    try {
+      const { updateMiningPlans } = await import('@/lib/planManagement');
+      await updateMiningPlans(miningPlans);
+      console.log("Firestore updated with default plans");
+    } catch (updateError) {
+      console.error("Failed to update Firestore with default plans:", updateError);
+    }
+    
     return miningPlans;
   } catch (error) {
     console.error("Error loading plans:", error);
@@ -136,13 +153,53 @@ export const reloadPlans = async (): Promise<MiningPlan[]> => {
 
 // Get plans (from cache, Firestore, or local)
 export const getPlans = async (): Promise<MiningPlan[]> => {
+  // Check if we have a recent cached version in localStorage
+  const cachedPlansString = window.localStorage.getItem('cachedPlans');
+  const lastUpdated = window.localStorage.getItem('plansLastUpdated');
+  
+  // Use cached plans if they exist and are less than 5 minutes old
+  if (cachedPlansString && lastUpdated) {
+    const lastUpdatedTime = parseInt(lastUpdated);
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    
+    if (lastUpdatedTime > fiveMinutesAgo) {
+      try {
+        const localCachedPlans = JSON.parse(cachedPlansString) as MiningPlan[];
+        console.log("Using cached plans from localStorage:", localCachedPlans);
+        cachedPlans = localCachedPlans;
+        return localCachedPlans;
+      } catch (e) {
+        console.error("Error parsing cached plans:", e);
+      }
+    }
+  }
+  
+  // If memory cache exists, use it
   if (cachedPlans) {
-    console.log("Returning cached plans:", cachedPlans);
-    cachedPlans.forEach(plan => {
-      console.log(`Cached plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
-    });
+    console.log("Returning cached plans from memory:", cachedPlans);
     return cachedPlans;
   }
   
+  // Otherwise reload plans
   return await reloadPlans();
+};
+
+// Force direct update of plans to Firestore
+export const forceUpdatePlansToFirestore = async (): Promise<boolean> => {
+  try {
+    console.log("Forcing update of plans to Firestore with latest values");
+    const { updateMiningPlans } = await import('@/lib/planManagement');
+    const result = await updateMiningPlans(miningPlans);
+    
+    // Clear all caches to force reload
+    cachedPlans = null;
+    window.localStorage.removeItem('cachedPlans');
+    window.localStorage.removeItem('plansLastUpdated');
+    
+    console.log("Plans forcefully updated in Firestore:", result);
+    return result;
+  } catch (error) {
+    console.error("Error forcing plan update:", error);
+    return false;
+  }
 };

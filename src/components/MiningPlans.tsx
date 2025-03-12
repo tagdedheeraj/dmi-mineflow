@@ -2,8 +2,8 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info, Clock, RefreshCw } from 'lucide-react';
-import { miningPlans, MiningPlan, getPlans, reloadPlans } from '@/data/miningPlans';
+import { Zap, Check, ArrowRight, Info, Clock, RefreshCw, Database } from 'lucide-react';
+import { miningPlans, MiningPlan, getPlans, reloadPlans, forceUpdatePlansToFirestore } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
@@ -22,16 +22,17 @@ const MiningPlans: React.FC = () => {
   const [availablePlans, setAvailablePlans] = useState<MiningPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingFirestore, setUpdatingFirestore] = useState(false);
   
   // Load plans on component mount
   useEffect(() => {
     loadPlans(true);
     
-    // Set up auto-refresh every 15 seconds
+    // Set up auto-refresh every 10 seconds
     const refreshInterval = setInterval(() => {
       console.log("Auto-refreshing arbitrage plans...");
       loadPlans(false); // Silent refresh without loading indicator
-    }, 15000);
+    }, 10000);
     
     return () => clearInterval(refreshInterval);
   }, []);
@@ -106,6 +107,46 @@ const MiningPlans: React.FC = () => {
         description: "Failed to refresh plans. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  // For admins only - force update all plans to Firestore
+  const handleForceUpdateFirestore = async () => {
+    if (!user?.isAdmin) return;
+    
+    setUpdatingFirestore(true);
+    try {
+      toast({
+        title: "Updating Firestore",
+        description: "Forcing update of all plan values to Firestore...",
+      });
+      
+      const result = await forceUpdatePlansToFirestore();
+      
+      if (result) {
+        toast({
+          title: "Success",
+          description: "All plans have been updated in Firestore. Refreshing data...",
+        });
+        
+        // Force reload of plans
+        await loadPlans(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update plans in Firestore.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating Firestore:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update Firestore. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingFirestore(false);
     }
   };
   
@@ -236,6 +277,30 @@ const MiningPlans: React.FC = () => {
                 </>
               )}
             </Button>
+            
+            {/* Admin-only button to force update Firestore */}
+            {user?.isAdmin && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="flex items-center" 
+                onClick={handleForceUpdateFirestore}
+                disabled={updatingFirestore}
+              >
+                {updatingFirestore ? (
+                  <>
+                    <Database className="h-4 w-4 mr-1 animate-pulse" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4 mr-1" />
+                    Update Firestore
+                  </>
+                )}
+              </Button>
+            )}
+            
             <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
               <Zap className="h-5 w-5" />
             </div>

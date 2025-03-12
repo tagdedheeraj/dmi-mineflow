@@ -22,6 +22,7 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
     // Force the app to re-fetch data on next load
     window.localStorage.setItem('plansUpdated', 'true');
     window.localStorage.setItem('plansLastUpdated', Date.now().toString());
+    window.localStorage.removeItem('cachedPlans');
     
     return true;
   } catch (error) {
@@ -62,4 +63,15 @@ export const forcePlanRefresh = () => {
   console.log("Forcing plan refresh");
   window.localStorage.removeItem('plansLastUpdated');
   window.localStorage.removeItem('cachedPlans');
+};
+
+// Function to update all plans immediately with default values
+export const updateFirestoreWithDefaultPlans = async (defaultPlans: MiningPlan[]): Promise<boolean> => {
+  try {
+    console.log("Immediately updating Firestore with default plans");
+    return await updateMiningPlans(defaultPlans);
+  } catch (error) {
+    console.error("Error updating Firestore with default plans:", error);
+    return false;
+  }
 };
