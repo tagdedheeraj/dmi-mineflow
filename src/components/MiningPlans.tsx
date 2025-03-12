@@ -28,9 +28,15 @@ const MiningPlans: React.FC = () => {
     setIsLoadingPlans(true);
     console.log("Loading plans in MiningPlans component...");
     try {
-      // Force reload instead of potentially getting cached plans
+      // Always force reload plans to get the latest data
       const plans = await reloadPlans();
       console.log("Loaded plans:", plans);
+      
+      // Log each plan's details to verify the data
+      plans.forEach(plan => {
+        console.log(`Loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+      });
+      
       setAvailablePlans(plans);
     } catch (error) {
       console.error("Error loading plans:", error);
@@ -40,6 +46,19 @@ const MiningPlans: React.FC = () => {
     }
   };
   
+  useEffect(() => {
+    // First load on mount
+    loadPlans();
+    
+    // Then set up an interval to refresh plans every minute
+    const refreshInterval = setInterval(() => {
+      console.log("Auto-refreshing plans...");
+      loadPlans();
+    }, 60000); // Refresh every minute
+    
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   const handleRefreshPlans = async () => {
     try {
       toast({

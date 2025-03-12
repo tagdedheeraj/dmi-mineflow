@@ -6,7 +6,12 @@ import { db } from './firebase';
 // Function to update mining plans in Firestore
 export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boolean> => {
   try {
-    console.log("Updating plans in Firestore:", updatedPlans.length);
+    console.log("Updating plans in Firestore:", updatedPlans);
+    
+    // Log individual plan details to verify the data
+    updatedPlans.forEach(plan => {
+      console.log(`Plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+    });
     
     // Save the updated plans to Firestore
     const plansDocRef = doc(db, 'app_settings', 'mining_plans');
@@ -35,7 +40,13 @@ export const loadMiningPlansFromFirestore = async (): Promise<MiningPlan[] | nul
     
     if (plansDoc.exists() && plansDoc.data().plans) {
       const firestorePlans = plansDoc.data().plans as MiningPlan[];
-      console.log("Successfully loaded plans from Firestore:", firestorePlans.length);
+      console.log("Successfully loaded plans from Firestore:", firestorePlans);
+      
+      // Log individual plan details
+      firestorePlans.forEach(plan => {
+        console.log(`Plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+      });
+      
       return firestorePlans;
     }
     

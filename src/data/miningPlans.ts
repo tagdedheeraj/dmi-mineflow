@@ -120,7 +120,7 @@ export const reloadPlans = async (): Promise<MiningPlan[]> => {
     const firestorePlans = await loadMiningPlansFromFirestore();
     
     if (firestorePlans && firestorePlans.length > 0) {
-      console.log("Loaded mining plans from Firestore:", firestorePlans.length);
+      console.log("Loaded mining plans from Firestore:", firestorePlans);
       cachedPlans = firestorePlans;
       return firestorePlans;
     }
