@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -27,8 +26,11 @@ const MiningPlans: React.FC = () => {
   
   const loadPlans = async () => {
     setIsLoadingPlans(true);
+    console.log("Loading plans in MiningPlans component...");
     try {
-      const plans = await getPlans();
+      // Force reload instead of potentially getting cached plans
+      const plans = await reloadPlans();
+      console.log("Loaded plans:", plans);
       setAvailablePlans(plans);
     } catch (error) {
       console.error("Error loading plans:", error);
@@ -40,8 +42,14 @@ const MiningPlans: React.FC = () => {
   
   const handleRefreshPlans = async () => {
     try {
+      toast({
+        title: "Refreshing Plans",
+        description: "Loading the latest mining plans...",
+      });
+      
       const refreshedPlans = await reloadPlans();
       setAvailablePlans(refreshedPlans);
+      
       toast({
         title: "Plans Refreshed",
         description: "The latest mining plans have been loaded.",

@@ -112,6 +112,10 @@ let cachedPlans: MiningPlan[] | null = null;
 // Add a dynamic import method for loading from Firestore
 export const reloadPlans = async (): Promise<MiningPlan[]> => {
   try {
+    console.log("Reloading mining plans from Firestore...");
+    // Clear cache to force fresh reload
+    cachedPlans = null;
+    
     // Try to get plans from Firestore
     const firestorePlans = await loadMiningPlansFromFirestore();
     
