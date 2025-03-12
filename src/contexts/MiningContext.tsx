@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { MiningContextType, MiningProviderProps } from '@/types/mining';
@@ -14,7 +13,7 @@ import {
   checkAndUpdateMining,
   getUser
 } from '@/lib/firestore';
-import { miningPlans } from '@/data/miningPlans';
+import { miningPlans, getPlans, reloadPlans } from '@/data/miningPlans';
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { usePlanManagement } from '@/hooks/usePlanManagement';
 import { useMiningCalculations } from '@/hooks/useMiningCalculations';
@@ -32,6 +31,27 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
   // Initialize state
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
   const [dailyEarningsUpdateTime, setDailyEarningsUpdateTime] = useState<string>('12:01 AM');
+  const [currentPlans, setCurrentPlans] = useState<any[]>([]);
+  
+  // Load the latest plans data
+  useEffect(() => {
+    const loadLatestPlans = async () => {
+      try {
+        const plans = await reloadPlans();
+        console.log("MiningContext loaded latest plans:", plans);
+        setCurrentPlans(plans);
+      } catch (error) {
+        console.error("Error loading latest plans in MiningContext:", error);
+        setCurrentPlans(miningPlans);
+      }
+    };
+    
+    loadLatestPlans();
+    
+    // Refresh plans every 30 seconds
+    const interval = setInterval(loadLatestPlans, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   // Use custom hooks for mining functionality
   const { updateMiningBoost } = usePlanManagement(userId);
@@ -139,16 +159,16 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!userId || activePlans.length === 0) return;
     
-    // Process daily earnings when component mounts
-    checkAndProcessDailyEarnings(miningPlans);
+    // Process daily earnings when component mounts using the current plans data
+    checkAndProcessDailyEarnings(currentPlans.length > 0 ? currentPlans : miningPlans);
     
     // Schedule next check at midnight IST
     const timeoutId = scheduleNextMidnight(() => {
-      checkAndProcessDailyEarnings(miningPlans);
+      checkAndProcessDailyEarnings(currentPlans.length > 0 ? currentPlans : miningPlans);
     });
     
     return () => clearTimeout(timeoutId);
-  }, [userId, activePlans, checkAndProcessDailyEarnings, scheduleNextMidnight]);
+  }, [userId, activePlans, currentPlans, checkAndProcessDailyEarnings, scheduleNextMidnight]);
   
   // Context value
   const value: MiningContextType = {

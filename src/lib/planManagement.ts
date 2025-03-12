@@ -19,10 +19,9 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
     
     console.log("Arbitrage plans successfully updated in Firestore");
     
-    // Since we're storing in Firestore but loading from the local file,
-    // we need to refresh the page or implement some way to sync the changes
-    // For now, we'll tell the admin that a page refresh is needed
+    // Force the app to re-fetch data on next load
     window.localStorage.setItem('plansUpdated', 'true');
+    window.localStorage.setItem('plansLastUpdated', Date.now().toString());
     
     return true;
   } catch (error) {
@@ -56,4 +55,11 @@ export const loadMiningPlansFromFirestore = async (): Promise<MiningPlan[] | nul
     console.error("Error loading arbitrage plans from Firestore:", error);
     return null;
   }
+};
+
+// Function to force refresh plans
+export const forcePlanRefresh = () => {
+  console.log("Forcing plan refresh");
+  window.localStorage.removeItem('plansLastUpdated');
+  window.localStorage.removeItem('cachedPlans');
 };

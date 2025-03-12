@@ -10,6 +10,7 @@ import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUser } from '@/lib/firestore';
+import { forcePlanRefresh } from '@/lib/planManagement';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
@@ -24,13 +25,13 @@ const MiningPlans: React.FC = () => {
   
   // Load plans on component mount
   useEffect(() => {
-    loadPlans();
+    loadPlans(true);
     
-    // Set up auto-refresh every 30 seconds
+    // Set up auto-refresh every 15 seconds
     const refreshInterval = setInterval(() => {
       console.log("Auto-refreshing arbitrage plans...");
       loadPlans(false); // Silent refresh without loading indicator
-    }, 30000);
+    }, 15000);
     
     return () => clearInterval(refreshInterval);
   }, []);
@@ -55,10 +56,25 @@ const MiningPlans: React.FC = () => {
       });
       
       setAvailablePlans(plans);
+      
+      if (showLoading) {
+        toast({
+          title: "Plans Loaded",
+          description: "The latest arbitrage plans have been loaded.",
+        });
+      }
     } catch (error) {
       console.error("Error loading arbitrage plans:", error);
       // Fallback to default plans if Firestore loading fails
       setAvailablePlans(miningPlans);
+      
+      if (showLoading) {
+        toast({
+          title: "Error",
+          description: "Failed to load plans from server. Using default plans.",
+          variant: "destructive",
+        });
+      }
     } finally {
       if (showLoading) {
         setIsLoadingPlans(false);
@@ -75,7 +91,9 @@ const MiningPlans: React.FC = () => {
         description: "Loading the latest arbitrage plans...",
       });
       
-      await loadPlans();
+      // Force a refresh by clearing any cached data
+      forcePlanRefresh();
+      await loadPlans(true);
       
       toast({
         title: "Plans Refreshed",
@@ -231,7 +249,12 @@ const MiningPlans: React.FC = () => {
               <p className="text-lg font-medium">Faster mining means more earnings</p>
             </div>
             <div className="bg-yellow-500/20 text-yellow-700 px-3 py-1 rounded-md font-semibold">
-              {boostPercentage}% Boost
+              {Math.round((activePlans.reduce((total, plan) => {
+                if (new Date() < new Date(plan.expiresAt)) {
+                  return total * plan.boostMultiplier;
+                }
+                return total;
+              }, 1) * 100) - 100)}% Boost
             </div>
           </div>
           
@@ -249,15 +272,36 @@ const MiningPlans: React.FC = () => {
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Daily</p>
-              <p className="text-green-600 font-bold">${currentDailyEarnings.toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${activePlans.reduce((total, plan) => {
+                const planInfo = availablePlans.find(p => p.id === plan.id) || 
+                               miningPlans.find(p => p.id === plan.id);
+                if (planInfo && new Date() < new Date(plan.expiresAt)) {
+                  return total + planInfo.dailyEarnings;
+                }
+                return total;
+              }, 0).toFixed(2)}</p>
             </div>
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Weekly</p>
-              <p className="text-green-600 font-bold">${currentWeeklyEarnings.toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${(activePlans.reduce((total, plan) => {
+                const planInfo = availablePlans.find(p => p.id === plan.id) || 
+                               miningPlans.find(p => p.id === plan.id);
+                if (planInfo && new Date() < new Date(plan.expiresAt)) {
+                  return total + planInfo.dailyEarnings;
+                }
+                return total;
+              }, 0) * 7).toFixed(2)}</p>
             </div>
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Monthly</p>
-              <p className="text-green-600 font-bold">${currentMonthlyEarnings.toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${(activePlans.reduce((total, plan) => {
+                const planInfo = availablePlans.find(p => p.id === plan.id) || 
+                               miningPlans.find(p => p.id === plan.id);
+                if (planInfo && new Date() < new Date(plan.expiresAt)) {
+                  return total + planInfo.dailyEarnings;
+                }
+                return total;
+              }, 0) * 30).toFixed(2)}</p>
             </div>
           </div>
           
@@ -303,7 +347,7 @@ const MiningPlans: React.FC = () => {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>${plan.dailyEarnings} daily earnings</span>
+                    <span>${plan.dailyEarnings.toFixed(2)} daily earnings</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-500 mr-2" />

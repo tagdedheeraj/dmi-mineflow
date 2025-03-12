@@ -23,6 +23,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
       // Get most up-to-date plan data
+      console.log("[CRITICAL] Fetching latest plan data");
       const latestPlans = await getPlans();
       
       // Find the plan from latest plans or fall back to mining plans
@@ -30,7 +31,7 @@ export const usePlanManagement = (userId: string | undefined) => {
                        miningPlans.find(p => p.id === planId);
                        
       if (!planInfo) {
-        console.error(`Plan with id ${planId} not found in available plans`);
+        console.error(`[CRITICAL ERROR] Plan with id ${planId} not found in available plans`);
         return null;
       }
       
@@ -66,7 +67,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       return newPlan;
     } catch (error) {
-      console.error("Error updating mining boost:", error);
+      console.error("[CRITICAL ERROR] Error updating mining boost:", error);
       return null;
     }
   }, [userId]);
