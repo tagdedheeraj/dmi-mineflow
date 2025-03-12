@@ -19,7 +19,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Starter Plan",
     price: 20,
     duration: 28,
-    dailyEarnings: 0.81,
+    dailyEarnings: 0.81,  // Updated from 0.1
     miningBoost: 1.2,
     totalEarnings: 27,
     withdrawalTime: "48-72 hour USDT withdrawal"
@@ -29,7 +29,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Pro Miner Plan",
     price: 100,
     duration: 28,
-    dailyEarnings: 4.67,
+    dailyEarnings: 4.67,  // Updated from 1.1
     miningBoost: 2,
     totalEarnings: 125,
     withdrawalTime: "24-48 hour USDT withdrawal"
@@ -39,7 +39,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Expert Miner Plan",
     price: 200,
     duration: 39,
-    dailyEarnings: 7.21,
+    dailyEarnings: 7.21,  // Updated from 2.08
     miningBoost: 3,
     totalEarnings: 280,
     withdrawalTime: "24 hour USDT withdrawal"
@@ -49,7 +49,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Master Miner Plan",
     price: 500,
     duration: 59,
-    dailyEarnings: 13.47,
+    dailyEarnings: 13.47,  // Updated from 5
     miningBoost: 4,
     totalEarnings: 800,
     withdrawalTime: "Instant withdrawal"
@@ -59,7 +59,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Diamond Miner Plan",
     price: 1000,
     duration: 90,
-    dailyEarnings: 22.31,
+    dailyEarnings: 22.31,  // Updated from 11.2
     miningBoost: 5,
     totalEarnings: 2200,
     withdrawalTime: "Instant withdrawal",
@@ -70,7 +70,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Ultimate Miner Plan",
     price: 2000,
     duration: 102,
-    dailyEarnings: 44.61,
+    dailyEarnings: 44.61,  // Updated from 25
     miningBoost: 6,
     totalEarnings: 4500,
     withdrawalTime: "Instant withdrawal",
@@ -81,7 +81,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Legend Miner Plan",
     price: 5000,
     duration: 125,
-    dailyEarnings: 92.00,
+    dailyEarnings: 92.00,  // Updated from 52
     miningBoost: 7,
     totalEarnings: 11200,
     withdrawalTime: "Instant withdrawal",
@@ -92,7 +92,7 @@ export const miningPlans: MiningPlan[] = [
     name: "Supreme Miner Plan",
     price: 10000,
     duration: 169,
-    dailyEarnings: 142.91,
+    dailyEarnings: 142.91,  // Updated from 89
     miningBoost: 20,
     totalEarnings: 22000,
     withdrawalTime: "Instant withdrawal",

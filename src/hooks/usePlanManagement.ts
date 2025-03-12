@@ -35,6 +35,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       }
       
       console.log(`[CRITICAL] Found plan info:`, planInfo);
+      console.log(`[CRITICAL] Plan daily earnings value: ${planInfo.dailyEarnings}`);
 
       const newPlan = {
         id: planId,
@@ -52,7 +53,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       // Then process rewards (first day earnings, etc.)
       console.log(`[CRITICAL] Processing plan purchase rewards for user ${userId}`);
-      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${dailyEarnings}, planId=${planId}`);
+      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${planInfo.dailyEarnings}, planId=${planId}`);
       const updatedUser = await addPlanPurchaseRewards(
         userId,
         planPrice,

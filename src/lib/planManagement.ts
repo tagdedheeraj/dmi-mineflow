@@ -8,7 +8,7 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
   try {
     console.log("Updating arbitrage plans in Firestore:", updatedPlans);
     
-    // Verify daily earnings for each plan before saving
+    // Log each plan's details to verify the data before saving
     updatedPlans.forEach(plan => {
       console.log(`Updating plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings.toFixed(2)}`);
     });
