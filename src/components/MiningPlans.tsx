@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,59 +20,66 @@ const MiningPlans: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [availablePlans, setAvailablePlans] = useState<MiningPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
+  // Load plans on component mount
   useEffect(() => {
     loadPlans();
+    
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      console.log("Auto-refreshing arbitrage plans...");
+      loadPlans(false); // Silent refresh without loading indicator
+    }, 30000);
+    
+    return () => clearInterval(refreshInterval);
   }, []);
   
-  const loadPlans = async () => {
-    setIsLoadingPlans(true);
-    console.log("Loading plans in MiningPlans component...");
+  const loadPlans = async (showLoading = true) => {
+    if (showLoading) {
+      setIsLoadingPlans(true);
+    } else {
+      setRefreshing(true);
+    }
+    
+    console.log("Loading arbitrage plans...");
+    
     try {
-      // Always force reload plans to get the latest data
+      // Always force reload plans to get the latest data from Firestore
       const plans = await reloadPlans();
-      console.log("Loaded plans:", plans);
+      console.log("Loaded arbitrage plans:", plans);
       
-      // Log each plan's details to verify the data
+      // Verify each plan's daily earnings
       plans.forEach(plan => {
         console.log(`Loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
       });
       
       setAvailablePlans(plans);
     } catch (error) {
-      console.error("Error loading plans:", error);
-      setAvailablePlans(miningPlans); // Fallback to default plans
+      console.error("Error loading arbitrage plans:", error);
+      // Fallback to default plans if Firestore loading fails
+      setAvailablePlans(miningPlans);
     } finally {
-      setIsLoadingPlans(false);
+      if (showLoading) {
+        setIsLoadingPlans(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
-  
-  useEffect(() => {
-    // First load on mount
-    loadPlans();
-    
-    // Then set up an interval to refresh plans every minute
-    const refreshInterval = setInterval(() => {
-      console.log("Auto-refreshing plans...");
-      loadPlans();
-    }, 60000); // Refresh every minute
-    
-    return () => clearInterval(refreshInterval);
-  }, []);
 
   const handleRefreshPlans = async () => {
     try {
       toast({
         title: "Refreshing Plans",
-        description: "Loading the latest mining plans...",
+        description: "Loading the latest arbitrage plans...",
       });
       
-      const refreshedPlans = await reloadPlans();
-      setAvailablePlans(refreshedPlans);
+      await loadPlans();
       
       toast({
         title: "Plans Refreshed",
-        description: "The latest mining plans have been loaded.",
+        description: "The latest arbitrage plans have been loaded.",
       });
     } catch (error) {
       console.error("Error refreshing plans:", error);
@@ -196,9 +204,19 @@ const MiningPlans: React.FC = () => {
               size="sm" 
               className="flex items-center" 
               onClick={handleRefreshPlans}
+              disabled={refreshing}
             >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
+              {refreshing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </>
+              )}
             </Button>
             <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
               <Zap className="h-5 w-5" />

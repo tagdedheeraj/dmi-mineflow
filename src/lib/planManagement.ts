@@ -6,18 +6,18 @@ import { db } from './firebase';
 // Function to update mining plans in Firestore
 export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boolean> => {
   try {
-    console.log("Updating plans in Firestore:", updatedPlans);
+    console.log("Updating arbitrage plans in Firestore:", updatedPlans);
     
-    // Log individual plan details to verify the data
+    // Verify daily earnings for each plan before saving
     updatedPlans.forEach(plan => {
-      console.log(`Plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+      console.log(`Updating plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings.toFixed(2)}`);
     });
     
     // Save the updated plans to Firestore
     const plansDocRef = doc(db, 'app_settings', 'mining_plans');
     await setDoc(plansDocRef, { plans: updatedPlans }, { merge: true });
     
-    console.log("Plans successfully updated in Firestore");
+    console.log("Arbitrage plans successfully updated in Firestore");
     
     // Since we're storing in Firestore but loading from the local file,
     // we need to refresh the page or implement some way to sync the changes
@@ -26,7 +26,7 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
     
     return true;
   } catch (error) {
-    console.error("Error updating mining plans:", error);
+    console.error("Error updating arbitrage plans:", error);
     throw error;
   }
 };
@@ -34,26 +34,26 @@ export const updateMiningPlans = async (updatedPlans: MiningPlan[]): Promise<boo
 // Function to load plans from Firestore
 export const loadMiningPlansFromFirestore = async (): Promise<MiningPlan[] | null> => {
   try {
-    console.log("Attempting to load plans from Firestore...");
+    console.log("Attempting to load arbitrage plans from Firestore...");
     const plansDocRef = doc(db, 'app_settings', 'mining_plans');
     const plansDoc = await getDoc(plansDocRef);
     
     if (plansDoc.exists() && plansDoc.data().plans) {
       const firestorePlans = plansDoc.data().plans as MiningPlan[];
-      console.log("Successfully loaded plans from Firestore:", firestorePlans);
+      console.log("Successfully loaded arbitrage plans from Firestore:", firestorePlans);
       
-      // Log individual plan details
+      // Verify daily earnings for each plan
       firestorePlans.forEach(plan => {
-        console.log(`Plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+        console.log(`Loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings.toFixed(2)}`);
       });
       
       return firestorePlans;
     }
     
-    console.log("No plans found in Firestore");
+    console.log("No arbitrage plans found in Firestore");
     return null;
   } catch (error) {
-    console.error("Error loading mining plans from Firestore:", error);
+    console.error("Error loading arbitrage plans from Firestore:", error);
     return null;
   }
 };

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { updateMiningPlans } from '@/lib/planManagement';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const PlanManagement: React.FC = () => {
@@ -32,18 +32,43 @@ const PlanManagement: React.FC = () => {
   const [editingPlan, setEditingPlan] = useState<MiningPlan | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const { toast } = useToast();
 
   // Initialize plans from the data file or Firestore
   useEffect(() => {
-    const loadPlans = async () => {
-      const loadedPlans = await reloadPlans();
-      setPlans(loadedPlans);
-    };
-    
     loadPlans();
   }, []);
+
+  const loadPlans = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log("Loading plans in admin panel...");
+      const loadedPlans = await reloadPlans();
+      console.log("Admin panel loaded plans:", loadedPlans);
+      
+      // Log each plan's details to verify the data
+      loadedPlans.forEach(plan => {
+        console.log(`Admin panel loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
+      });
+      
+      setPlans(loadedPlans);
+      toast({
+        title: "Plans Loaded",
+        description: "Mining plans have been loaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error loading plans in admin panel:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load plans. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleEditPlan = (plan: MiningPlan) => {
     setEditingPlan({...plan});
@@ -113,8 +138,18 @@ const PlanManagement: React.FC = () => {
 
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-semibold">Arbitrage Plan Management</CardTitle>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={loadPlans}
+          disabled={isRefreshing}
+          className="flex items-center gap-2"
+        >
+          {isRefreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh Plans
+        </Button>
       </CardHeader>
       <CardContent>
         {savedSuccess && (

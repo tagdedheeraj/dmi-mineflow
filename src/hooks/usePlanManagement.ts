@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
 import { saveActivePlan } from '@/lib/firestore';
 import { addPlanPurchaseRewards } from '@/lib/rewards/planPurchaseRewards';
-import { miningPlans } from '@/data/miningPlans';
+import { miningPlans, getPlans } from '@/data/miningPlans';
 
 export const usePlanManagement = (userId: string | undefined) => {
   const updateMiningBoost = useCallback(async (
@@ -22,16 +22,23 @@ export const usePlanManagement = (userId: string | undefined) => {
       const expiryDate = new Date(now);
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
-      // Find the plan name from miningPlans
-      const planInfo = miningPlans.find(p => p.id === planId);
+      // Get most up-to-date plan data
+      const latestPlans = await getPlans();
+      
+      // Find the plan from latest plans or fall back to mining plans
+      const planInfo = latestPlans.find(p => p.id === planId) || 
+                       miningPlans.find(p => p.id === planId);
+                       
       if (!planInfo) {
-        console.error(`Plan with id ${planId} not found in miningPlans`);
+        console.error(`Plan with id ${planId} not found in available plans`);
         return null;
       }
+      
+      console.log(`[CRITICAL] Found plan info:`, planInfo);
 
       const newPlan = {
         id: planId,
-        name: planInfo.name, // Store the exact plan name from miningPlans
+        name: planInfo.name,
         boostMultiplier: miningBoost,
         duration: durationDays,
         purchasedAt: now.toISOString(),
@@ -49,7 +56,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       const updatedUser = await addPlanPurchaseRewards(
         userId,
         planPrice,
-        dailyEarnings,
+        planInfo.dailyEarnings, // Use the most up-to-date daily earnings value
         planId
       );
       
