@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
-import { miningPlans, MiningPlan, reloadPlans, forceUpdatePlansToFirestore } from '@/data/miningPlans';
+import { miningPlans, MiningPlan, reloadPlans } from '@/data/miningPlans';
 import { 
   Dialog,
   DialogContent,
@@ -23,8 +23,8 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { updateMiningPlans, forcePlanRefresh } from '@/lib/planManagement';
-import { AlertCircle, RefreshCw, Database } from 'lucide-react';
+import { updateMiningPlans } from '@/lib/planManagement';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const PlanManagement: React.FC = () => {
@@ -32,70 +32,18 @@ const PlanManagement: React.FC = () => {
   const [editingPlan, setEditingPlan] = useState<MiningPlan | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isUpdatingFirestore, setIsUpdatingFirestore] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const { toast } = useToast();
 
   // Initialize plans from the data file or Firestore
   useEffect(() => {
-    loadPlans();
-    
-    // Immediately update Firestore with default values on component mount
-    handleForceUpdateToFirestore();
-  }, []);
-
-  const loadPlans = async () => {
-    setIsRefreshing(true);
-    try {
-      console.log("Loading plans in admin panel...");
+    const loadPlans = async () => {
       const loadedPlans = await reloadPlans();
-      console.log("Admin panel loaded plans:", loadedPlans);
-      
-      // Log each plan's details to verify the data
-      loadedPlans.forEach(plan => {
-        console.log(`Admin panel loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
-      });
-      
       setPlans(loadedPlans);
-      toast({
-        title: "Plans Loaded",
-        description: "Mining plans have been loaded successfully.",
-      });
-    } catch (error) {
-      console.error("Error loading plans in admin panel:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load plans. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Force update Firestore with default values
-  const handleForceUpdateToFirestore = async () => {
-    setIsUpdatingFirestore(true);
-    try {
-      console.log("Force updating Firestore with default plan values");
-      const result = await forceUpdatePlansToFirestore();
-      
-      if (result) {
-        console.log("Successfully updated Firestore with default values");
-        setSavedSuccess(true);
-        
-        // Reload plans to show the updated values
-        await loadPlans();
-      } else {
-        console.error("Failed to update Firestore with default values");
-      }
-    } catch (error) {
-      console.error("Error force updating Firestore:", error);
-    } finally {
-      setIsUpdatingFirestore(false);
-    }
-  };
+    };
+    
+    loadPlans();
+  }, []);
 
   const handleEditPlan = (plan: MiningPlan) => {
     setEditingPlan({...plan});
@@ -147,8 +95,7 @@ const PlanManagement: React.FC = () => {
         description: `${editingPlan.name} has been updated successfully.`,
       });
       
-      // Force clear cache and reload plans from Firestore to ensure cache is updated
-      forcePlanRefresh();
+      // Reload plans from Firestore to ensure cache is updated
       const refreshedPlans = await reloadPlans();
       setPlans(refreshedPlans);
       
@@ -166,31 +113,8 @@ const PlanManagement: React.FC = () => {
 
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle className="text-2xl font-semibold">Arbitrage Plan Management</CardTitle>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={loadPlans}
-            disabled={isRefreshing}
-            className="flex items-center gap-2"
-          >
-            {isRefreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Refresh Plans
-          </Button>
-          
-          <Button 
-            variant="destructive" 
-            size="sm"
-            onClick={handleForceUpdateToFirestore}
-            disabled={isUpdatingFirestore}
-            className="flex items-center gap-2"
-          >
-            {isUpdatingFirestore ? <Database className="h-4 w-4 animate-pulse" /> : <Database className="h-4 w-4" />}
-            Update Firestore
-          </Button>
-        </div>
       </CardHeader>
       <CardContent>
         {savedSuccess && (

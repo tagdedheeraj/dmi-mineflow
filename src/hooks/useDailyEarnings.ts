@@ -6,7 +6,6 @@ import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/l
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
-import { reloadPlans } from '@/data/miningPlans';
 
 export const useDailyEarnings = (
   userId: string | undefined, 
@@ -23,34 +22,28 @@ export const useDailyEarnings = (
     try {
       const lastUpdateDate = await getLastUsdtUpdateDate(userId);
       if (lastUpdateDate) {
-        console.log(`[DAILY EARNINGS] Loaded last update date: ${lastUpdateDate}`);
         setLastUsdtEarningsUpdate(lastUpdateDate);
       }
     } catch (error) {
-      console.error("[DAILY EARNINGS] Error loading last update date:", error);
+      console.error("Error loading last update date:", error);
     }
   }, [userId]);
 
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
     if (!userId || activePlans.length === 0) return;
     
-    console.log("[DAILY EARNINGS] Checking daily USDT earnings...");
-    console.log("[DAILY EARNINGS] Current time (IST):", getISTTimeString(new Date()));
+    console.log("Checking daily USDT earnings...");
+    console.log("Current time (IST):", getISTTimeString(new Date()));
     
     try {
-      // Always reload the latest plans to get fresh data
-      const latestPlans = await reloadPlans();
-      console.log("[DAILY EARNINGS] Loaded latest plans for processing:", latestPlans);
-      
       const todayIST = getISTDateString(new Date());
-      console.log("[DAILY EARNINGS] Today's date (IST):", todayIST);
-      console.log("[DAILY EARNINGS] Last update date:", lastUsdtEarningsUpdate);
+      console.log("Today's date (IST):", todayIST);
+      console.log("Last update date:", lastUsdtEarningsUpdate);
       
       if (lastUsdtEarningsUpdate !== todayIST) {
-        console.log("[DAILY EARNINGS] Processing daily earnings because last update was not today (IST)");
+        console.log("Processing daily earnings because last update was not today (IST)");
         
-        // Use the latest plans data
-        const result = await processDailyUsdtEarnings(userId, activePlans, latestPlans);
+        const result = await processDailyUsdtEarnings(userId, activePlans, plansData);
         
         if (result.success && result.totalAmount > 0) {
           const updatedUser = await getUser(userId);
@@ -77,10 +70,10 @@ export const useDailyEarnings = (
           setLastUsdtEarningsUpdate(todayIST);
         }
       } else {
-        console.log("[DAILY EARNINGS] Earnings already processed for today (IST)");
+        console.log("Earnings already processed for today (IST)");
       }
     } catch (error) {
-      console.error("[DAILY EARNINGS] Error processing daily USDT earnings:", error);
+      console.error("Error processing daily USDT earnings:", error);
     }
   }, [userId, activePlans, lastUsdtEarningsUpdate, toast, updateUser]);
 
@@ -95,10 +88,10 @@ export const useDailyEarnings = (
     scheduleNextMidnight: (checkFn: () => void) => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       
-      console.log(`[DAILY EARNINGS] Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes (at midnight IST)`);
+      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes (at midnight IST)`);
       
       return setTimeout(() => {
-        console.log("[DAILY EARNINGS] Midnight IST reached, processing USDT earnings...");
+        console.log("Midnight IST reached, processing USDT earnings...");
         checkFn();
       }, timeUntilMidnight);
     }

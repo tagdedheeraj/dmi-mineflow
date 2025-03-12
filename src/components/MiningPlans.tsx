@@ -2,15 +2,14 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info, Clock, RefreshCw, Database } from 'lucide-react';
-import { miningPlans, MiningPlan, getPlans, reloadPlans, forceUpdatePlansToFirestore } from '@/data/miningPlans';
+import { Zap, Check, ArrowRight, Info, Clock, RefreshCw } from 'lucide-react';
+import { miningPlans, MiningPlan, getPlans, reloadPlans } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
 import { formatNumber } from '@/lib/utils';
 import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUser } from '@/lib/firestore';
-import { forcePlanRefresh } from '@/lib/planManagement';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
@@ -21,84 +20,31 @@ const MiningPlans: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [availablePlans, setAvailablePlans] = useState<MiningPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [updatingFirestore, setUpdatingFirestore] = useState(false);
   
-  // Load plans on component mount
   useEffect(() => {
-    loadPlans(true);
-    
-    // Set up auto-refresh every 10 seconds
-    const refreshInterval = setInterval(() => {
-      console.log("Auto-refreshing arbitrage plans...");
-      loadPlans(false); // Silent refresh without loading indicator
-    }, 10000);
-    
-    return () => clearInterval(refreshInterval);
+    loadPlans();
   }, []);
   
-  const loadPlans = async (showLoading = true) => {
-    if (showLoading) {
-      setIsLoadingPlans(true);
-    } else {
-      setRefreshing(true);
-    }
-    
-    console.log("Loading arbitrage plans...");
-    
+  const loadPlans = async () => {
+    setIsLoadingPlans(true);
     try {
-      // Always force reload plans to get the latest data from Firestore
-      const plans = await reloadPlans();
-      console.log("Loaded arbitrage plans:", plans);
-      
-      // Verify each plan's daily earnings
-      plans.forEach(plan => {
-        console.log(`Loaded plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
-      });
-      
+      const plans = await getPlans();
       setAvailablePlans(plans);
-      
-      if (showLoading) {
-        toast({
-          title: "Plans Loaded",
-          description: "The latest arbitrage plans have been loaded.",
-        });
-      }
     } catch (error) {
-      console.error("Error loading arbitrage plans:", error);
-      // Fallback to default plans if Firestore loading fails
-      setAvailablePlans(miningPlans);
-      
-      if (showLoading) {
-        toast({
-          title: "Error",
-          description: "Failed to load plans from server. Using default plans.",
-          variant: "destructive",
-        });
-      }
+      console.error("Error loading plans:", error);
+      setAvailablePlans(miningPlans); // Fallback to default plans
     } finally {
-      if (showLoading) {
-        setIsLoadingPlans(false);
-      } else {
-        setRefreshing(false);
-      }
+      setIsLoadingPlans(false);
     }
   };
-
+  
   const handleRefreshPlans = async () => {
     try {
-      toast({
-        title: "Refreshing Plans",
-        description: "Loading the latest arbitrage plans...",
-      });
-      
-      // Force a refresh by clearing any cached data
-      forcePlanRefresh();
-      await loadPlans(true);
-      
+      const refreshedPlans = await reloadPlans();
+      setAvailablePlans(refreshedPlans);
       toast({
         title: "Plans Refreshed",
-        description: "The latest arbitrage plans have been loaded.",
+        description: "The latest mining plans have been loaded.",
       });
     } catch (error) {
       console.error("Error refreshing plans:", error);
@@ -107,46 +53,6 @@ const MiningPlans: React.FC = () => {
         description: "Failed to refresh plans. Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  // For admins only - force update all plans to Firestore
-  const handleForceUpdateFirestore = async () => {
-    if (!user?.isAdmin) return;
-    
-    setUpdatingFirestore(true);
-    try {
-      toast({
-        title: "Updating Firestore",
-        description: "Forcing update of all plan values to Firestore...",
-      });
-      
-      const result = await forceUpdatePlansToFirestore();
-      
-      if (result) {
-        toast({
-          title: "Success",
-          description: "All plans have been updated in Firestore. Refreshing data...",
-        });
-        
-        // Force reload of plans
-        await loadPlans(true);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update plans in Firestore.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating Firestore:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update Firestore. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingFirestore(false);
     }
   };
   
@@ -263,44 +169,10 @@ const MiningPlans: React.FC = () => {
               size="sm" 
               className="flex items-center" 
               onClick={handleRefreshPlans}
-              disabled={refreshing}
             >
-              {refreshing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Refresh
-                </>
-              )}
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
             </Button>
-            
-            {/* Admin-only button to force update Firestore */}
-            {user?.isAdmin && (
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                className="flex items-center" 
-                onClick={handleForceUpdateFirestore}
-                disabled={updatingFirestore}
-              >
-                {updatingFirestore ? (
-                  <>
-                    <Database className="h-4 w-4 mr-1 animate-pulse" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Database className="h-4 w-4 mr-1" />
-                    Update Firestore
-                  </>
-                )}
-              </Button>
-            )}
-            
             <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded-lg">
               <Zap className="h-5 w-5" />
             </div>
@@ -314,12 +186,7 @@ const MiningPlans: React.FC = () => {
               <p className="text-lg font-medium">Faster mining means more earnings</p>
             </div>
             <div className="bg-yellow-500/20 text-yellow-700 px-3 py-1 rounded-md font-semibold">
-              {Math.round((activePlans.reduce((total, plan) => {
-                if (new Date() < new Date(plan.expiresAt)) {
-                  return total * plan.boostMultiplier;
-                }
-                return total;
-              }, 1) * 100) - 100)}% Boost
+              {boostPercentage}% Boost
             </div>
           </div>
           
@@ -337,36 +204,15 @@ const MiningPlans: React.FC = () => {
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Daily</p>
-              <p className="text-green-600 font-bold">${activePlans.reduce((total, plan) => {
-                const planInfo = availablePlans.find(p => p.id === plan.id) || 
-                               miningPlans.find(p => p.id === plan.id);
-                if (planInfo && new Date() < new Date(plan.expiresAt)) {
-                  return total + planInfo.dailyEarnings;
-                }
-                return total;
-              }, 0).toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${currentDailyEarnings.toFixed(2)}</p>
             </div>
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Weekly</p>
-              <p className="text-green-600 font-bold">${(activePlans.reduce((total, plan) => {
-                const planInfo = availablePlans.find(p => p.id === plan.id) || 
-                               miningPlans.find(p => p.id === plan.id);
-                if (planInfo && new Date() < new Date(plan.expiresAt)) {
-                  return total + planInfo.dailyEarnings;
-                }
-                return total;
-              }, 0) * 7).toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${currentWeeklyEarnings.toFixed(2)}</p>
             </div>
             <div className="bg-white p-2 rounded shadow-sm">
               <p className="text-xs text-gray-500">Monthly</p>
-              <p className="text-green-600 font-bold">${(activePlans.reduce((total, plan) => {
-                const planInfo = availablePlans.find(p => p.id === plan.id) || 
-                               miningPlans.find(p => p.id === plan.id);
-                if (planInfo && new Date() < new Date(plan.expiresAt)) {
-                  return total + planInfo.dailyEarnings;
-                }
-                return total;
-              }, 0) * 30).toFixed(2)}</p>
+              <p className="text-green-600 font-bold">${currentMonthlyEarnings.toFixed(2)}</p>
             </div>
           </div>
           
@@ -412,7 +258,7 @@ const MiningPlans: React.FC = () => {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>${plan.dailyEarnings.toFixed(2)} daily earnings</span>
+                    <span>${plan.dailyEarnings} daily earnings</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-500 mr-2" />

@@ -21,13 +21,6 @@ export const processDailyUsdtEarnings = async (
     
     console.log(`[DAILY EARNINGS] Processing for user ${userId} (IST time)`);
     console.log(`[DAILY EARNINGS] Today (IST): ${todayIST}, Last update: ${lastUpdateDate}`);
-    console.log(`[DAILY EARNINGS] Active plans:`, activePlans);
-    console.log(`[DAILY EARNINGS] Available plans data:`, plansData);
-    
-    // Log each plan's daily earnings to verify the data
-    plansData.forEach((plan: any) => {
-      console.log(`[DAILY EARNINGS] Plan ${plan.id}: ${plan.name}, Daily Earnings: $${plan.dailyEarnings}`);
-    });
     
     // If already updated today (IST), return without processing
     if (lastUpdateDate === todayIST) {

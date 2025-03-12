@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
 import { saveActivePlan } from '@/lib/firestore';
 import { addPlanPurchaseRewards } from '@/lib/rewards/planPurchaseRewards';
-import { miningPlans, getPlans } from '@/data/miningPlans';
+import { miningPlans } from '@/data/miningPlans';
 
 export const usePlanManagement = (userId: string | undefined) => {
   const updateMiningBoost = useCallback(async (
@@ -22,29 +22,16 @@ export const usePlanManagement = (userId: string | undefined) => {
       const expiryDate = new Date(now);
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       
-      // Get most up-to-date plan data - force a reload to ensure latest values
-      console.log("[CRITICAL] Fetching latest plan data");
-      const latestPlans = await getPlans();
-      
-      // Find the plan from latest plans or fall back to mining plans
-      const planInfo = latestPlans.find(p => p.id === planId) || 
-                       miningPlans.find(p => p.id === planId);
-                       
+      // Find the plan name from miningPlans
+      const planInfo = miningPlans.find(p => p.id === planId);
       if (!planInfo) {
-        console.error(`[CRITICAL ERROR] Plan with id ${planId} not found in available plans`);
+        console.error(`Plan with id ${planId} not found in miningPlans`);
         return null;
       }
-      
-      console.log(`[CRITICAL] Found plan info:`, planInfo);
-      console.log(`[CRITICAL] Plan daily earnings value: ${planInfo.dailyEarnings}`);
-
-      // Important: Use the daily earnings from the fresh plan data, not from parameters
-      const actualDailyEarnings = planInfo.dailyEarnings;
-      console.log(`[CRITICAL] Using actual daily earnings from plan data: ${actualDailyEarnings}`);
 
       const newPlan = {
         id: planId,
-        name: planInfo.name,
+        name: planInfo.name, // Store the exact plan name from miningPlans
         boostMultiplier: miningBoost,
         duration: durationDays,
         purchasedAt: now.toISOString(),
@@ -58,11 +45,11 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       // Then process rewards (first day earnings, etc.)
       console.log(`[CRITICAL] Processing plan purchase rewards for user ${userId}`);
-      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${actualDailyEarnings}, planId=${planId}`);
+      console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${dailyEarnings}, planId=${planId}`);
       const updatedUser = await addPlanPurchaseRewards(
         userId,
         planPrice,
-        actualDailyEarnings, // Use the most up-to-date daily earnings value
+        dailyEarnings,
         planId
       );
       
@@ -71,7 +58,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       
       return newPlan;
     } catch (error) {
-      console.error("[CRITICAL ERROR] Error updating mining boost:", error);
+      console.error("Error updating mining boost:", error);
       return null;
     }
   }, [userId]);
