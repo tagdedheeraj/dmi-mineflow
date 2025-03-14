@@ -1,4 +1,3 @@
-
 import { 
   collection,
   addDoc,
@@ -20,6 +19,9 @@ import { updateUserBalance, updateUsdtEarnings, getUser, addUsdtTransaction } fr
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');
 
+// Platform fee percentage
+export const PLATFORM_FEE_PERCENTAGE = 5;
+
 // Create a new withdrawal request
 export const createWithdrawalRequest = async (
   userId: string,
@@ -29,11 +31,18 @@ export const createWithdrawalRequest = async (
   usdtAddress: string
 ): Promise<string | null> => {
   try {
+    // Calculate platform fee
+    const platformFee = (amount * PLATFORM_FEE_PERCENTAGE) / 100;
+    const netAmount = amount - platformFee;
+    
     const withdrawalRequest: WithdrawalRequest = {
       userId,
       userName,
       userEmail,
-      amount,
+      amount,                // Total withdrawal amount
+      netAmount,             // Amount after platform fee
+      platformFee,           // Platform fee amount
+      platformFeePercentage: PLATFORM_FEE_PERCENTAGE,  // Fee percentage applied
       usdtAddress,
       status: 'pending',
       createdAt: Date.now(),

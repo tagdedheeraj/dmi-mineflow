@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 
+const PLATFORM_FEE_PERCENTAGE = 5;
+
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
   const { activePlans, miningRate } = useMining();
@@ -46,6 +48,8 @@ const Wallet: React.FC = () => {
   const [usdtAddress, setUsdtAddressState] = useState(user?.usdtAddress || '');
   const [isSettingAddress, setIsSettingAddress] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState<number>(0);
+  const [platformFee, setPlatformFee] = useState<number>(0);
+  const [netWithdrawalAmount, setNetWithdrawalAmount] = useState<number>(0);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,11 +95,10 @@ const Wallet: React.FC = () => {
       
       refreshUserData();
 
-      // Set up periodic refresh
       const intervalId = setInterval(() => {
         console.log("Running periodic user data refresh");
         refreshUserData();
-      }, 30000); // Refresh every 30 seconds
+      }, 30000);
 
       return () => clearInterval(intervalId);
     }
@@ -125,6 +128,13 @@ const Wallet: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [activePlans]);
 
+  useEffect(() => {
+    const fee = (withdrawalAmount * PLATFORM_FEE_PERCENTAGE) / 100;
+    const netAmount = withdrawalAmount - fee;
+    setPlatformFee(fee);
+    setNetWithdrawalAmount(netAmount);
+  }, [withdrawalAmount]);
+
   const loadWithdrawalRequests = async () => {
     if (!user) return;
     
@@ -142,7 +152,6 @@ const Wallet: React.FC = () => {
     setIsRefreshing(true);
     try {
       console.log("Manual refresh triggered");
-      // Wait for user data to be fetched
       if (user) {
         const latestUserData = await getUser(user.id);
         if (latestUserData) {
@@ -636,7 +645,7 @@ const Wallet: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Withdraw USDT</DialogTitle>
               <DialogDescription>
-                Enter the amount you want to withdraw. The funds will be sent to your registered USDT address.
+                Enter the amount you want to withdraw. A 5% platform fee will be applied.
               </DialogDescription>
             </DialogHeader>
             
@@ -657,6 +666,24 @@ const Wallet: React.FC = () => {
                 </p>
               </div>
               
+              {withdrawalAmount > 0 && (
+                <div className="space-y-1 bg-gray-50 p-3 rounded-md">
+                  <div className="flex justify-between text-sm">
+                    <span>Withdrawal amount:</span>
+                    <span>{formatCurrency(withdrawalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-amber-600">
+                    <span>Platform fee ({PLATFORM_FEE_PERCENTAGE}%):</span>
+                    <span>-{formatCurrency(platformFee)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 my-1 pt-1"></div>
+                  <div className="flex justify-between font-medium">
+                    <span>You will receive:</span>
+                    <span>{formatCurrency(netWithdrawalAmount)}</span>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label>Withdrawal Address</Label>
                 <div className="p-3 bg-gray-50 rounded-md text-sm font-mono break-all">
@@ -668,6 +695,7 @@ const Wallet: React.FC = () => {
                 <p className="text-sm font-medium">Important Notes:</p>
                 <ul className="text-xs text-gray-600 list-disc pl-5 space-y-1">
                   <li>Minimum withdrawal amount is $50 USDT</li>
+                  <li>A {PLATFORM_FEE_PERCENTAGE}% platform fee applies to all withdrawals</li>
                   <li>Withdrawals are processed within 24-48 hours</li>
                   <li>Make sure your withdrawal address is correct</li>
                 </ul>
