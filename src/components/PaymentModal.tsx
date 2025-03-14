@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { QrCode, ArrowLeft, Clock, Check } from 'lucide-react';
+import { QrCode, ArrowLeft, Clock, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDuration } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PaymentModalProps {
   planId: string;
@@ -118,6 +119,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <p className="text-sm text-center text-gray-600 mb-4">
               Send exactly {planPrice} USDT to the address below
             </p>
+
+            <Alert className="bg-red-50 border-red-200 text-red-800 mb-4">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700 font-medium">
+                WARNING: Submitting false transaction IDs will result in immediate account suspension without any prior warning.
+              </AlertDescription>
+            </Alert>
 
             <div className="flex justify-center mb-6">
               <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
