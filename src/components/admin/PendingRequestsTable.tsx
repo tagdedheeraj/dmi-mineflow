@@ -13,7 +13,8 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PendingRequestsTableProps {
   filteredRequests: WithdrawalRequest[];
@@ -28,6 +29,16 @@ const PendingRequestsTable: React.FC<PendingRequestsTableProps> = ({
   onReject,
   setSelectedRequest
 }) => {
+  const { toast } = useToast();
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "USDT address has been copied to clipboard"
+    });
+  };
+
   if (filteredRequests.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -45,7 +56,7 @@ const PendingRequestsTable: React.FC<PendingRequestsTableProps> = ({
           <TableRow>
             <TableHead>User</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead>USDT Address</TableHead>
+            <TableHead className="w-1/3">USDT Address</TableHead>
             <TableHead>Requested Date</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -60,8 +71,18 @@ const PendingRequestsTable: React.FC<PendingRequestsTableProps> = ({
                 </div>
               </TableCell>
               <TableCell className="font-medium">{formatCurrency(request.amount)}</TableCell>
-              <TableCell className="max-w-xs truncate">
-                <span className="text-sm font-mono">{request.usdtAddress}</span>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono break-all">{request.usdtAddress}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => copyToClipboard(request.usdtAddress)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </TableCell>
               <TableCell>{new Date(request.createdAt).toLocaleString()}</TableCell>
               <TableCell>

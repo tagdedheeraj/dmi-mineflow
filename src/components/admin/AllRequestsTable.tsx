@@ -12,13 +12,25 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface AllRequestsTableProps {
   filteredRequests: WithdrawalRequest[];
 }
 
 const AllRequestsTable: React.FC<AllRequestsTableProps> = ({ filteredRequests }) => {
+  const { toast } = useToast();
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "USDT address has been copied to clipboard"
+    });
+  };
+
   if (filteredRequests.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -37,7 +49,7 @@ const AllRequestsTable: React.FC<AllRequestsTableProps> = ({ filteredRequests })
             <TableHead>User</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>USDT Address</TableHead>
+            <TableHead className="w-1/3">USDT Address</TableHead>
             <TableHead>Requested Date</TableHead>
             <TableHead>Processed Date</TableHead>
           </TableRow>
@@ -76,8 +88,18 @@ const AllRequestsTable: React.FC<AllRequestsTableProps> = ({ filteredRequests })
                   </span>
                 )}
               </TableCell>
-              <TableCell className="max-w-xs truncate">
-                <span className="text-sm font-mono">{request.usdtAddress}</span>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono break-all">{request.usdtAddress}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => copyToClipboard(request.usdtAddress)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </TableCell>
               <TableCell>{new Date(request.createdAt).toLocaleString()}</TableCell>
               <TableCell>
