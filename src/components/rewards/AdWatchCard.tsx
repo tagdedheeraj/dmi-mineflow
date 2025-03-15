@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Video, Play, Check, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,17 +26,14 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
 }) => {
   const [adStatus, setAdStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [adInitAttempts, setAdInitAttempts] = useState(0);
 
-  // Initialize and check AdMob status more aggressively
+  // Check AdMob status more frequently
   useEffect(() => {
     const checkAdStatus = () => {
       try {
         // Force initialization on component mount
         if (!adMob.isReady()) {
           adMob.initialize();
-          setAdInitAttempts(prev => prev + 1);
-          console.log(`AdMob initialization attempt: ${adInitAttempts + 1}`);
         }
         
         if (adMob.isReady()) {
@@ -44,30 +42,23 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
           console.log('AdMob is ready for display');
         } else {
           console.log('AdMob not ready yet, still loading...');
-          
-          // After several attempts, set an error message but keep trying
-          if (adInitAttempts > 5 && adStatus !== 'ready') {
-            setAdStatus('error');
-            setErrorMessage('Having trouble loading ads. We\'ll keep trying...');
-          }
         }
       } catch (error) {
         console.error('Error checking ad status:', error);
         setAdStatus('error');
-        setErrorMessage('Error loading ads. We\'ll keep trying automatically.');
+        setErrorMessage('Could not load ads. Please try again later.');
       }
     };
 
     // Check immediately
     checkAdStatus();
 
-    // Then check every 2 seconds (more frequently)
-    const intervalId = setInterval(checkAdStatus, 2000);
+    // Then check every 3 seconds
+    const intervalId = setInterval(checkAdStatus, 3000);
 
     return () => clearInterval(intervalId);
-  }, [adInitAttempts]);
+  }, []);
 
-  // Reset error message when watching ad
   useEffect(() => {
     if (isWatchingAd) {
       setErrorMessage('');
@@ -77,13 +68,6 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
   const handleAdClick = () => {
     setErrorMessage('');
     console.log('Ad button clicked, attempting to show ad...');
-    
-    // Force another initialization attempt when user clicks
-    if (!adMob.isReady()) {
-      console.log('AdMob not ready, forcing initialization...');
-      adMob.initialize();
-    }
-    
     onWatchAd();
   };
 
@@ -134,7 +118,7 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
               <div className="bg-red-50 p-6 rounded-lg text-center mb-4">
                 <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
                 <p className="text-red-600 font-medium">{errorMessage}</p>
-                <p className="text-sm text-gray-600 mt-2">We'll keep trying to load ads automatically</p>
+                <p className="text-sm text-gray-600 mt-2">Please check your internet connection</p>
               </div>
             ) : adStatus === 'loading' && !errorMessage ? (
               <div className="bg-gray-50 p-6 rounded-lg text-center mb-4">
@@ -167,9 +151,6 @@ const AdWatchCard: React.FC<AdWatchCardProps> = ({
           </div>
         )}
       </div>
-      
-      {/* Hidden div to contain ads */}
-      <div id="rewarded-ad-container" style={{ position: 'fixed', zIndex: 9999, top: 0, left: 0, width: '100%', height: '100%', display: 'none' }}></div>
     </div>
   );
 };
