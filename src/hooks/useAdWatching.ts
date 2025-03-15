@@ -20,15 +20,35 @@ export const useAdWatching = () => {
   const [countdownTime, setCountdownTime] = useState(0);
   const [todayAdsWatched, setTodayAdsWatched] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
+  const [adInitialized, setAdInitialized] = useState(false);
   
   // Maximum daily ad limit
   const MAX_DAILY_ADS = 20;
   
   // Initialize AdMob and state on component mount
   useEffect(() => {
-    // Force AdMob initialization
-    adMob.initialize();
-    console.log('AdMob initialization requested from useAdWatching hook');
+    // Aggressive initialization strategy
+    const initializeAds = () => {
+      if (!adInitialized) {
+        console.log('Initializing AdMob from useAdWatching hook');
+        
+        // Force AdMob initialization
+        adMob.initialize();
+        setAdInitialized(true);
+        
+        // Load an ad right away to prepare for viewing
+        setTimeout(() => {
+          if (adMob.isReady()) {
+            console.log('AdMob ready after initialization');
+          } else {
+            console.log('AdMob not ready after initialization, will retry automatically');
+            adMob.initialize(); // Try again
+          }
+        }, 3000);
+      }
+    };
+    
+    initializeAds();
     
     // Fetch rewards data from Firestore if user is logged in
     const loadRewardsData = async () => {
@@ -46,7 +66,19 @@ export const useAdWatching = () => {
     };
     
     loadRewardsData();
-  }, [user]);
+    
+    // Set up periodic ad status checks and re-initialization
+    const intervalId = setInterval(() => {
+      if (!adMob.isReady()) {
+        console.log('Periodic check: AdMob not ready, re-initializing...');
+        adMob.initialize();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [user, adInitialized]);
   
   // Handle countdown logic
   useEffect(() => {
@@ -128,15 +160,17 @@ export const useAdWatching = () => {
       } else {
         console.warn('AdMob not ready, forcing initialization and retrying...');
         adMob.initialize();
+        
         // Try once more after a short delay
         setTimeout(() => {
           if (adMob.isReady()) {
+            console.log('AdMob ready after retry, showing ad...');
             adMob.show(onAdComplete);
           } else {
-            console.warn('AdMob still not ready, falling back to mock implementation');
+            console.warn('AdMob still not ready after retry, falling back to mock implementation');
             mockAdMob.show(onAdComplete);
           }
-        }, 1000);
+        }, 2000);
       }
     } catch (error) {
       console.error('Error showing AdMob Ad:', error);
@@ -174,6 +208,13 @@ export const useAdWatching = () => {
         title: "Reward Earned!",
         description: "You've earned 1 DMI coin for watching the ad.",
       });
+      
+      // Preload next ad
+      setTimeout(() => {
+        if (!adMob.isReady()) {
+          adMob.initialize();
+        }
+      }, 3000);
     } catch (error) {
       console.error("Error updating balance after ad:", error);
       toast({
