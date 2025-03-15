@@ -17,6 +17,9 @@ const DmiBalanceCard: React.FC = () => {
   
   // Calculate USD value
   const totalValueUsd = (user?.balance || 0) * DMI_COIN_VALUE;
+  
+  // For debugging purpose
+  console.log(`[DmiBalanceCard] Current user balance: ${user?.balance} DMI`);
 
   return (
     <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 card-hover-effect animate-fade-in mt-6">

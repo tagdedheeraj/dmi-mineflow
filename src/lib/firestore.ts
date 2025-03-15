@@ -63,13 +63,26 @@ export const saveUser = async (user: User): Promise<void> => {
 
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
+    console.log(`[Firestore] Updating user ${userId} balance by adding ${amount} DMI coins`);
     const userRef = doc(db, 'users', userId);
+    
+    // First, get the current user data to log the before/after balance for debugging
+    const userBefore = await getUser(userId);
+    if (userBefore) {
+      console.log(`[Firestore] User balance before update: ${userBefore.balance} DMI`);
+    }
+    
+    // Use Firestore's increment() function to properly add to the existing balance
     await updateDoc(userRef, {
       balance: increment(amount)
     });
     
     // Fetch and return the updated user
-    return await getUser(userId);
+    const updatedUser = await getUser(userId);
+    if (updatedUser) {
+      console.log(`[Firestore] User balance after update: ${updatedUser.balance} DMI`);
+    }
+    return updatedUser;
   } catch (error) {
     console.error("Error updating user balance:", error);
     return null;
@@ -655,6 +668,8 @@ export const checkAndUpdateMining = async (userId: string): Promise<{
       const elapsedHours = (currentSession.endTime - currentSession.startTime) / (1000 * 60 * 60);
       const earnedCoins = Math.floor(elapsedHours * currentSession.rate);
       
+      console.log(`[Firestore] Mining completed for user ${userId}. Earned coins: ${earnedCoins}`);
+      
       // Update session
       const completedSession: MiningSession = {
         ...currentSession,
@@ -670,7 +685,8 @@ export const checkAndUpdateMining = async (userId: string): Promise<{
       // Add to history
       await addToMiningHistory(userId, completedSession);
       
-      // Update user balance
+      // Update user balance - Adding to existing balance using increment operation
+      console.log(`[Firestore] Adding ${earnedCoins} DMI coins to user ${userId} balance`);
       await updateUserBalance(userId, earnedCoins);
       
       return { updatedSession: completedSession, earnedCoins };

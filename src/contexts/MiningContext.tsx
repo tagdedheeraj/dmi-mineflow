@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { MiningContextType, MiningProviderProps } from '@/types/mining';
@@ -20,6 +19,7 @@ import { usePlanManagement } from '@/hooks/usePlanManagement';
 import { useMiningCalculations } from '@/hooks/useMiningCalculations';
 import { useMiningSession } from '@/hooks/useMiningSession';
 import { useDailyEarnings } from '@/hooks/useDailyEarnings';
+import { useToast } from '@/hooks/use-toast';
 
 // Create the context
 const MiningContext = createContext<MiningContextType | undefined>(undefined);
@@ -28,6 +28,7 @@ const MiningContext = createContext<MiningContextType | undefined>(undefined);
 export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
   const { user, updateUser } = useAuth();
   const userId = user?.id;
+  const { toast } = useToast();
   
   // Initialize state
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
@@ -63,8 +64,29 @@ export const MiningProvider: React.FC<MiningProviderProps> = ({ children }) => {
     forceRefreshMining
   } = useMiningSession(
     userId, 
-    (balance: number) => { 
-      if (userId) updateUserBalance(userId, balance); 
+    async (balance: number) => { 
+      if (userId) {
+        console.log(`[MiningContext] Updating user balance by adding ${balance} DMI coins`);
+        
+        // Check current balance first
+        if (user) {
+          console.log(`[MiningContext] Current user balance before update: ${user.balance} DMI`);
+        }
+        
+        const updatedUser = await updateUserBalance(userId, balance);
+        
+        // Ensure we update the user context with the new balance
+        if (updatedUser) {
+          console.log(`[MiningContext] Updated user balance: ${updatedUser.balance} DMI`);
+          updateUser(updatedUser);
+          
+          // Show toast notification with balance update
+          toast({
+            title: "Mining Rewards Added",
+            description: `${balance} DMI coins have been added to your balance. New balance: ${updatedUser.balance} DMI`,
+          });
+        }
+      }
     },
     () => miningRate
   );

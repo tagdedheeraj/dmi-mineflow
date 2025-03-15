@@ -1,3 +1,4 @@
+
 /**
  * Local storage service to persist user and mining data
  */
@@ -78,6 +79,8 @@ export const updateUserBalance = (amount: number): User | null => {
   const user = getUser();
   if (!user) return null;
   
+  // Make sure we're adding to the existing balance, not replacing it
+  console.log(`Updating user balance: ${user.balance} + ${amount} = ${user.balance + amount}`);
   user.balance += amount;
   saveUser(user);
   return user;
@@ -228,8 +231,14 @@ export const checkAndUpdateMining = (): {
     clearCurrentMining();
     addToMiningHistory(completedSession);
     
-    // Update user balance
-    updateUserBalance(earnedCoins);
+    // Update user balance - adding to existing balance
+    console.log(`Mining complete. Adding ${earnedCoins} DMI coins to user balance.`);
+    const user = getUser();
+    if (user) {
+      const oldBalance = user.balance;
+      updateUserBalance(earnedCoins);
+      console.log(`User balance updated: ${oldBalance} → ${user.balance + earnedCoins}`);
+    }
     
     return { updatedSession: completedSession, earnedCoins };
   }

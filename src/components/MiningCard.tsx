@@ -6,6 +6,7 @@ import { Cpu, ArrowUpCircle } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { notifyMiningCompleted } from '@/lib/rewards/notificationService';
+import { useToast } from '@/hooks/use-toast';
 
 const MiningCard: React.FC = () => {
   const { 
@@ -18,7 +19,8 @@ const MiningCard: React.FC = () => {
     forceRefreshMining
   } = useMining();
   
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const { toast } = useToast();
 
   // Check if mining is complete
   const isMiningComplete = timeRemaining === 0 && isMining;
@@ -28,8 +30,14 @@ const MiningCard: React.FC = () => {
     if (isMiningComplete && user?.id) {
       // When mining completes, force refresh the mining state
       forceRefreshMining();
+      
+      // Show a toast with the earned amount
+      toast({
+        title: "Mining Completed",
+        description: `You've earned ${currentEarnings} DMI coins! Your new balance: ${(user.balance + currentEarnings).toFixed(2)} DMI`,
+      });
     }
-  }, [isMiningComplete, user?.id, forceRefreshMining]);
+  }, [isMiningComplete, user?.id, forceRefreshMining, currentEarnings, toast, user?.balance]);
 
   // Format the time remaining into hours:minutes:seconds
   const formattedTimeRemaining = formatDuration(timeRemaining);
