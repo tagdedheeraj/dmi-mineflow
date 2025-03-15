@@ -23,6 +23,7 @@ import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel'
 import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import PlanManagement from '@/components/admin/PlanManagement';
+import AutomatedArbitragePlan from '@/components/admin/AutomatedArbitragePlan';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -168,12 +169,16 @@ const Admin: React.FC = () => {
         {/* User Management Panel */}
         <UserManagement />
         
+        {/* Automated Arbitrage Plan */}
+        <AutomatedArbitragePlan />
+        
         {/* User Coins Management Panel */}
         <UserCoinsManagement />
         
         {/* Custom Notification Panel */}
         <CustomNotificationPanel />
         
+        {/* Withdrawal Requests Management */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-6">Withdrawal Requests Management</h2>
           
