@@ -8,4 +8,3 @@ export * from './rewards/rewardsTracking';
 export * from './rewards/taskManagement';
 export * from './rewards/usdtEarnings';
 export * from './rewards/referralCommissions';
-// Skip the notificationService export as it might be causing conflicts
