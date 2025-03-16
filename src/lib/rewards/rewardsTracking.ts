@@ -65,7 +65,14 @@ export const updateRewardsData = async (userId: string, adsWatched: number, earn
 // Update user balance - Uses increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
+    console.log(`[RewardsTracking] Updating user ${userId} balance by adding ${amount} DMI`);
     const userRef = doc(db, 'users', userId);
+    
+    // Get original balance for logging
+    const userBefore = await getDoc(userRef);
+    if (userBefore.exists()) {
+      console.log(`[RewardsTracking] User balance before update: ${userBefore.data().balance} DMI`);
+    }
     
     // Use the increment() function from Firestore to add the amount to the existing balance
     await updateDoc(userRef, {
@@ -74,7 +81,12 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
     
     // Fetch and return the updated user
     const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? userSnap.data() as User : null;
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as User;
+      console.log(`[RewardsTracking] User balance after update: ${userData.balance} DMI`);
+      return userData;
+    }
+    return null;
   } catch (error) {
     console.error("Error updating user balance:", error);
     return null;
@@ -90,7 +102,7 @@ export const getUser = async (userId: string): Promise<User | null> => {
     
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      console.log(`Retrieved user data. USDT earnings: ${userData.usdtEarnings}`);
+      console.log(`Retrieved user data. Balance: ${userData.balance} DMI, USDT earnings: ${userData.usdtEarnings}`);
       return userData;
     }
     console.log(`No user data found for userId: ${userId}`);
