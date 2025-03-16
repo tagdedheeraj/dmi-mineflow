@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -11,6 +10,9 @@ import {
   AuthErrorCodes
 } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
+
+// Import operations from refactored files to re-export them for backward compatibility
+import { getCurrentMining, saveCurrentMining, checkAndUpdateMining, getUser } from './firebase/miningOperations';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -259,5 +261,8 @@ export const activateMembershipCard = async (cardId: string, transactionId: stri
     return false;
   }
 };
+
+// Re-export functions from refactored files for backward compatibility
+export { getCurrentMining, saveCurrentMining, checkAndUpdateMining, getUser };
 
 export { app, auth, analytics, db };
