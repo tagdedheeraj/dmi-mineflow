@@ -1,26 +1,9 @@
 
-// Re-export from dateUtils
+// Re-export all reward services from this central file
 export * from './dateUtils';
-
-// Re-export specific functions from rewardsTracking
-export {
-  fetchRewardsData,
-  updateRewardsData,
-  updateUserBalance,
-  getUser,
-  getUserByEmail,
-  // Explicitly re-export these to fix the ambiguity error
-  updateUsdtEarnings,
-  setUsdtAddress
-} from './rewardsTracking';
-
-// Export other modules
-export * from './dailyEarningsProcessor';
-export * from './notificationService';
-export * from './planPurchaseManager';
-export * from './referralCommissions';
-export * from './referralConstants';
-export * from './referralRewards';
-export * from './referralUserUtils';
+export * from './rewardsTracking';
 export * from './taskManagement';
-export * from './usdtEarnings';
+export * from './usdtEarnings'; // This now re-exports from all the smaller modules
+export * from './referralCommissions';
+export * from './notificationService';
+

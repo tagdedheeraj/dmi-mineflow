@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
-import { getUserByEmail, updateUserBalance } from '@/lib/firebase/userOperations';
+import { getUserByEmail, updateUserBalance } from '@/lib/rewards/rewardsTracking';
 
 const UserCoinsManagement: React.FC = () => {
   const [userEmail, setUserEmail] = useState("");

@@ -6,7 +6,7 @@ import {
   saveCurrentMining,
   checkAndUpdateMining,
   getUser
-} from '@/lib/firebase';
+} from '@/lib/firestore';
 
 export interface UseMiningSessionProps {
   userId: string | undefined;
