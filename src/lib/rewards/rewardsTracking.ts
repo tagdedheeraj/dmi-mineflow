@@ -65,6 +65,14 @@ export const updateRewardsData = async (userId: string, adsWatched: number, earn
 // Update user balance - Uses increment() instead of setting the value
 export const updateUserBalance = async (userId: string, amount: number): Promise<User | null> => {
   try {
+    console.log(`[RewardsTracking] Updating user ${userId} balance by adding ${amount} DMI coins`);
+    
+    // First, get the current user data to log the before/after balance for debugging
+    const userBefore = await getUser(userId);
+    if (userBefore) {
+      console.log(`[RewardsTracking] User balance BEFORE update: ${userBefore.balance} DMI`);
+    }
+    
     const userRef = doc(db, 'users', userId);
     
     // Use the increment() function from Firestore to add the amount to the existing balance
@@ -74,7 +82,13 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
     
     // Fetch and return the updated user
     const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? userSnap.data() as User : null;
+    const updatedUser = userSnap.exists() ? userSnap.data() as User : null;
+    
+    if (updatedUser) {
+      console.log(`[RewardsTracking] User balance AFTER update: ${updatedUser.balance} DMI (added ${amount})`);
+    }
+    
+    return updatedUser;
   } catch (error) {
     console.error("Error updating user balance:", error);
     return null;
@@ -84,16 +98,16 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
 // Get user data with enhanced logging
 export const getUser = async (userId: string): Promise<User | null> => {
   try {
-    console.log(`Getting user data for userId: ${userId}`);
+    console.log(`[RewardsTracking] Getting user data for userId: ${userId}`);
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
     
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      console.log(`Retrieved user data. USDT earnings: ${userData.usdtEarnings}`);
+      console.log(`[RewardsTracking] Retrieved user data. Balance: ${userData.balance} DMI coins`);
       return userData;
     }
-    console.log(`No user data found for userId: ${userId}`);
+    console.log(`[RewardsTracking] No user data found for userId: ${userId}`);
     return null;
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -104,7 +118,7 @@ export const getUser = async (userId: string): Promise<User | null> => {
 // Get user by email
 export const getUserByEmail = async (email: string): Promise<User | null> => {
   try {
-    console.log(`Searching for user with email: ${email}`);
+    console.log(`[RewardsTracking] Searching for user with email: ${email}`);
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where("email", "==", email));
     const querySnapshot = await getDocs(q);
@@ -114,14 +128,51 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
       const userData = userDoc.data() as User;
       userData.id = userDoc.id; // Make sure ID is included
       
-      console.log(`Found user: ${userData.fullName}, ID: ${userData.id}, Balance: ${userData.balance}`);
+      console.log(`[RewardsTracking] Found user: ${userData.fullName}, ID: ${userData.id}, Balance: ${userData.balance} DMI coins`);
       return userData;
     }
     
-    console.log(`No user found with email: ${email}`);
+    console.log(`[RewardsTracking] No user found with email: ${email}`);
     return null;
   } catch (error) {
     console.error("Error fetching user by email:", error);
+    return null;
+  }
+};
+
+// Function to update user's USDT earnings
+export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
+  try {
+    console.log(`[RewardsTracking] Updating user ${userId} USDT earnings by ${amount}`);
+    const userRef = doc(db, 'users', userId);
+    
+    // Use increment() function to properly add to existing USDT earnings
+    await updateDoc(userRef, {
+      usdtEarnings: increment(amount)
+    });
+    
+    // Fetch and return the updated user
+    const userSnap = await getDoc(userRef);
+    return userSnap.exists() ? userSnap.data() as User : null;
+  } catch (error) {
+    console.error("Error updating USDT earnings:", error);
+    return null;
+  }
+};
+
+// Function to set user's USDT address
+export const setUsdtAddress = async (userId: string, address: string): Promise<User | null> => {
+  try {
+    console.log(`[RewardsTracking] Setting USDT address for user ${userId}: ${address}`);
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      usdtAddress: address
+    });
+    
+    // Fetch and return the updated user
+    return await getUser(userId);
+  } catch (error) {
+    console.error("Error setting USDT address:", error);
     return null;
   }
 };

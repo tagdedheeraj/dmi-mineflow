@@ -50,6 +50,13 @@ export const useMiningSession = (
     
     try {
       console.log("[useMiningSession] Checking if mining should be completed for user:", userId);
+      
+      // Get user's current balance before mining completion
+      const userBefore = await getUser(userId);
+      if (userBefore) {
+        console.log(`[useMiningSession] User balance BEFORE mining completion: ${userBefore.balance} DMI`);
+      }
+      
       const { updatedSession, earnedCoins } = await checkAndUpdateMining(userId);
       
       if (updatedSession) {
@@ -67,7 +74,15 @@ export const useMiningSession = (
           // Get updated user to verify balance
           const updatedUser = await getUser(userId);
           if (updatedUser) {
-            console.log(`[useMiningSession] User balance after mining completion: ${updatedUser.balance} DMI`);
+            console.log(`[useMiningSession] User balance AFTER mining completion: ${updatedUser.balance} DMI`);
+            
+            // Calculate expected balance for verification
+            const expectedBalance = (userBefore?.balance || 0) + earnedCoins;
+            console.log(`[useMiningSession] Expected balance: ${expectedBalance} DMI`);
+            
+            if (updatedUser.balance !== expectedBalance) {
+              console.warn(`[useMiningSession] Balance mismatch! Expected: ${expectedBalance}, Actual: ${updatedUser.balance}`);
+            }
           }
         }
       }
