@@ -1,17 +1,17 @@
 
 import { 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  addDoc, 
   collection, 
   query, 
   where, 
   getDocs, 
-  doc, 
-  getDoc,
-  addDoc,
-  updateDoc,
-  serverTimestamp
+  serverTimestamp 
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { User } from '../storage';
+import { updateUserBalance } from './userOperations';
 import {
   REFERRAL_REWARD_COINS_LEVEL1,
   REFERRAL_REWARD_COINS_LEVEL2,
@@ -22,10 +22,8 @@ import {
   REFERRAL_REWARD_COINS_LEVEL2_PREMIUM,
   REFERRAL_REWARD_COINS_LEVEL3_PREMIUM,
   REFERRAL_REWARD_COINS_LEVEL4_PREMIUM,
-  REFERRAL_REWARD_COINS_LEVEL5_PREMIUM,
-  hasPremiumPlan
+  REFERRAL_REWARD_COINS_LEVEL5_PREMIUM
 } from '../rewards/referralCommissions';
-import { updateUserBalance } from './userOperations';
 
 // Referral operations
 export const generateReferralCode = (userId: string): string => {
@@ -55,7 +53,7 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       return { success: false, message: "User not found." };
     }
     
-    const userData = userSnap.data() as User;
+    const userData = userSnap.data();
     
     if (userData.appliedReferralCode) {
       return { success: false, message: "You have already applied a referral code." };
@@ -155,10 +153,9 @@ export const applyReferralCode = async (userId: string, referralCode: string): P
       currentLevel++;
     }
     
-    const referrerData = referrerDoc.data() as User;
     return { 
       success: true, 
-      message: `Referral code applied! ${referrerData.fullName || 'User'} has received a ${LEVEL1_BONUS} DMI bonus.` 
+      message: `Referral code applied! ${referrerDoc.data().fullName || 'User'} has received a ${LEVEL1_BONUS} DMI bonus.` 
     };
   } catch (error) {
     console.error("Error applying referral code:", error);
@@ -178,12 +175,12 @@ export const getReferredUsers = async (userId: string): Promise<any[]> => {
     
     const referredUsers = [];
     
-    for (const doc of querySnapshot.docs) {
-      const data = doc.data();
+    for (const docSnapshot of querySnapshot.docs) {
+      const data = docSnapshot.data();
       const referredUserRef = await getDoc(doc(db, 'users', data.referredId));
       
       if (referredUserRef.exists()) {
-        const userData = referredUserRef.data() as User;
+        const userData = referredUserRef.data();
         referredUsers.push({
           id: data.referredId,
           fullName: userData.fullName,
@@ -273,7 +270,7 @@ export const getReferralNetwork = async (userId: string): Promise<any[]> => {
       const referredUserRef = await getDoc(doc(db, 'users', data.referredId));
       
       if (referredUserRef.exists()) {
-        const userData = referredUserRef.data() as User;
+        const userData = referredUserRef.data();
         network.push({
           id: data.referredId,
           name: userData.fullName,
@@ -296,7 +293,7 @@ export const getReferralNetwork = async (userId: string): Promise<any[]> => {
           const l2UserRef = await getDoc(doc(db, 'users', l2Data.referredId));
           
           if (l2UserRef.exists()) {
-            const l2UserData = l2UserRef.data() as User;
+            const l2UserData = l2UserRef.data();
             network.push({
               id: l2Data.referredId,
               name: l2UserData.fullName,
@@ -312,5 +309,23 @@ export const getReferralNetwork = async (userId: string): Promise<any[]> => {
   } catch (error) {
     console.error("Error getting referral network:", error);
     return [];
+  }
+};
+
+// Helper function to check if a user has a premium plan
+export const hasPremiumPlan = async (userId: string): Promise<boolean> => {
+  try {
+    const plansRef = collection(db, 'plans');
+    const q = query(
+      plansRef, 
+      where("userId", "==", userId),
+      where("planCost", ">=", 100) // Using constant value directly to avoid circular dependency
+    );
+    const querySnapshot = await getDocs(q);
+    
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking premium plan:", error);
+    return false;
   }
 };
