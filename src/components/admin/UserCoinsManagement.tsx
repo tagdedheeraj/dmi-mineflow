@@ -66,14 +66,9 @@ const UserCoinsManagement: React.FC = () => {
 
     setIsUpdating(true);
     try {
-      // Log before updating
-      console.log(`[UserCoinsManagement] Adding ${amount} DMI coins to user ${foundUser.id}. Current balance: ${foundUser.balance}`);
-      
       const updatedUser = await updateUserBalance(foundUser.id, amount);
       
       if (updatedUser) {
-        console.log(`[UserCoinsManagement] Updated user balance: ${updatedUser.balance} DMI`);
-        
         setFoundUser({
           ...foundUser,
           balance: updatedUser.balance
@@ -81,7 +76,7 @@ const UserCoinsManagement: React.FC = () => {
         
         toast({
           title: "Coins Updated",
-          description: `Added ${amount} DMI coins to ${foundUser.fullName}'s account. New balance: ${updatedUser.balance} DMI`,
+          description: `Added ${amount} DMI coins to ${foundUser.fullName}'s account.`,
         });
         
         // Reset amount after successful update

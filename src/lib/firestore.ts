@@ -89,6 +89,36 @@ export const updateUserBalance = async (userId: string, amount: number): Promise
   }
 };
 
+export const setUsdtAddress = async (userId: string, address: string): Promise<User | null> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      usdtAddress: address
+    });
+    
+    // Fetch and return the updated user
+    return await getUser(userId);
+  } catch (error) {
+    console.error("Error setting USDT address:", error);
+    return null;
+  }
+};
+
+export const updateUsdtEarnings = async (userId: string, amount: number): Promise<User | null> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      usdtEarnings: increment(amount)
+    });
+    
+    // Fetch and return the updated user
+    return await getUser(userId);
+  } catch (error) {
+    console.error("Error updating USDT earnings:", error);
+    return null;
+  }
+};
+
 // USDT Transaction operations
 export const addUsdtTransaction = async (
   userId: string,
