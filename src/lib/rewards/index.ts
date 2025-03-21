@@ -6,16 +6,18 @@ export * from './taskManagement';
 export * from './referralCommissions';
 export * from './notificationService';
 
-// Export earningsUpdater separately to avoid ambiguous exports
-import { updateUsdtEarningsInternal } from './earningsUpdater';
-export { updateUsdtEarningsInternal };
+// Export earningsUpdater function
+export * from './earningsUpdater';
 
-// Export from usdtEarnings without the updateUsdtEarnings that would cause a conflict
-import * as UsdtEarningsModule from './usdtEarnings';
-export const { 
-  recordUsdtTransaction,
-  getUserUsdtTransactions
-} = UsdtEarningsModule;
+// Re-export from usdtEarnings
+export * from './usdtEarnings';
 
-// Export the new claimable rewards functionality
+// Export from dateTracking and planPurchaseManager
+export * from './dateTracking';
+export * from './planPurchaseManager';
+
+// Export the claimable rewards functionality
 export * from './claimableRewards';
+
+// Export specifically from dailyEarningsProcessor
+export * from './dailyEarningsProcessor';

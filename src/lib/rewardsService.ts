@@ -7,16 +7,18 @@ export * from './rewards/dateUtils';
 export * from './rewards/rewardsTracking';
 export * from './rewards/taskManagement';
 
-// Import and re-export from usdtEarnings to avoid conflicts
-import * as UsdtEarningsModule from './rewards/usdtEarnings';
-export const { 
-  recordUsdtTransaction,
-  getUserUsdtTransactions
-} = UsdtEarningsModule;
+// Re-export from usdtEarnings
+export * from './rewards/usdtEarnings';
 
 // Re-export from earningsUpdater
-import { updateUsdtEarningsInternal } from './rewards/earningsUpdater';
-export { updateUsdtEarningsInternal };
+export * from './rewards/earningsUpdater';
 
 export * from './rewards/referralCommissions';
 export * from './rewards/claimableRewards';
+
+// Re-export from dateTracking and planPurchaseManager
+export * from './rewards/dateTracking';
+export * from './rewards/planPurchaseManager';
+
+// Re-export from dailyEarningsProcessor
+export * from './rewards/dailyEarningsProcessor';
