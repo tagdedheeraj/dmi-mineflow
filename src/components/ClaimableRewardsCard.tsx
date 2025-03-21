@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useClaimableRewards } from '@/hooks/useClaimableRewards';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Gift, AlertCircle } from 'lucide-react';
+import { Clock, Gift, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { ClaimableReward } from '@/lib/rewards/claimableRewards';
 
@@ -21,6 +21,14 @@ const ClaimableRewardsCard = () => {
     handleClaim 
   } = useClaimableRewards(user?.id);
 
+  // Force a refresh when the component mounts
+  useEffect(() => {
+    if (user?.id) {
+      console.log("ClaimableRewardsCard mounted, forcing initial rewards refresh");
+      loadRewards();
+    }
+  }, [user?.id, loadRewards]);
+
   const claimReward = async (reward: ClaimableReward) => {
     if (!reward.id) return;
     
@@ -28,6 +36,11 @@ const ClaimableRewardsCard = () => {
     if (updatedUser) {
       updateUser(updatedUser);
     }
+  };
+
+  const handleRefresh = () => {
+    console.log("Manually refreshing rewards");
+    loadRewards();
   };
 
   // Group rewards by plan
@@ -40,19 +53,36 @@ const ClaimableRewardsCard = () => {
     rewardsByPlan[reward.planId].push(reward);
   });
 
+  console.log("Current user:", user?.id);
+  console.log("All rewards:", allRewards);
+  console.log("Rewards by plan:", rewardsByPlan);
+  console.log("Current countdowns:", countdowns);
+  console.log("Is loading:", isLoading);
+
   if (!user) return null;
 
   return (
     <Card className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
       <CardHeader className="border-b border-gray-100 p-5">
-        <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4">
-            <Gift className="h-5 w-5 text-purple-500" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4">
+              <Gift className="h-5 w-5 text-purple-500" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-medium text-gray-900">Claimable USDT Rewards</CardTitle>
+              <CardDescription className="text-sm text-gray-500">Claim your daily USDT earnings from premium plans</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-lg font-medium text-gray-900">Claimable USDT Rewards</CardTitle>
-            <CardDescription className="text-sm text-gray-500">Claim your daily USDT earnings from premium plans</CardDescription>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            className="h-9 w-9"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </CardHeader>
       

@@ -1,4 +1,3 @@
-
 import { 
   doc, 
   getDoc, 
@@ -6,6 +5,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getTodayDateKey } from './dateUtils';
+import { initializeClaimableRewards } from './claimableRewards';
+import { miningPlans } from '@/data/miningPlans';
 
 // Function to check if a plan was purchased today - with better logging
 export const wasPlanPurchasedToday = async (userId: string, planId: string): Promise<boolean> => {
@@ -57,5 +58,41 @@ export const markPlanAsPurchasedToday = async (userId: string, planId: string): 
   } catch (error) {
     console.error("Error marking plan as purchased today:", error);
     throw error; // Rethrow to ensure we know if this critical step fails
+  }
+};
+
+// Function to handle plan purchase with better logging
+export const handlePlanPurchase = async (
+  userId: string,
+  planId: string,
+  transactionId: string
+): Promise<boolean> => {
+  try {
+    console.log(`Processing plan purchase for user ${userId}, plan ${planId}`);
+    
+    // Find the plan details
+    const planDetails = miningPlans.find(plan => plan.id === planId);
+    if (!planDetails) {
+      console.error(`Plan with ID ${planId} not found`);
+      return false;
+    }
+
+    // Initialize claimable rewards for this plan
+    console.log(`Initializing claimable rewards for user ${userId}, plan ${planId}, daily amount: ${planDetails.dailyEarnings}`);
+    const rewardsInitialized = await initializeClaimableRewards(
+      userId,
+      planId,
+      planDetails.dailyEarnings
+    );
+
+    if (!rewardsInitialized) {
+      console.error(`Failed to initialize claimable rewards for user ${userId}, plan ${planId}`);
+    }
+
+    console.log(`Plan purchase processed successfully for user ${userId}, plan ${planId}`);
+    return true;
+  } catch (error) {
+    console.error('Error handling plan purchase:', error);
+    return false;
   }
 };

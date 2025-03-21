@@ -13,12 +13,15 @@ import {
   where,
   getDocs,
   Timestamp,
-  addDoc
+  addDoc,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 import { ActivePlan } from '../storage';
 import { getUser, updateUserBalance } from './rewardsTracking';
 import { miningPlans } from '@/data/miningPlans';
 import { getTodayDateKey } from './dateUtils';
+import { addUsdtTransaction } from '../firebase';
 
 // Interface for claimable reward
 export interface ClaimableReward {
@@ -36,9 +39,15 @@ export interface ClaimableReward {
 // Get all claimable rewards for a user
 export const getUserClaimableRewards = async (userId: string): Promise<ClaimableReward[]> => {
   try {
+    console.log("Getting all rewards for user:", userId);
     const rewardsRef = collection(db, 'claimableRewards');
-    const q = query(rewardsRef, where('userId', '==', userId));
+    const q = query(
+      rewardsRef, 
+      where('userId', '==', userId)
+    );
+    
     const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} rewards in the database`);
     
     const rewards: ClaimableReward[] = [];
     querySnapshot.forEach((doc) => {
@@ -56,6 +65,7 @@ export const getUserClaimableRewards = async (userId: string): Promise<Claimable
       });
     });
     
+    console.log("Processed rewards:", rewards);
     return rewards;
   } catch (error) {
     console.error("Error fetching claimable rewards:", error);
@@ -69,9 +79,12 @@ export const getClaimableRewards = async (userId: string): Promise<ClaimableRewa
     const allRewards = await getUserClaimableRewards(userId);
     const now = new Date();
     
-    return allRewards.filter(reward => 
+    const claimableRewards = allRewards.filter(reward => 
       !reward.claimed && new Date(reward.claimableAt) <= now
     );
+    
+    console.log(`Found ${claimableRewards.length} claimable rewards for user ${userId}`);
+    return claimableRewards;
   } catch (error) {
     console.error("Error fetching claimable rewards:", error);
     return [];
@@ -160,6 +173,8 @@ export const claimReward = async (rewardId: string): Promise<boolean> => {
       return false;
     }
     
+    console.log(`Claiming reward ${rewardId} for user ${rewardData.userId}, amount: ${rewardData.amount}`);
+    
     // Update user balance
     const updatedUser = await updateUserBalance(rewardData.userId, rewardData.amount);
     
@@ -167,6 +182,15 @@ export const claimReward = async (rewardId: string): Promise<boolean> => {
       console.error(`Failed to update balance for user ${rewardData.userId}`);
       return false;
     }
+    
+    // Add transaction record
+    await addUsdtTransaction(
+      rewardData.userId,
+      rewardData.amount,
+      'deposit',
+      `Daily reward from ${rewardData.planName}`,
+      Date.now()
+    );
     
     // Mark reward as claimed
     await updateDoc(rewardRef, {
@@ -182,7 +206,7 @@ export const claimReward = async (rewardId: string): Promise<boolean> => {
       rewardData.amount
     );
     
-    console.log(`Claimed reward ${rewardId} for user ${rewardData.userId}, amount: ${rewardData.amount}`);
+    console.log(`Successfully claimed reward ${rewardId}`);
     return true;
   } catch (error) {
     console.error("Error claiming reward:", error);
@@ -205,6 +229,8 @@ export const initializeClaimableRewards = async (
       return false;
     }
     
+    console.log(`Initializing claimable rewards for user ${userId}, plan ${planId} with daily amount ${dailyAmount}`);
+    
     // Create immediate reward (first day's earnings)
     await createClaimableReward(
       userId,
@@ -221,9 +247,29 @@ export const initializeClaimableRewards = async (
   }
 };
 
+// Check if a user has claimable rewards for a specific plan
+export const hasClaimableRewardsForPlan = async (userId: string, planId: string): Promise<boolean> => {
+  try {
+    const rewardsRef = collection(db, 'claimableRewards');
+    const q = query(
+      rewardsRef,
+      where('userId', '==', userId),
+      where('planId', '==', planId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking for claimable rewards:", error);
+    return false;
+  }
+};
+
 // Get time remaining until next claim (in seconds)
 export const getTimeUntilNextClaim = async (userId: string, planId: string): Promise<number> => {
   try {
+    console.log(`Checking time until next claim for user ${userId}, plan ${planId}`);
+    
     const rewardsRef = collection(db, 'claimableRewards');
     const q = query(
       rewardsRef, 
@@ -235,6 +281,7 @@ export const getTimeUntilNextClaim = async (userId: string, planId: string): Pro
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
+      console.log("No pending rewards found");
       return 0; // No pending rewards
     }
     
@@ -256,9 +303,43 @@ export const getTimeUntilNextClaim = async (userId: string, planId: string): Pro
     const now = new Date();
     const diffInSeconds = Math.max(0, Math.floor((earliestClaimTime.getTime() - now.getTime()) / 1000));
     
+    console.log(`Time until next claim: ${diffInSeconds} seconds`);
     return diffInSeconds;
   } catch (error) {
     console.error("Error calculating time until next claim:", error);
     return 0;
+  }
+};
+
+// Debug function to check the state of claimable rewards
+export const getClaimableRewardsDebugInfo = async (userId: string): Promise<any> => {
+  try {
+    const allRewards = await getUserClaimableRewards(userId);
+    const claimable = await getClaimableRewards(userId);
+    
+    // Group rewards by plan
+    const rewardsByPlan: Record<string, any[]> = {};
+    allRewards.forEach(reward => {
+      if (!rewardsByPlan[reward.planId]) {
+        rewardsByPlan[reward.planId] = [];
+      }
+      rewardsByPlan[reward.planId].push(reward);
+    });
+    
+    // Get countdowns for each plan
+    const countdowns: Record<string, number> = {};
+    for (const planId of Object.keys(rewardsByPlan)) {
+      countdowns[planId] = await getTimeUntilNextClaim(userId, planId);
+    }
+    
+    return {
+      allRewards,
+      claimable,
+      rewardsByPlan,
+      countdowns
+    };
+  } catch (error) {
+    console.error("Error getting debug info:", error);
+    return { error: error.message };
   }
 };

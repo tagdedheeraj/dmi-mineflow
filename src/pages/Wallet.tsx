@@ -303,6 +303,40 @@ const Wallet: React.FC = () => {
     }
   };
 
+  const debugInitializeClaimableRewards = async () => {
+    if (!user) return;
+    
+    try {
+      const { initializeClaimableRewards } = await import('@/lib/rewards/claimableRewards');
+      
+      for (const plan of activePlans) {
+        const planInfo = miningPlans.find(p => p.id === plan.id);
+        if (planInfo && planInfo.dailyEarnings > 0) {
+          await initializeClaimableRewards(
+            user.id,
+            plan.id,
+            planInfo.dailyEarnings
+          );
+        }
+      }
+      
+      toast({
+        title: "Debug: Rewards Initialized",
+        description: "Claimable rewards have been manually initialized for your active plans.",
+      });
+      
+      setRefreshTrigger(prev => prev + 1);
+      
+    } catch (error) {
+      console.error("Error initializing rewards:", error);
+      toast({
+        title: "Error",
+        description: "Could not initialize rewards.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
       <Header />
@@ -387,6 +421,20 @@ const Wallet: React.FC = () => {
         </div>
         
         <ClaimableRewardsCard />
+        
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+            <h3 className="text-red-700 font-medium mb-2">Debug Controls</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button size="sm" variant="outline" onClick={debugInitializeClaimableRewards}>
+                Initialize Rewards
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setRefreshTrigger(prev => prev + 1)}>
+                Force Refresh
+              </Button>
+            </div>
+          </div>
+        )}
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
@@ -642,7 +690,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
-        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>

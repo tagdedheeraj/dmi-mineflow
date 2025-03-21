@@ -5,7 +5,8 @@ import {
   claimReward, 
   getUserClaimableRewards,
   getTimeUntilNextClaim,
-  ClaimableReward
+  ClaimableReward,
+  createClaimableReward  // Add this import for debugging purpose
 } from '@/lib/rewards/claimableRewards';
 import { useToast } from '@/hooks/use-toast';
 import { getUser } from '@/lib/rewards/rewardsTracking';
@@ -23,10 +24,14 @@ export const useClaimableRewards = (userId: string | undefined) => {
     
     setIsLoading(true);
     try {
+      console.log("Fetching claimable rewards for user:", userId);
+      
       const claimable = await getClaimableRewards(userId);
+      console.log("Claimable rewards:", claimable);
       setClaimableRewards(claimable);
       
       const all = await getUserClaimableRewards(userId);
+      console.log("All rewards:", all);
       setAllRewards(all);
       
       // Initialize countdowns
@@ -50,6 +55,7 @@ export const useClaimableRewards = (userId: string | undefined) => {
     
     setIsClaiming(true);
     try {
+      console.log("Claiming reward:", rewardId);
       const success = await claimReward(rewardId);
       
       if (success) {
