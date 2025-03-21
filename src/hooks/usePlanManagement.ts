@@ -43,7 +43,7 @@ export const usePlanManagement = (userId: string | undefined) => {
       console.log(`[CRITICAL] Saving active plan for user ${userId}`);
       await saveActivePlan(userId, newPlan);
       
-      // Then process rewards (first day earnings, etc.)
+      // Then process rewards (initialize claimable rewards)
       console.log(`[CRITICAL] Processing plan purchase rewards for user ${userId}`);
       console.log(`[REFERRAL DEBUG] Plan parameters: price=${planPrice}, dailyEarnings=${dailyEarnings}, planId=${planId}`);
       const updatedUser = await addPlanPurchaseRewards(
@@ -54,7 +54,6 @@ export const usePlanManagement = (userId: string | undefined) => {
       );
       
       console.log(`[CRITICAL] Plan purchase rewards processed. Updated user:`, updatedUser);
-      console.log(`[CRITICAL] User USDT earnings after update: ${updatedUser?.usdtEarnings}`);
       
       return newPlan;
     } catch (error) {

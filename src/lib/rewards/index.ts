@@ -3,7 +3,19 @@
 export * from './dateUtils';
 export * from './rewardsTracking';
 export * from './taskManagement';
-export * from './usdtEarnings'; // This now re-exports from all the smaller modules
 export * from './referralCommissions';
 export * from './notificationService';
 
+// Export earningsUpdater separately to avoid ambiguous exports
+import { updateUsdtEarningsInternal } from './earningsUpdater';
+export { updateUsdtEarningsInternal };
+
+// Export from usdtEarnings without the updateUsdtEarnings that would cause a conflict
+import * as UsdtEarningsModule from './usdtEarnings';
+export const { 
+  recordUsdtTransaction,
+  getUserUsdtTransactions
+} = UsdtEarningsModule;
+
+// Export the new claimable rewards functionality
+export * from './claimableRewards';

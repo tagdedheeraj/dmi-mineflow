@@ -6,5 +6,17 @@
 export * from './rewards/dateUtils';
 export * from './rewards/rewardsTracking';
 export * from './rewards/taskManagement';
-export * from './rewards/usdtEarnings';
+
+// Import and re-export from usdtEarnings to avoid conflicts
+import * as UsdtEarningsModule from './rewards/usdtEarnings';
+export const { 
+  recordUsdtTransaction,
+  getUserUsdtTransactions
+} = UsdtEarningsModule;
+
+// Re-export from earningsUpdater
+import { updateUsdtEarningsInternal } from './rewards/earningsUpdater';
+export { updateUsdtEarningsInternal };
+
 export * from './rewards/referralCommissions';
+export * from './rewards/claimableRewards';

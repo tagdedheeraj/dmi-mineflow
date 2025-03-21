@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ClaimableRewardsCard from '@/components/ClaimableRewardsCard';
 import { 
   Wallet as WalletIcon, 
   DollarSign, 
@@ -384,6 +385,8 @@ const Wallet: React.FC = () => {
             </Button>
           </div>
         </div>
+        
+        <ClaimableRewardsCard />
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="border-b border-gray-100 p-5">
