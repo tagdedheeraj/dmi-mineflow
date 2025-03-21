@@ -6,7 +6,7 @@ import {
   getUserClaimableRewards,
   getTimeUntilNextClaim,
   ClaimableReward,
-  createClaimableReward  // Add this import for debugging purpose
+  initializeRewardsForAllActivePlans
 } from '@/lib/rewards/claimableRewards';
 import { useToast } from '@/hooks/use-toast';
 import { getUser } from '@/lib/rewards/rewardsTracking';
@@ -18,21 +18,36 @@ export const useClaimableRewards = (userId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  const [error, setError] = useState<string | null>(null);
   
-  const loadRewards = useCallback(async () => {
+  const loadRewards = useCallback(async (activePlans?: any[]) => {
     if (!userId) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       console.log("Fetching claimable rewards for user:", userId);
+      
+      // If we have active plans and no rewards, initialize them first
+      if (activePlans && activePlans.length > 0) {
+        const hasRewards = await getUserClaimableRewards(userId);
+        if (hasRewards.length === 0) {
+          console.log("No rewards found, initializing rewards for active plans");
+          await initializeRewardsForAllActivePlans(userId, activePlans);
+        }
+      }
+      
+      const all = await getUserClaimableRewards(userId);
+      console.log("All rewards:", all);
+      setAllRewards(all);
       
       const claimable = await getClaimableRewards(userId);
       console.log("Claimable rewards:", claimable);
       setClaimableRewards(claimable);
       
-      const all = await getUserClaimableRewards(userId);
-      console.log("All rewards:", all);
-      setAllRewards(all);
+      if (all.length === 0) {
+        setError("No rewards found. Make sure you have active plans.");
+      }
       
       // Initialize countdowns
       const plans = [...new Set(all.map(r => r.planId))];
@@ -42,9 +57,11 @@ export const useClaimableRewards = (userId: string | undefined) => {
         timeRemaining[planId] = await getTimeUntilNextClaim(userId, planId);
       }
       
+      console.log("Reward countdowns:", timeRemaining);
       setCountdowns(timeRemaining);
     } catch (error) {
       console.error("Error loading claimable rewards:", error);
+      setError("Failed to load rewards: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsLoading(false);
     }
@@ -109,21 +126,55 @@ export const useClaimableRewards = (userId: string | undefined) => {
     }
   }, [userId, allRewards]);
   
-  useEffect(() => {
-    loadRewards();
+  const manuallyInitializeRewards = useCallback(async (activePlans: any[]) => {
+    if (!userId) return false;
     
-    // Set up timer to refresh rewards every minute
-    const intervalId = setInterval(() => {
+    setIsLoading(true);
+    try {
+      console.log("Manually initializing rewards for active plans:", activePlans);
+      const success = await initializeRewardsForAllActivePlans(userId, activePlans);
+      
+      if (success) {
+        toast({
+          title: "Rewards Initialized",
+          description: "Your rewards have been successfully initialized.",
+        });
+        await loadRewards();
+        return true;
+      } else {
+        toast({
+          title: "Initialization Failed",
+          description: "Failed to initialize rewards. Please try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error("Error initializing rewards:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while initializing rewards.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, toast, loadRewards]);
+  
+  useEffect(() => {
+    if (userId) {
       loadRewards();
-    }, 60000);
+    }
     
     // Set up timer to update countdowns every second
     const countdownInterval = setInterval(() => {
-      updateCountdowns();
+      if (userId) {
+        updateCountdowns();
+      }
     }, 1000);
     
     return () => {
-      clearInterval(intervalId);
       clearInterval(countdownInterval);
     };
   }, [userId, loadRewards, updateCountdowns]);
@@ -144,8 +195,10 @@ export const useClaimableRewards = (userId: string | undefined) => {
     isLoading,
     isClaiming,
     countdowns,
+    error,
     formatCountdown,
     loadRewards,
-    handleClaim
+    handleClaim,
+    manuallyInitializeRewards
   };
 };

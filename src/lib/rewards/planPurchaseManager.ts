@@ -1,3 +1,4 @@
+
 import { 
   doc, 
   getDoc, 
@@ -87,7 +88,11 @@ export const handlePlanPurchase = async (
 
     if (!rewardsInitialized) {
       console.error(`Failed to initialize claimable rewards for user ${userId}, plan ${planId}`);
+      return false;
     }
+
+    // Mark the plan as purchased today
+    await markPlanAsPurchasedToday(userId, planId);
 
     console.log(`Plan purchase processed successfully for user ${userId}, plan ${planId}`);
     return true;
@@ -95,4 +100,51 @@ export const handlePlanPurchase = async (
     console.error('Error handling plan purchase:', error);
     return false;
   }
+};
+
+// Function to ensure all active plans have claimable rewards
+export const ensureClaimableRewardsForActivePlans = async (userId: string, activePlans: any[]): Promise<boolean> => {
+  try {
+    console.log(`Ensuring all active plans have claimable rewards for user ${userId}`);
+    let success = true;
+    
+    for (const plan of activePlans) {
+      // Check if plan is still active
+      const expiryDate = new Date(plan.expiresAt);
+      const now = new Date();
+      
+      if (now < expiryDate) {
+        const planInfo = miningPlans.find(p => p.id === plan.id);
+        if (!planInfo) continue;
+        
+        // Check if rewards exist for this plan
+        const hasRewards = await hasClaimableRewardsForPlan(userId, plan.id);
+        
+        if (!hasRewards) {
+          console.log(`No claimable rewards found for plan ${plan.id}, initializing...`);
+          const initialized = await initializeClaimableRewards(
+            userId,
+            plan.id,
+            planInfo.dailyEarnings
+          );
+          
+          if (!initialized) {
+            console.error(`Failed to initialize rewards for plan ${plan.id}`);
+            success = false;
+          }
+        }
+      }
+    }
+    
+    return success;
+  } catch (error) {
+    console.error("Error ensuring claimable rewards for active plans:", error);
+    return false;
+  }
+};
+
+// Function to check if claimable rewards exist
+export const hasClaimableRewardsForPlan = async (userId: string, planId: string): Promise<boolean> => {
+  const { hasClaimableRewardsForPlan } = await import('./claimableRewards');
+  return hasClaimableRewardsForPlan(userId, planId);
 };

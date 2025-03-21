@@ -1,5 +1,5 @@
 
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from './config';
 
 // Helper function for USDT transactions
@@ -35,9 +35,7 @@ export const getUserTransactions = async (userId: string) => {
     const q = query(
       transactionsCollection,
       where("userId", "==", userId),
-      // Order by timestamp descending (newest first)
-      // @ts-ignore - Temporary to avoid TS errors
-      where("timestamp", "!=", null)
+      orderBy("timestamp", "desc")
     );
     
     const querySnapshot = await getDocs(q);
@@ -46,8 +44,7 @@ export const getUserTransactions = async (userId: string) => {
       ...doc.data()
     }));
     
-    // Sort by timestamp descending
-    return transactions.sort((a: any, b: any) => b.timestamp - a.timestamp);
+    return transactions;
   } catch (error) {
     console.error("Error getting user transactions:", error);
     return [];

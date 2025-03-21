@@ -29,7 +29,14 @@ export const addPlanPurchaseRewards = async (
     
     if (!rewardCreated) {
       console.error(`[PLAN PURCHASE] Failed to create claimable reward for user ${userId}`);
-      return null;
+      // Attempt to create it one more time
+      console.log(`[PLAN PURCHASE] Retrying to create claimable reward`);
+      const retrySuccess = await initializeClaimableRewards(userId, planId, dailyEarnings);
+      
+      if (!retrySuccess) {
+        console.error(`[PLAN PURCHASE] Failed to create claimable reward after retry`);
+        return null;
+      }
     }
     
     // Get the current user data

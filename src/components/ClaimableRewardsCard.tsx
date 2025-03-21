@@ -2,32 +2,37 @@
 import React, { useEffect } from 'react';
 import { useClaimableRewards } from '@/hooks/useClaimableRewards';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMining } from '@/contexts/MiningContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Gift, AlertCircle, RefreshCw } from 'lucide-react';
+import { Clock, Gift, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { ClaimableReward } from '@/lib/rewards/claimableRewards';
+import { miningPlans } from '@/data/miningPlans';
 
 const ClaimableRewardsCard = () => {
   const { user, updateUser } = useAuth();
+  const { activePlans } = useMining();
   const { 
     claimableRewards, 
     allRewards,
     isLoading, 
     isClaiming, 
     countdowns,
+    error,
     formatCountdown,
     loadRewards, 
-    handleClaim 
+    handleClaim,
+    manuallyInitializeRewards
   } = useClaimableRewards(user?.id);
 
   // Force a refresh when the component mounts
   useEffect(() => {
     if (user?.id) {
-      console.log("ClaimableRewardsCard mounted, forcing initial rewards refresh");
-      loadRewards();
+      console.log("ClaimableRewardsCard mounted, forcing initial rewards refresh with active plans:", activePlans);
+      loadRewards(activePlans);
     }
-  }, [user?.id, loadRewards]);
+  }, [user?.id, loadRewards, activePlans]);
 
   const claimReward = async (reward: ClaimableReward) => {
     if (!reward.id) return;
@@ -39,8 +44,13 @@ const ClaimableRewardsCard = () => {
   };
 
   const handleRefresh = () => {
-    console.log("Manually refreshing rewards");
-    loadRewards();
+    console.log("Manually refreshing rewards with active plans:", activePlans);
+    loadRewards(activePlans);
+  };
+
+  const initializeRewards = async () => {
+    console.log("Manually initializing rewards for active plans:", activePlans);
+    await manuallyInitializeRewards(activePlans);
   };
 
   // Group rewards by plan
@@ -54,12 +64,17 @@ const ClaimableRewardsCard = () => {
   });
 
   console.log("Current user:", user?.id);
+  console.log("Active plans:", activePlans);
   console.log("All rewards:", allRewards);
   console.log("Rewards by plan:", rewardsByPlan);
   console.log("Current countdowns:", countdowns);
   console.log("Is loading:", isLoading);
 
   if (!user) return null;
+
+  const checkPlanInfo = (planId: string) => {
+    return miningPlans.find(p => p.id === planId);
+  };
 
   return (
     <Card className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
@@ -91,15 +106,28 @@ const ClaimableRewardsCard = () => {
           <div className="text-center py-6">
             <p className="text-gray-500">Loading rewards...</p>
           </div>
+        ) : error ? (
+          <div className="text-center py-6 space-y-3">
+            <AlertCircle className="h-8 w-8 text-amber-500 mx-auto" />
+            <p className="text-gray-600">{error}</p>
+            {activePlans.length > 0 && (
+              <Button onClick={initializeRewards} size="sm">
+                Initialize Rewards
+              </Button>
+            )}
+          </div>
         ) : Object.keys(rewardsByPlan).length > 0 ? (
           <div className="space-y-4">
             {Object.entries(rewardsByPlan).map(([planId, rewards]) => {
               // Find the first unclaimed reward for this plan
               const unclaimedReward = rewards.find(r => !r.claimed);
-              const planName = rewards[0]?.planName || "Mining Plan";
-              const dailyAmount = rewards[0]?.amount || 0;
+              const activePlan = activePlans.find(p => p.id === planId);
+              const planInfo = checkPlanInfo(planId);
+              const planName = rewards[0]?.planName || planInfo?.name || "Mining Plan";
+              const dailyAmount = rewards[0]?.amount || planInfo?.dailyEarnings || 0;
               const countdown = countdowns[planId] || 0;
               const isClaimable = unclaimedReward && countdown <= 0;
+              const isExpired = activePlan ? new Date() > new Date(activePlan.expiresAt) : false;
               
               return (
                 <div key={planId} className="bg-gray-50 rounded-lg p-4">
@@ -107,9 +135,19 @@ const ClaimableRewardsCard = () => {
                     <div>
                       <h3 className="font-medium">{planName}</h3>
                       <p className="text-sm text-gray-500">Daily reward: {formatCurrency(dailyAmount)}</p>
+                      {activePlan && !isExpired && (
+                        <div className="flex items-center mt-1 bg-blue-50 px-2 py-1 rounded text-xs text-blue-700">
+                          <Zap className="h-3 w-3 mr-1" />
+                          <span>{activePlan.boostMultiplier}x Boost</span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-sm">
-                      {countdown > 0 ? (
+                      {isExpired ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Plan Expired
+                        </span>
+                      ) : countdown > 0 ? (
                         <div className="flex items-center text-amber-600">
                           <Clock className="h-4 w-4 mr-1" />
                           <span>{formatCountdown(countdown)}</span>
@@ -125,7 +163,11 @@ const ClaimableRewardsCard = () => {
                   </div>
                   
                   <div className="mt-4">
-                    {isClaimable ? (
+                    {isExpired ? (
+                      <Button className="w-full" variant="outline" disabled>
+                        Plan Expired
+                      </Button>
+                    ) : isClaimable && unclaimedReward ? (
                       <Button 
                         className="w-full"
                         onClick={() => claimReward(unclaimedReward)}
@@ -142,6 +184,14 @@ const ClaimableRewardsCard = () => {
                 </div>
               );
             })}
+          </div>
+        ) : activePlans.length > 0 ? (
+          <div className="text-center py-6 space-y-3">
+            <AlertCircle className="h-8 w-8 text-amber-500 mx-auto" />
+            <p className="text-gray-600">No rewards found for your active plans</p>
+            <Button onClick={initializeRewards} size="sm">
+              Initialize Rewards
+            </Button>
           </div>
         ) : (
           <div className="text-center py-6 space-y-2">

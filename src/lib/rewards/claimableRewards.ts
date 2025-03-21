@@ -43,7 +43,8 @@ export const getUserClaimableRewards = async (userId: string): Promise<Claimable
     const rewardsRef = collection(db, 'claimableRewards');
     const q = query(
       rewardsRef, 
-      where('userId', '==', userId)
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
     );
     
     const querySnapshot = await getDocs(q);
@@ -275,7 +276,9 @@ export const getTimeUntilNextClaim = async (userId: string, planId: string): Pro
       rewardsRef, 
       where('userId', '==', userId),
       where('planId', '==', planId),
-      where('claimed', '==', false)
+      where('claimed', '==', false),
+      orderBy('claimableAt', 'asc'),
+      limit(1)
     );
     
     const querySnapshot = await getDocs(q);
@@ -285,29 +288,50 @@ export const getTimeUntilNextClaim = async (userId: string, planId: string): Pro
       return 0; // No pending rewards
     }
     
-    let earliestClaimTime: Date | null = null;
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const claimableAt = data.claimableAt.toDate();
-      
-      if (earliestClaimTime === null || claimableAt < earliestClaimTime) {
-        earliestClaimTime = claimableAt;
-      }
-    });
-    
-    if (earliestClaimTime === null) {
-      return 0;
-    }
+    const reward = querySnapshot.docs[0].data();
+    const claimableAt = reward.claimableAt.toDate();
     
     const now = new Date();
-    const diffInSeconds = Math.max(0, Math.floor((earliestClaimTime.getTime() - now.getTime()) / 1000));
+    const diffInSeconds = Math.max(0, Math.floor((claimableAt.getTime() - now.getTime()) / 1000));
     
-    console.log(`Time until next claim: ${diffInSeconds} seconds`);
+    console.log(`Time until next claim: ${diffInSeconds} seconds for plan ${planId}`);
     return diffInSeconds;
   } catch (error) {
     console.error("Error calculating time until next claim:", error);
     return 0;
+  }
+};
+
+// Manually initialize rewards for all active plans
+export const initializeRewardsForAllActivePlans = async (userId: string, activePlans: any[]): Promise<boolean> => {
+  try {
+    console.log(`Initializing rewards for all active plans for user ${userId}`);
+    
+    for (const plan of activePlans) {
+      // Check if the plan is still active
+      const now = new Date();
+      const expiresAt = new Date(plan.expiresAt);
+      
+      if (now < expiresAt) {
+        const planInfo = miningPlans.find(p => p.id === plan.id);
+        
+        if (planInfo && planInfo.dailyEarnings > 0) {
+          console.log(`Initializing rewards for plan ${plan.id} with daily earnings ${planInfo.dailyEarnings}`);
+          
+          // Check if rewards already exist for this plan
+          const hasRewards = await hasClaimableRewardsForPlan(userId, plan.id);
+          
+          if (!hasRewards) {
+            await initializeClaimableRewards(userId, plan.id, planInfo.dailyEarnings);
+          }
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error initializing rewards for all active plans:", error);
+    return false;
   }
 };
 
