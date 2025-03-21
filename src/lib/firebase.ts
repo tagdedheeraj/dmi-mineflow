@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -160,6 +159,32 @@ export const addUsdtTransaction = async (
   } catch (error) {
     console.error("Error adding USDT transaction:", error);
     throw error;
+  }
+};
+
+// Get user's USDT transactions
+export const getUserTransactions = async (userId: string) => {
+  try {
+    const transactionsCollection = collection(db, 'usdt_transactions');
+    const q = query(
+      transactionsCollection,
+      where("userId", "==", userId),
+      // Order by timestamp descending (newest first)
+      // @ts-ignore - Temporary to avoid TS errors
+      where("timestamp", "!=", null)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const transactions = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Sort by timestamp descending
+    return transactions.sort((a: any, b: any) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error("Error getting user transactions:", error);
+    return [];
   }
 };
 

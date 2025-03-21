@@ -8,8 +8,9 @@ export * from './dailyEarningsProcessor';
 export * from './referralCommissions';
 
 // Import and re-export addUsdtTransaction and functions that handle USDT transactions from firebase
-import { addUsdtTransaction, getUserTransactions as getUserUsdtTransactions } from '../firebase';
-export { addUsdtTransaction, getUserUsdtTransactions };
+import { addUsdtTransaction, getUserTransactions } from '../firebase';
+export { addUsdtTransaction };
 
-// Define the recordUsdtTransaction as an alias for addUsdtTransaction for backward compatibility
+// Define the getUserUsdtTransactions and recordUsdtTransaction as aliases for backward compatibility
+export const getUserUsdtTransactions = getUserTransactions;
 export const recordUsdtTransaction = addUsdtTransaction;
