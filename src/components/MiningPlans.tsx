@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -276,11 +275,6 @@ const MiningPlans: React.FC = () => {
                 {plan.limitedTo && (
                   <p className="mt-2 text-xs text-red-500 font-medium">{plan.limitedTo}</p>
                 )}
-                
-                <div className="mt-2 p-2 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start">
-                  <Info className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>Earnings must be claimed daily from your wallet after purchase</span>
-                </div>
                 
                 <Button 
                   className="w-full mt-4 flex justify-center items-center space-x-2"
