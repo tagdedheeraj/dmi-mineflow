@@ -17,7 +17,8 @@ import {
   Lock,
   History,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
@@ -36,6 +37,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { canClaimPlanEarnings, claimPlanEarnings, getNextClaimTime } from '@/lib/rewards/claimManager';
 
 const PLATFORM_FEE_PERCENTAGE = 5;
 
@@ -56,6 +58,12 @@ const Wallet: React.FC = () => {
   const [planDaysRemaining, setPlanDaysRemaining] = useState<Record<string, number>>({});
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [claimableStatus, setClaimableStatus] = useState<Record<string, {
+    canClaim: boolean;
+    nextClaimTime: Date | null;
+    isLoading: boolean;
+  }>>({});
+  const [isClaimingPlan, setIsClaimingPlan] = useState<string | null>(null);
 
   const dailyDmiEarnings = miningRate * 24;
   const weeklyDmiEarnings = dailyDmiEarnings * 7;
@@ -127,6 +135,58 @@ const Wallet: React.FC = () => {
     
     return () => clearInterval(intervalId);
   }, [activePlans]);
+
+  useEffect(() => {
+    const checkClaimStatus = async () => {
+      if (!user) return;
+      
+      const newStatus: Record<string, any> = {};
+      
+      for (const plan of activePlans) {
+        if (new Date() >= new Date(plan.expiresAt)) continue;
+        
+        newStatus[plan.id] = {
+          canClaim: false,
+          nextClaimTime: null,
+          isLoading: true
+        };
+      }
+      
+      setClaimableStatus(newStatus);
+      
+      for (const plan of activePlans) {
+        if (new Date() >= new Date(plan.expiresAt)) continue;
+        
+        try {
+          const canClaim = await canClaimPlanEarnings(user.id, plan.id);
+          const nextTime = await getNextClaimTime(user.id, plan.id);
+          
+          setClaimableStatus(prev => ({
+            ...prev,
+            [plan.id]: {
+              canClaim,
+              nextClaimTime: nextTime,
+              isLoading: false
+            }
+          }));
+        } catch (error) {
+          console.error(`Error checking claim status for plan ${plan.id}:`, error);
+          setClaimableStatus(prev => ({
+            ...prev,
+            [plan.id]: {
+              canClaim: false,
+              nextClaimTime: null,
+              isLoading: false
+            }
+          }));
+        }
+      }
+    };
+    
+    if (user && activePlans.length > 0) {
+      checkClaimStatus();
+    }
+  }, [user, activePlans, refreshTrigger]);
 
   useEffect(() => {
     const fee = (withdrawalAmount * PLATFORM_FEE_PERCENTAGE) / 100;
@@ -276,6 +336,77 @@ const Wallet: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleClaimEarnings = async (planId: string) => {
+    if (!user || isClaimingPlan) return;
+    
+    const planInfo = miningPlans.find(p => p.id === planId);
+    if (!planInfo) {
+      console.error(`Plan with ID ${planId} not found`);
+      return;
+    }
+    
+    setIsClaimingPlan(planId);
+    
+    try {
+      const success = await claimPlanEarnings(user.id, planId, planInfo.dailyEarnings);
+      
+      if (success) {
+        const updatedUser = await getUser(user.id);
+        if (updatedUser) {
+          updateUser(updatedUser);
+        }
+        
+        toast({
+          title: "USDT Claimed!",
+          description: `You have successfully claimed ${formatCurrency(planInfo.dailyEarnings)} from your ${planInfo.name}.`,
+        });
+        
+        setClaimableStatus(prev => ({
+          ...prev,
+          [planId]: {
+            ...prev[planId],
+            canClaim: false,
+            nextClaimTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          }
+        }));
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: "There was an error claiming your USDT. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error claiming USDT earnings:", error);
+      toast({
+        title: "Claim Error",
+        description: "There was an error processing your claim. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClaimingPlan(null);
+      setRefreshTrigger(prev => prev + 1);
+    }
+  };
+
+  const formatClaimTime = (date: Date | null) => {
+    if (!date) return "Unknown";
+    
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    
+    if (diff <= 0) return "Available now";
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `Available in ${hours}h ${minutes}m`;
+    } else {
+      return `Available in ${minutes}m`;
     }
   };
 
@@ -531,6 +662,7 @@ const Wallet: React.FC = () => {
                   const daysRemaining = planDaysRemaining[plan.id] || 0;
                   const totalDays = planInfo?.duration || 30;
                   const progressPercent = Math.max(0, Math.min(100, (daysRemaining / totalDays) * 100));
+                  const claimStatus = claimableStatus[plan.id] || { canClaim: false, nextClaimTime: null, isLoading: true };
                   
                   return (
                     <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
@@ -559,6 +691,38 @@ const Wallet: React.FC = () => {
                           <div className="col-span-2 mt-1">
                             Plan cost: <span className="text-gray-800 font-medium">{formatCurrency(plan.planCost)}</span>
                           </div>
+                        )}
+                      </div>
+                      
+                      <div className="mt-4">
+                        {claimStatus.isLoading ? (
+                          <Button className="w-full" disabled>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Checking...
+                          </Button>
+                        ) : claimStatus.canClaim ? (
+                          <Button 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => handleClaimEarnings(plan.id)}
+                            disabled={isClaimingPlan !== null}
+                          >
+                            {isClaimingPlan === plan.id ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Claiming...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Claim {formatCurrency(planInfo?.dailyEarnings || 0)} USDT
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button className="w-full" disabled>
+                            <Clock className="h-4 w-4 mr-2" />
+                            {formatClaimTime(claimStatus.nextClaimTime)}
+                          </Button>
                         )}
                       </div>
                       
@@ -639,7 +803,6 @@ const Wallet: React.FC = () => {
           </div>
         </div>
 
-        {/* Withdrawal Amount Modal */}
         <Dialog open={isWithdrawalModalOpen} onOpenChange={setIsWithdrawalModalOpen}>
           <DialogContent>
             <DialogHeader>

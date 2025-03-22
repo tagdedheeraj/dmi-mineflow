@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -135,6 +136,7 @@ export const miningSessionsCollection = collection(db, 'mining_sessions');
 export const deviceRegistrationsCollection = collection(db, 'device_registrations');
 export const plansCollection = collection(db, 'plans');
 export const membershipCardsCollection = collection(db, 'membership_cards');
+export const planClaimsCollection = collection(db, 'plan_claims');
 
 // Helper function for USDT transactions
 export const addUsdtTransaction = async (
@@ -303,6 +305,15 @@ export const deleteUserAccount = async (userId: string): Promise<boolean> => {
     const withdrawalsSnapshot = await getDocs(withdrawalsQuery);
     const withdrawalDeletePromises = withdrawalsSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(withdrawalDeletePromises);
+    
+    // Delete user's plan claims
+    const claimsQuery = query(
+      collection(db, 'plan_claims'),
+      where("userId", "==", userId)
+    );
+    const claimsSnapshot = await getDocs(claimsQuery);
+    const claimDeletePromises = claimsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(claimDeletePromises);
     
     console.log(`Successfully deleted user account and related data: ${userId}`);
     return true;

@@ -8,6 +8,7 @@ import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseM
 import { updateLastUsdtUpdateDate } from './dateTracking';
 import { updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { recordPlanClaim } from './claimManager';
 
 // Enhanced function for plan purchase rewards with duplicate prevention
 export const addPlanPurchaseRewards = async (
@@ -55,6 +56,9 @@ export const addPlanPurchaseRewards = async (
     }
     
     console.log(`[CRITICAL PLAN PURCHASE] Updated USDT earnings: ${updatedUser.usdtEarnings}`);
+    
+    // Record the first day claim automatically to start the 24-hour countdown
+    await recordPlanClaim(userId, planId, dailyEarnings);
     
     // Check if the user has a referral connection
     const hasReferralConnection = await verifyReferralConnection(userId);

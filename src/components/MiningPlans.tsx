@@ -117,7 +117,7 @@ const MiningPlans: React.FC = () => {
         
         toast({
           title: "Plan activated!",
-          description: `Your ${selectedPlan.name} has been successfully activated and your first day's earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT have been added to your wallet.`,
+          description: `Your ${selectedPlan.name} has been successfully activated and your first day's earnings of $${selectedPlan.dailyEarnings.toFixed(2)} USDT have been added to your wallet. Future earnings need to be claimed daily.`,
         });
       }
     } catch (error) {
@@ -220,14 +220,13 @@ const MiningPlans: React.FC = () => {
             <div className="mt-3 space-y-2">
               <div className="text-sm bg-green-100 p-2 rounded-md text-green-700">
                 <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-                <p className="text-xs mt-1">You receive daily USDT earnings from each active plan</p>
+                <p className="text-xs mt-1">You need to claim daily USDT earnings from each active plan in your wallet</p>
               </div>
               
               <div className="flex items-center text-xs bg-blue-50 p-2 rounded-md text-blue-700">
                 <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
                 <span>
-                  Daily earnings are automatically credited at {dailyEarningsUpdateTime} every day
-                  (Indian Standard Time)
+                  Visit your wallet daily to claim USDT earnings from your active plans
                 </span>
               </div>
             </div>
@@ -277,6 +276,11 @@ const MiningPlans: React.FC = () => {
                 {plan.limitedTo && (
                   <p className="mt-2 text-xs text-red-500 font-medium">{plan.limitedTo}</p>
                 )}
+                
+                <div className="mt-2 p-2 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start">
+                  <Info className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Earnings must be claimed daily from your wallet after purchase</span>
+                </div>
                 
                 <Button 
                   className="w-full mt-4 flex justify-center items-center space-x-2"

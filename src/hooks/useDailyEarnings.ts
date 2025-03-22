@@ -14,7 +14,7 @@ export const useDailyEarnings = (
 ) => {
   const { toast } = useToast();
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
-  const dailyEarningsUpdateTime = "12:01 AM";
+  const dailyEarningsUpdateTime = "Manual Claim";
 
   const loadLastUpdateDate = useCallback(async () => {
     if (!userId) return;
@@ -32,50 +32,28 @@ export const useDailyEarnings = (
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
     if (!userId || activePlans.length === 0) return;
     
-    console.log("Checking daily USDT earnings...");
+    console.log("Checking daily USDT earnings availability...");
     console.log("Current time (IST):", getISTTimeString(new Date()));
     
     try {
-      const todayIST = getISTDateString(new Date());
-      console.log("Today's date (IST):", todayIST);
-      console.log("Last update date:", lastUsdtEarningsUpdate);
+      const result = await processDailyUsdtEarnings(userId, activePlans, plansData);
       
-      if (lastUsdtEarningsUpdate !== todayIST) {
-        console.log("Processing daily earnings because last update was not today (IST)");
+      if (result.success && result.details.length > 0) {
+        // We're not automatically adding earnings anymore, just logging
+        console.log(`User has ${result.details.length} plans eligible for claims, totaling ${result.totalAmount} USDT`);
         
-        const result = await processDailyUsdtEarnings(userId, activePlans, plansData);
-        
-        if (result.success && result.totalAmount > 0) {
-          const updatedUser = await getUser(userId);
-          if (updatedUser) {
-            updateUser(updatedUser);
-            
-            result.details.forEach(detail => {
-              toast({
-                title: `Daily Earnings from ${detail.planName}`,
-                description: `$${detail.amount.toFixed(2)} USDT has been added to your balance.`,
-              });
-            });
-            
-            if (result.details.length > 1) {
-              toast({
-                title: "Total Daily Earnings Added!",
-                description: `$${result.totalAmount.toFixed(2)} USDT has been added from all your mining plans.`,
-              });
-            }
-            
-            setLastUsdtEarningsUpdate(todayIST);
-          }
-        } else if (result.success) {
-          setLastUsdtEarningsUpdate(todayIST);
+        // Instead of updating directly, we could show a notification guiding the user to the wallet
+        if (result.details.length > 0) {
+          toast({
+            title: "USDT Earnings Available",
+            description: `You have $${result.totalAmount.toFixed(2)} USDT available to claim from your active plans. Visit your wallet to claim them.`,
+          });
         }
-      } else {
-        console.log("Earnings already processed for today (IST)");
       }
     } catch (error) {
-      console.error("Error processing daily USDT earnings:", error);
+      console.error("Error checking daily USDT earning availability:", error);
     }
-  }, [userId, activePlans, lastUsdtEarningsUpdate, toast, updateUser]);
+  }, [userId, activePlans, toast]);
 
   useEffect(() => {
     loadLastUpdateDate();
@@ -88,10 +66,10 @@ export const useDailyEarnings = (
     scheduleNextMidnight: (checkFn: () => void) => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       
-      console.log(`Scheduled next USDT earnings update in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes (at midnight IST)`);
+      console.log(`Scheduled check for claimable earnings in ${Math.floor(timeUntilMidnight / 3600000)} hours and ${Math.floor((timeUntilMidnight % 3600000) / 60000)} minutes (at midnight IST)`);
       
       return setTimeout(() => {
-        console.log("Midnight IST reached, processing USDT earnings...");
+        console.log("Midnight IST reached, checking claimable USDT earnings...");
         checkFn();
       }, timeUntilMidnight);
     }
