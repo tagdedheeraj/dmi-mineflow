@@ -6,6 +6,7 @@ import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/l
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
+import { getNextClaimTime } from '@/lib/rewards/claimManager';
 
 export const useDailyEarnings = (
   userId: string | undefined, 
@@ -14,6 +15,7 @@ export const useDailyEarnings = (
 ) => {
   const { toast } = useToast();
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
+  const [plansClaimTimes, setPlansClaimTimes] = useState<{[planId: string]: Date | null}>({});
   const dailyEarningsUpdateTime = "Manual Claim";
 
   const loadLastUpdateDate = useCallback(async () => {
@@ -28,6 +30,21 @@ export const useDailyEarnings = (
       console.error("Error loading last update date:", error);
     }
   }, [userId]);
+
+  const loadPlanClaimTimes = useCallback(async () => {
+    if (!userId || activePlans.length === 0) return;
+    
+    const claimTimes: {[planId: string]: Date | null} = {};
+    
+    for (const plan of activePlans) {
+      if (new Date() < new Date(plan.expiresAt)) {
+        const nextClaimTime = await getNextClaimTime(userId, plan.id);
+        claimTimes[plan.id] = nextClaimTime;
+      }
+    }
+    
+    setPlansClaimTimes(claimTimes);
+  }, [userId, activePlans]);
 
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
     if (!userId || activePlans.length === 0) return;
@@ -50,19 +67,25 @@ export const useDailyEarnings = (
           });
         }
       }
+      
+      // After checking for earnings, reload the plan claim times
+      await loadPlanClaimTimes();
     } catch (error) {
       console.error("Error checking daily USDT earning availability:", error);
     }
-  }, [userId, activePlans, toast]);
+  }, [userId, activePlans, toast, loadPlanClaimTimes]);
 
   useEffect(() => {
     loadLastUpdateDate();
-  }, [loadLastUpdateDate]);
+    loadPlanClaimTimes();
+  }, [loadLastUpdateDate, loadPlanClaimTimes]);
 
   return {
     lastUsdtEarningsUpdate,
     dailyEarningsUpdateTime,
+    plansClaimTimes,
     checkAndProcessDailyEarnings,
+    refreshClaimTimes: loadPlanClaimTimes,
     scheduleNextMidnight: (checkFn: () => void) => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       
