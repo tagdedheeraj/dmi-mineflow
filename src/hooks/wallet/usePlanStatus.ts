@@ -18,6 +18,7 @@ export const usePlanStatus = (
     canClaim: boolean;
     nextClaimTime: Date | null;
     isLoading: boolean;
+    dailyEarnings: number; // Added daily earnings to the state
   }>>({});
   const [isClaimingPlan, setIsClaimingPlan] = useState<string | null>(null);
 
@@ -56,10 +57,15 @@ export const usePlanStatus = (
       for (const plan of activePlans) {
         if (new Date() >= new Date(plan.expiresAt)) continue;
         
+        // Find the plan info to get daily earnings
+        const planInfo = miningPlans.find(p => p.id === plan.id);
+        const dailyEarnings = planInfo?.dailyEarnings || 0;
+        
         newStatus[plan.id] = {
           canClaim: false,
           nextClaimTime: null,
-          isLoading: true
+          isLoading: true,
+          dailyEarnings // Add daily earnings to the status
         };
       }
       
@@ -72,22 +78,33 @@ export const usePlanStatus = (
           const canClaim = await canClaimPlanEarnings(userId, plan.id);
           const nextTime = await getNextClaimTime(userId, plan.id);
           
+          // Find the plan info to get daily earnings
+          const planInfo = miningPlans.find(p => p.id === plan.id);
+          const dailyEarnings = planInfo?.dailyEarnings || 0;
+          
           setClaimableStatus(prev => ({
             ...prev,
             [plan.id]: {
               canClaim,
               nextClaimTime: nextTime,
-              isLoading: false
+              isLoading: false,
+              dailyEarnings
             }
           }));
         } catch (error) {
           console.error(`Error checking claim status for plan ${plan.id}:`, error);
+          
+          // Still get daily earnings even if there's an error
+          const planInfo = miningPlans.find(p => p.id === plan.id);
+          const dailyEarnings = planInfo?.dailyEarnings || 0;
+          
           setClaimableStatus(prev => ({
             ...prev,
             [plan.id]: {
               canClaim: false,
               nextClaimTime: null,
-              isLoading: false
+              isLoading: false,
+              dailyEarnings
             }
           }));
         }
@@ -109,6 +126,7 @@ export const usePlanStatus = (
       return;
     }
     
+    console.log(`Attempting to claim earnings for plan ${planId} with daily earnings: ${planInfo.dailyEarnings}`);
     setIsClaimingPlan(planId);
     
     try {
@@ -131,6 +149,7 @@ export const usePlanStatus = (
             ...prev[planId],
             canClaim: false,
             nextClaimTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            dailyEarnings: planInfo.dailyEarnings
           }
         }));
       } else {
