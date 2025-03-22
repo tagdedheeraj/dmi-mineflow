@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Pickaxe, Trophy, Wallet, User, Diamond, HelpCircle, X } from 'lucide-react';
+import { Pickaxe, Trophy, Wallet, User, Diamond, HelpCircle, X, Mail, MessageCircle, ExternalLink, BookOpen } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -14,6 +14,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const BottomBar: React.FC = () => {
   const location = useLocation();
@@ -65,37 +75,102 @@ const BottomBar: React.FC = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="fixed bottom-20 right-4 z-50">
-              <Popover open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-                <PopoverTrigger asChild>
+              <Sheet open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+                <SheetTrigger asChild>
                   <Button 
                     className="h-12 w-12 rounded-full bg-dmi text-white shadow-lg hover:bg-dmi/90"
                     onClick={() => setIsHelpOpen(true)}
                   >
                     <HelpCircle className="h-6 w-6" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" side="top">
-                  <div className="flex flex-col p-0">
-                    <div className="flex items-center justify-between bg-dmi text-white p-4 rounded-t-md">
-                      <h3 className="font-medium text-lg">Need Help?</h3>
-                      <Button variant="ghost" size="icon" onClick={() => setIsHelpOpen(false)} className="text-white hover:bg-dmi/90">
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                    <div className="p-4">
-                      <p className="mb-4 text-gray-700">
-                        If you need assistance with your DMI account or have any questions, our support team is ready to help.
-                      </p>
-                      <Button 
-                        onClick={handleEmailSupport} 
-                        className="w-full"
-                      >
-                        Contact Support
-                      </Button>
-                    </div>
+                </SheetTrigger>
+                <SheetContent side="right" className="sm:max-w-md">
+                  <SheetHeader>
+                    <SheetTitle className="text-xl text-dmi flex items-center gap-2">
+                      <HelpCircle className="h-5 w-5" /> DMI Support Center
+                    </SheetTitle>
+                    <SheetDescription>
+                      We're here to help you with any questions or issues you may have.
+                    </SheetDescription>
+                  </SheetHeader>
+                  
+                  <div className="mt-6 space-y-6">
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-medium">Contact Support</CardTitle>
+                        <CardDescription>
+                          Reach out to our support team for personalized assistance
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2">
+                        <div className="flex items-start gap-4 mb-4">
+                          <Mail className="h-5 w-5 text-dmi mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Email Support</p>
+                            <p className="text-sm text-muted-foreground">
+                              Get help with your account, staking, or any technical issues
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button 
+                          onClick={handleEmailSupport} 
+                          className="w-full"
+                        >
+                          <Mail className="mr-2 h-4 w-4" /> Contact Support
+                        </Button>
+                      </CardFooter>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-medium">Help Resources</CardTitle>
+                        <CardDescription>
+                          Find answers to common questions
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2 space-y-4">
+                        <div className="flex items-start gap-4">
+                          <BookOpen className="h-5 w-5 text-dmi mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Knowledge Base</p>
+                            <p className="text-sm text-muted-foreground">
+                              Access tutorials and guides on using DMI platform
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <MessageCircle className="h-5 w-5 text-dmi mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Community Forum</p>
+                            <p className="text-sm text-muted-foreground">
+                              Connect with other users and share experiences
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <ExternalLink className="h-5 w-5 text-dmi mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Social Media</p>
+                            <p className="text-sm text-muted-foreground">
+                              Follow us for latest updates and announcements
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </PopoverContent>
-              </Popover>
+                  
+                  <SheetFooter className="mt-6 flex-col sm:flex-row sm:justify-between sm:space-x-0">
+                    <p className="text-xs text-muted-foreground">
+                      DMI Network Support Team © {new Date().getFullYear()}
+                    </p>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
             </div>
           </TooltipTrigger>
           <TooltipContent side="left">
