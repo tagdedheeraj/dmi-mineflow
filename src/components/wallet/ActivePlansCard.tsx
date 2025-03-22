@@ -14,7 +14,7 @@ interface ActivePlansCardProps {
     canClaim: boolean;
     nextClaimTime: Date | null;
     isLoading: boolean;
-    dailyEarnings: number; // Important: Include this to display correct amount
+    dailyEarnings: number;
   }>;
   isClaimingPlan: string | null;
   onClaimEarnings: (planId: string) => Promise<void>;
@@ -27,24 +27,6 @@ const ActivePlansCard: React.FC<ActivePlansCardProps> = ({
   isClaimingPlan,
   onClaimEarnings
 }) => {
-  const formatClaimTime = (date: Date | null) => {
-    if (!date) return "Unknown";
-    
-    const now = new Date();
-    const diff = date.getTime() - now.getTime();
-    
-    if (diff <= 0) return "Available now";
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 0) {
-      return `Available in ${hours}h ${minutes}m`;
-    } else {
-      return `Available in ${minutes}m`;
-    }
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
       <div className="border-b border-gray-100 p-5">
@@ -101,38 +83,6 @@ const ActivePlansCard: React.FC<ActivePlansCardProps> = ({
                       <div className="col-span-2 mt-1">
                         Plan cost: <span className="text-gray-800 font-medium">{formatCurrency(plan.planCost)}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-4">
-                    {claimStatus.isLoading ? (
-                      <Button className="w-full" disabled>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Checking...
-                      </Button>
-                    ) : claimStatus.canClaim ? (
-                      <Button 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => onClaimEarnings(plan.id)}
-                        disabled={isClaimingPlan !== null}
-                      >
-                        {isClaimingPlan === plan.id ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Claiming...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Claim {formatCurrency(claimStatus.dailyEarnings)} USDT
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <Button className="w-full" disabled>
-                        <Clock className="h-4 w-4 mr-2" />
-                        {formatClaimTime(claimStatus.nextClaimTime)}
-                      </Button>
                     )}
                   </div>
                   

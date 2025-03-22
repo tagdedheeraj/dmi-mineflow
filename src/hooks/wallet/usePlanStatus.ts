@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ActivePlan } from '@/lib/storage';
 import { getUser } from '@/lib/firestore';
-import { canClaimPlanEarnings, getNextClaimTime, claimPlanEarnings } from '@/lib/rewards/claimManager';
+import { getNextClaimTime } from '@/lib/rewards/claimManager';
 import { miningPlans } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 
@@ -77,19 +77,18 @@ export const usePlanStatus = (
         if (new Date() >= new Date(plan.expiresAt)) continue;
         
         try {
-          const canClaim = await canClaimPlanEarnings(userId, plan.id);
           const nextTime = await getNextClaimTime(userId, plan.id);
           
           // Find the plan info to get daily earnings
           const planInfo = miningPlans.find(p => p.id === plan.id);
           const dailyEarnings = planInfo?.dailyEarnings || 0;
           
-          console.log(`Plan ${plan.id} claim status: canClaim=${canClaim}, nextClaimTime=${nextTime}, dailyEarnings=${dailyEarnings}`);
+          console.log(`Plan ${plan.id} status: nextClaimTime=${nextTime}, dailyEarnings=${dailyEarnings}`);
           
           setClaimableStatus(prev => ({
             ...prev,
             [plan.id]: {
-              canClaim,
+              canClaim: false,
               nextClaimTime: nextTime,
               isLoading: false,
               dailyEarnings
@@ -120,66 +119,11 @@ export const usePlanStatus = (
     }
   }, [userId, activePlans, refreshTrigger]);
 
-  // Handle claim earnings
-  const handleClaimEarnings = useCallback(async (planId: string) => {
-    if (!userId || isClaimingPlan) return;
-    
-    const planInfo = miningPlans.find(p => p.id === planId);
-    if (!planInfo) {
-      console.error(`Plan with ID ${planId} not found`);
-      return;
-    }
-    
-    console.log(`Attempting to claim earnings for plan ${planId} with daily earnings: ${planInfo.dailyEarnings}`);
-    setIsClaimingPlan(planId);
-    
-    try {
-      const success = await claimPlanEarnings(userId, planId, planInfo.dailyEarnings);
-      
-      if (success) {
-        const updatedUser = await getUser(userId);
-        if (updatedUser) {
-          updateUser(updatedUser);
-        }
-        
-        toast({
-          title: "USDT Claimed!",
-          description: `You have successfully claimed ${planInfo.dailyEarnings.toFixed(2)} USDT from your ${planInfo.name}.`,
-        });
-        
-        // Update the next claim time to 24 hours from now
-        const nextClaimTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        
-        // Update claim status immediately
-        setClaimableStatus(prev => ({
-          ...prev,
-          [planId]: {
-            ...prev[planId],
-            canClaim: false,
-            nextClaimTime: nextClaimTime,
-            dailyEarnings: planInfo.dailyEarnings
-          }
-        }));
-        
-        console.log(`Claim successful for plan ${planId}. Next claim time set to ${nextClaimTime}`);
-      } else {
-        toast({
-          title: "Claim Failed",
-          description: "There was an error claiming your USDT. Please try again later.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error claiming USDT earnings:", error);
-      toast({
-        title: "Claim Error",
-        description: "There was an error processing your claim. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsClaimingPlan(null);
-    }
-  }, [userId, toast, updateUser, isClaimingPlan]);
+  // Provide a dummy handleClaimEarnings function that does nothing
+  // to maintain compatibility with existing components
+  const handleClaimEarnings = useCallback(async () => {
+    return Promise.resolve();
+  }, []);
 
   return {
     planDaysRemaining,
