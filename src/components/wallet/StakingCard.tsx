@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Coins, Wallet, ArrowUpRight, Copy, Check } from 'lucide-react';
@@ -7,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
 
-// Mock USDT BEP-20 address for demo purposes
-const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
+const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 
 interface StakingCardProps {
   userBalance: number;
@@ -32,13 +30,10 @@ const StakingCard: React.FC<StakingCardProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate daily profit (1% of staked amount)
   const dailyProfit = parseFloat(stakeAmount) * 0.01;
   
-  // Determine if user can withdraw airdrop coins (50% of coins)
   const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || totalStaked >= 250);
   
-  // Calculate withdrawable amount (50% for eligible users)
   const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
 
   const copyToClipboard = () => {
@@ -55,7 +50,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
     const value = e.target.value;
     const numValue = parseFloat(value);
     
-    // Validate input
     if (value === '') {
       setStakeAmount('');
     } else if (!isNaN(numValue) && numValue >= 250 && numValue <= 5000) {
@@ -75,7 +69,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
 
     setIsSubmitting(true);
     
-    // Simulate API call
     setTimeout(() => {
       toast({
         title: "Staking submitted!",
@@ -109,7 +102,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
       
       <div className="p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Staking Form */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-medium mb-2">Stake USDT (BEP-20)</h3>
             <p className="text-sm text-gray-600 mb-4">Minimum $250 - Maximum $5,000</p>
@@ -184,7 +176,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
             </Button>
           </div>
           
-          {/* Staking Stats */}
           <div>
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
               <h3 className="font-medium mb-3">Your Staking Stats</h3>
@@ -204,7 +195,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
               </div>
             </div>
             
-            {/* Airdrop Withdrawal Option */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-start mb-3">
                 <Wallet className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
@@ -213,7 +203,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   <p className="text-xs text-gray-600 mt-1">
                     {canWithdrawAirdrop 
                       ? "You are eligible to withdraw 50% of your DMI coins" 
-                      : "Stake at least $250 or purchase a $500 plan to withdraw airdrop coins"}
+                      : "Stake at least $250 or purchase a $500 plan to withdraw 50% airdrop coins"}
                   </p>
                 </div>
               </div>
@@ -226,7 +216,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   </span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Full withdrawals available after April 10, 2023
+                  50% withdrawals available after April 10, 2025
                 </div>
               </div>
               
