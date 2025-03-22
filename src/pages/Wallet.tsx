@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +14,7 @@ import MiningSpeedCard from '@/components/wallet/MiningSpeedCard';
 import ActivePlansCard from '@/components/wallet/ActivePlansCard';
 import TransactionsCard from '@/components/wallet/TransactionsCard';
 import WithdrawalModal from '@/components/wallet/WithdrawalModal';
+import StakingCard from '@/components/wallet/StakingCard';
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
@@ -63,6 +63,12 @@ const Wallet: React.FC = () => {
     return null;
   }
 
+  // Check if user has a premium plan ($500 or higher)
+  const hasPremiumPlan = activePlans.some(plan => {
+    const planInfo = miningPlans.find(p => p.id === plan.id);
+    return planInfo && planInfo.price >= 500;
+  });
+
   const handleWithdraw = () => {
     setIsWithdrawalModalOpen(true);
   };
@@ -103,6 +109,15 @@ const Wallet: React.FC = () => {
           onRefresh={handleRefresh}
           onAddressUpdate={updateUser}
           onWithdraw={handleWithdraw}
+        />
+        
+        {/* New Staking Card */}
+        <StakingCard 
+          userBalance={user.balance}
+          hasAirdrop={true} // Example: Set based on actual airdrop status
+          hasPremiumPlan={hasPremiumPlan}
+          totalStaked={0} // This would come from actual user staking data
+          totalEarned={0} // This would come from actual user staking earnings
         />
         
         {/* Mining Speed Card */}
