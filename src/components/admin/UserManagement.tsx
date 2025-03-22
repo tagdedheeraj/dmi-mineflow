@@ -114,7 +114,7 @@ const UserManagement: React.FC = () => {
       // Update local state
       const updatedUsers = users.map(user => 
         user.id === selectedUser.id 
-          ? { ...user, suspended: true, suspendedReason } 
+          ? { ...user, suspended: true, suspendedReason: suspensionReason } 
           : user
       );
       setUsers(updatedUsers);
