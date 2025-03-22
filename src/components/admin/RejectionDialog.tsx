@@ -26,6 +26,12 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
   setRejectionReason,
   onReject
 }) => {
+  const handleReject = () => {
+    if (rejectionReason.trim() !== '') {
+      onReject();
+    }
+  };
+
   return (
     <DialogContent>
       <DialogHeader>
@@ -66,8 +72,8 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
         </DialogClose>
         <Button 
           variant="destructive" 
-          onClick={onReject}
-          disabled={!rejectionReason}
+          onClick={handleReject}
+          disabled={!rejectionReason.trim()}
         >
           Confirm Rejection
         </Button>

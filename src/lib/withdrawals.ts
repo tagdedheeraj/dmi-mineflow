@@ -1,3 +1,4 @@
+
 import { 
   collection,
   addDoc,
@@ -15,6 +16,7 @@ import { db } from "./firebase";
 import { WithdrawalRequest } from "./withdrawalTypes";
 import { User } from "./storage";
 import { updateUserBalance, updateUsdtEarnings, getUser, addUsdtTransaction } from "./firestore";
+import { notifyWithdrawalRejected } from "./rewards/notificationService";
 
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');
@@ -178,19 +180,24 @@ export const rejectWithdrawalRequest = async (
   rejectionReason: string
 ): Promise<boolean> => {
   try {
+    console.log(`Starting rejection process for request ${requestId}`);
     const requestRef = doc(db, 'withdrawal_requests', requestId);
     const requestSnap = await getDoc(requestRef);
     
     if (!requestSnap.exists()) {
+      console.error(`Request ${requestId} does not exist`);
       return false;
     }
     
     const request = requestSnap.data() as WithdrawalRequest;
+    console.log(`Request data:`, request);
     
     // Return the USDT to the user's account if rejected
+    console.log(`Returning ${request.amount} USDT to user ${request.userId}`);
     await updateUsdtEarnings(request.userId, request.amount);
     
     // Add a transaction record for the returned amount
+    console.log(`Adding transaction record for returned amount`);
     await addUsdtTransaction(
       request.userId,
       request.amount,
@@ -200,12 +207,26 @@ export const rejectWithdrawalRequest = async (
     );
     
     // Update the request status
+    console.log(`Updating request status to rejected`);
     await updateDoc(requestRef, {
       status: 'rejected',
       processedAt: Date.now(),
       processedBy: adminId,
       rejectionReason: rejectionReason
     });
+    
+    // Send notification to the user
+    try {
+      await notifyWithdrawalRejected(
+        request.userId,
+        request.amount,
+        'USDT',
+        rejectionReason
+      );
+    } catch (notifyError) {
+      console.error("Error sending rejection notification:", notifyError);
+      // Continue with the process even if notification fails
+    }
     
     console.log(`Withdrawal request ${requestId} rejected successfully`);
     return true;

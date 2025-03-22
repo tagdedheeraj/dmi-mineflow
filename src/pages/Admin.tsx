@@ -34,6 +34,7 @@ const Admin: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -117,6 +118,7 @@ const Admin: React.FC = () => {
         });
         setRejectionReason("");
         setSelectedRequest(null);
+        setShowRejectionDialog(false);
         loadWithdrawalRequests(); // Refresh the list after rejection
       } else {
         throw new Error("Failed to reject request.");
@@ -129,6 +131,12 @@ const Admin: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Open rejection dialog
+  const handleOpenRejectionDialog = (request: WithdrawalRequest) => {
+    setSelectedRequest(request);
+    setShowRejectionDialog(true);
   };
 
   // Filter requests based on search term
@@ -194,12 +202,12 @@ const Admin: React.FC = () => {
             pendingRequests={pendingRequests}
             filteredRequests={filteredRequests}
             onApprove={handleApproveRequest}
-            onReject={handleRejectRequest}
+            onReject={handleOpenRejectionDialog}
             setSelectedRequest={setSelectedRequest}
           />
           
           {/* Rejection Dialog */}
-          <Dialog>
+          <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
             <RejectionDialog 
               selectedRequest={selectedRequest}
               rejectionReason={rejectionReason}
