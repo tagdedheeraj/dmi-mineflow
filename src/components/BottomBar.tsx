@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import WarningPopup from './WarningPopup';
 
 const BottomBar: React.FC = () => {
   const location = useLocation();
@@ -60,6 +61,9 @@ const BottomBar: React.FC = () => {
 
   return (
     <>
+      {/* Warning Popup - Positioned above Help Button */}
+      <WarningPopup />
+      
       {/* Help Button */}
       <TooltipProvider>
         <Tooltip>
