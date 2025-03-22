@@ -23,8 +23,8 @@ import { DMI_COIN_VALUE, miningPlans } from '@/data/miningPlans';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { setUsdtAddress, getUser } from '@/lib/firestore';
-import { createWithdrawalRequest, getUserWithdrawalRequests, PLATFORM_FEE_PERCENTAGE } from '@/lib/withdrawals';
-import { WithdrawalRequest } from '@/lib/withdrawals';
+import { createWithdrawalRequest, getUserWithdrawalRequests } from '@/lib/withdrawals';
+import { WithdrawalRequest } from '@/lib/withdrawalTypes';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+
+const PLATFORM_FEE_PERCENTAGE = 5;
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
@@ -719,4 +721,3 @@ const Wallet: React.FC = () => {
 };
 
 export default Wallet;
-
