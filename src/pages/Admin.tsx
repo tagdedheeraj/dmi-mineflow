@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { WithdrawalRequest } from '@/lib/withdrawalTypes';
+import { WithdrawalRequest } from '@/lib/withdrawals';
 import { 
   getAllWithdrawalRequests, 
   getPendingWithdrawalRequests,
