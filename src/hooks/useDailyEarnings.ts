@@ -6,7 +6,7 @@ import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/l
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
-import { getNextClaimTime } from '@/lib/rewards/claimManager';
+import { getNextClaimTime, claimPlanUsdtEarnings } from '@/lib/rewards/claimManager';
 
 export const useDailyEarnings = (
   userId: string | undefined, 
@@ -16,8 +16,10 @@ export const useDailyEarnings = (
   const { toast } = useToast();
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   const [plansClaimTimes, setPlansClaimTimes] = useState<{[planId: string]: Date | null}>({});
+  const [isClaimingPlan, setIsClaimingPlan] = useState<string | null>(null);
   const dailyEarningsUpdateTime = "Manual Claim";
 
+  // Load the last USDT update date
   const loadLastUpdateDate = useCallback(async () => {
     if (!userId) return;
     
@@ -31,6 +33,7 @@ export const useDailyEarnings = (
     }
   }, [userId]);
 
+  // Load claim times for all active plans
   const loadPlanClaimTimes = useCallback(async () => {
     if (!userId || activePlans.length === 0) return;
     
@@ -46,6 +49,58 @@ export const useDailyEarnings = (
     setPlansClaimTimes(claimTimes);
   }, [userId, activePlans]);
 
+  // Handle claiming USDT earnings for a specific plan
+  const claimPlanEarnings = useCallback(async (planId: string, amount: number) => {
+    if (!userId) return false;
+    
+    setIsClaimingPlan(planId);
+    
+    try {
+      const result = await claimPlanUsdtEarnings(userId, planId, amount);
+      
+      if (result.success) {
+        // Update the claim times
+        if (result.nextClaimTime) {
+          setPlansClaimTimes(prev => ({
+            ...prev,
+            [planId]: result.nextClaimTime
+          }));
+        }
+        
+        // Get updated user data
+        const updatedUser = await getUser(userId);
+        if (updatedUser) {
+          updateUser(updatedUser);
+          
+          toast({
+            title: "USDT Claimed Successfully",
+            description: `$${amount} USDT has been added to your balance. Next claim available in 24 hours.`,
+          });
+        }
+        
+        return true;
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: "Unable to claim USDT earnings. Please try again later.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error("Error claiming plan earnings:", error);
+      toast({
+        title: "Claim Error",
+        description: "An error occurred while claiming your earnings.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsClaimingPlan(null);
+    }
+  }, [userId, updateUser, toast]);
+
+  // Process daily USDT earnings (used for checking, not automatic claiming)
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
     if (!userId || activePlans.length === 0) return;
     
@@ -84,8 +139,10 @@ export const useDailyEarnings = (
     lastUsdtEarningsUpdate,
     dailyEarningsUpdateTime,
     plansClaimTimes,
+    isClaimingPlan,
     checkAndProcessDailyEarnings,
     refreshClaimTimes: loadPlanClaimTimes,
+    claimPlanEarnings,
     scheduleNextMidnight: (checkFn: () => void) => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       

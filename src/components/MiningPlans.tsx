@@ -2,18 +2,21 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Check, ArrowRight, Info, Clock, RefreshCw } from 'lucide-react';
+import { Zap, RefreshCw } from 'lucide-react';
 import { miningPlans, MiningPlan, getPlans, reloadPlans } from '@/data/miningPlans';
 import { useToast } from '@/hooks/use-toast';
 import { useMining } from '@/contexts/MiningContext';
-import { formatNumber } from '@/lib/utils';
-import PaymentModal from '@/components/PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUser } from '@/lib/firestore';
+import PaymentModal from '@/components/PaymentModal';
+import MiningBoostCard from './mining/MiningBoostCard';
+import EarningsStatsCard from './mining/EarningsStatsCard';
+import PlansList from './mining/PlansList';
+import LoadingPlans from './mining/LoadingPlans';
 
 const MiningPlans: React.FC = () => {
   const { toast } = useToast();
-  const { updateMiningBoost, activePlans, miningRate, dailyEarningsUpdateTime } = useMining();
+  const { updateMiningBoost, activePlans, miningRate } = useMining();
   const { user, updateUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -143,14 +146,7 @@ const MiningPlans: React.FC = () => {
   const boostPercentage = Math.round((totalBoost * 100) - 100);
 
   if (isLoadingPlans) {
-    return (
-      <div className="w-full rounded-xl overflow-hidden bg-white shadow-md border border-gray-100 p-6 animate-fade-in mt-6">
-        <div className="flex justify-center items-center py-12">
-          <RefreshCw className="h-8 w-8 animate-spin text-dmi" />
-          <span className="ml-2 text-gray-600">Loading plans...</span>
-        </div>
-      </div>
-    );
+    return <LoadingPlans />;
   }
 
   return (
@@ -179,121 +175,24 @@ const MiningPlans: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 bg-gray-50 rounded-lg p-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-gray-500">Your Mining Boost</p>
-              <p className="text-lg font-medium">Faster mining means more earnings</p>
-            </div>
-            <div className="bg-yellow-500/20 text-yellow-700 px-3 py-1 rounded-md font-semibold">
-              {boostPercentage}% Boost
-            </div>
-          </div>
-          
-          <div className="mt-3 text-sm flex items-center text-blue-600 bg-blue-50 p-2 rounded-md">
-            <Info className="h-4 w-4 mr-2" />
-            <span>Your current mining speed is {miningRate.toFixed(2)}x</span>
-          </div>
-        </div>
+        <MiningBoostCard 
+          boostPercentage={boostPercentage} 
+          miningRate={miningRate} 
+        />
         
-        <div className="mt-6 bg-green-50 rounded-lg p-4">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-sm font-medium text-green-700">USDT Earnings from Plans</p>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-white p-2 rounded shadow-sm">
-              <p className="text-xs text-gray-500">Daily</p>
-              <p className="text-green-600 font-bold">${currentDailyEarnings.toFixed(2)}</p>
-            </div>
-            <div className="bg-white p-2 rounded shadow-sm">
-              <p className="text-xs text-gray-500">Weekly</p>
-              <p className="text-green-600 font-bold">${currentWeeklyEarnings.toFixed(2)}</p>
-            </div>
-            <div className="bg-white p-2 rounded shadow-sm">
-              <p className="text-xs text-gray-500">Monthly</p>
-              <p className="text-green-600 font-bold">${currentMonthlyEarnings.toFixed(2)}</p>
-            </div>
-          </div>
-          
-          {activePlans.length > 0 && (
-            <div className="mt-3 space-y-2">
-              <div className="text-sm bg-green-100 p-2 rounded-md text-green-700">
-                <p className="font-medium">Active Plans: {activePlans.filter(plan => new Date() < new Date(plan.expiresAt)).length}</p>
-                <p className="text-xs mt-1">You need to claim daily USDT earnings from each active plan in your wallet</p>
-              </div>
-              
-              <div className="flex items-center text-xs bg-blue-50 p-2 rounded-md text-blue-700">
-                <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                <span>
-                  Visit your wallet daily to claim USDT earnings from your active plans
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+        <EarningsStatsCard
+          currentDailyEarnings={currentDailyEarnings}
+          currentWeeklyEarnings={currentWeeklyEarnings}
+          currentMonthlyEarnings={currentMonthlyEarnings}
+          activePlans={activePlans}
+        />
 
-        <div className="mt-6 grid grid-cols-1 gap-4">
-          {availablePlans.map((plan) => {
-            const isActive = activePlans.some(p => p.id === plan.id && new Date() < new Date(p.expiresAt));
-            
-            return (
-              <div key={plan.id} className={`border rounded-lg p-4 transition-all hover:shadow-md ${isActive ? 'border-green-300 bg-green-50' : 'border-gray-100'}`}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center">
-                      <h4 className="font-medium text-gray-900">{plan.name}</h4>
-                      {isActive && (
-                        <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">{plan.duration} days</p>
-                  </div>
-                  <div className="text-xl font-bold text-gray-900">${plan.price}</div>
-                </div>
-                
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="flex items-center text-sm">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>${plan.dailyEarnings} daily earnings</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>{plan.miningBoost}x faster mining</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>${plan.totalEarnings} total earnings</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>{plan.withdrawalTime}</span>
-                  </div>
-                </div>
-                
-                {plan.limitedTo && (
-                  <p className="mt-2 text-xs text-red-500 font-medium">{plan.limitedTo}</p>
-                )}
-                
-                <div className="mt-2 p-2 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start">
-                  <Info className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>Earnings must be claimed daily from your wallet after purchase</span>
-                </div>
-                
-                <Button 
-                  className="w-full mt-4 flex justify-center items-center space-x-2"
-                  onClick={() => handlePurchase(plan)}
-                  disabled={isProcessing}
-                >
-                  <span>{isProcessing ? 'Processing...' : isActive ? 'Purchase Again' : 'Purchase Now'}</span>
-                  {!isProcessing && <ArrowRight className="h-4 w-4" />}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
+        <PlansList 
+          availablePlans={availablePlans}
+          activePlans={activePlans}
+          isProcessing={isProcessing}
+          onPurchase={handlePurchase}
+        />
       </div>
 
       {showPaymentModal && selectedPlan && (

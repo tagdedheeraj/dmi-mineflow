@@ -1,192 +1,74 @@
 
-import { 
-  doc, 
-  getDoc, 
-  updateDoc,
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-  Timestamp
-} from 'firebase/firestore';
-import { db, addUsdtTransaction } from '../firebase';
-import { getUser } from './rewardsTracking';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 import { updateUsdtEarnings } from './earningsUpdater';
 
-// Function to check if a plan's earnings can be claimed
-export const canClaimPlanEarnings = async (userId: string, planId: string): Promise<boolean> => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      console.error(`User ${userId} does not exist, cannot check claim status`);
-      return false;
-    }
-    
-    // Get the claims collection to check last claim time
-    const claimsCollection = collection(db, 'plan_claims');
-    const q = query(
-      claimsCollection,
-      where("userId", "==", userId),
-      where("planId", "==", planId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      // No claims yet, user can claim
-      console.log(`No previous claims found for plan ${planId}, user can claim`);
-      return true;
-    }
-    
-    // Sort claims by timestamp to get the most recent one
-    const claims = querySnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate() || new Date(0)
-      }))
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    
-    if (claims.length === 0) return true;
-    
-    const lastClaim = claims[0];
-    const lastClaimTime = lastClaim.timestamp;
-    const currentTime = new Date();
-    
-    // Check if 24 hours have passed since last claim
-    const hoursSinceLastClaim = (currentTime.getTime() - lastClaimTime.getTime()) / (1000 * 60 * 60);
-    console.log(`Hours since last claim for plan ${planId}: ${hoursSinceLastClaim}`);
-    
-    return hoursSinceLastClaim >= 24;
-  } catch (error) {
-    console.error("Error checking claim status:", error);
-    return false;
-  }
-};
-
-// Function to record a claim
-export const recordPlanClaim = async (userId: string, planId: string, amount: number): Promise<boolean> => {
-  try {
-    const claimsCollection = collection(db, 'plan_claims');
-    
-    await addDoc(claimsCollection, {
-      userId,
-      planId,
-      amount,
-      timestamp: serverTimestamp()
-    });
-    
-    console.log(`Recorded claim for plan ${planId} by user ${userId} for amount ${amount}`);
-    return true;
-  } catch (error) {
-    console.error("Error recording claim:", error);
-    return false;
-  }
-};
-
-// Function to get the next available claim time for a plan
+// Get the next time a user can claim USDT for a specific plan
 export const getNextClaimTime = async (userId: string, planId: string): Promise<Date | null> => {
   try {
-    const claimsCollection = collection(db, 'plan_claims');
-    const q = query(
-      claimsCollection,
-      where("userId", "==", userId),
-      where("planId", "==", planId)
-    );
+    const claimRef = doc(db, 'users', userId, 'plan_claims', planId);
+    const claimDoc = await getDoc(claimRef);
     
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      // No claims yet, can claim now
-      return new Date();
+    if (claimDoc.exists() && claimDoc.data().nextClaimTime) {
+      return claimDoc.data().nextClaimTime.toDate();
     }
     
-    // Sort claims by timestamp to get the most recent one
-    const claims = querySnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate() || new Date(0)
-      }))
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    
-    if (claims.length === 0) return new Date();
-    
-    const lastClaim = claims[0];
-    const lastClaimTime = lastClaim.timestamp;
-    
-    // Calculate next available claim time (24 hours after last claim)
-    const nextClaimTime = new Date(lastClaimTime.getTime() + (24 * 60 * 60 * 1000));
-    
-    return nextClaimTime;
+    return null; // No claim record exists yet, can claim immediately
   } catch (error) {
-    console.error("Error getting next claim time:", error);
+    console.error(`Error getting next claim time for plan ${planId}:`, error);
     return null;
   }
 };
 
-// Function to claim USDT earnings for a plan
-export const claimPlanEarnings = async (userId: string, planId: string, dailyEarnings: number): Promise<boolean> => {
+// Process a USDT claim for a specific plan
+export const claimPlanUsdtEarnings = async (
+  userId: string, 
+  planId: string, 
+  amount: number
+): Promise<{success: boolean; newUsdtBalance?: number; nextClaimTime?: Date}> => {
   try {
-    // Check if user can claim
-    const canClaim = await canClaimPlanEarnings(userId, planId);
+    console.log(`[CLAIM] Processing USDT claim for user ${userId}, plan ${planId}, amount ${amount}`);
     
-    if (!canClaim) {
-      console.log(`User ${userId} cannot claim earnings for plan ${planId} yet`);
-      return false;
+    // 1. Check if the user can claim (already handled in UI but double-check)
+    const nextClaimTime = await getNextClaimTime(userId, planId);
+    if (nextClaimTime && new Date() < nextClaimTime) {
+      console.log(`[CLAIM] User ${userId} tried to claim before allowed time`);
+      return { 
+        success: false,
+      };
     }
     
-    // Update user's USDT earnings
-    const updatedUser = await updateUsdtEarnings(
-      userId,
-      dailyEarnings,
-      planId,
-      true,
-      'manual_claim'
-    );
+    // 2. Update the user's USDT balance
+    const updatedUser = await updateUsdtEarnings(userId, amount);
     
     if (!updatedUser) {
-      console.error(`Failed to update USDT earnings for user ${userId}`);
-      return false;
+      console.log(`[CLAIM] Failed to update USDT earnings for user ${userId}`);
+      return { success: false };
     }
     
-    // Record the claim
-    const claimRecorded = await recordPlanClaim(userId, planId, dailyEarnings);
-    if (!claimRecorded) {
-      console.error(`Failed to record claim for user ${userId}, plan ${planId}`);
-      // We'll continue anyway since the earnings were already added
-    }
+    // 3. Set the next claim time (24 hours from now)
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setHours(now.getHours() + 24);
     
-    console.log(`Successfully claimed ${dailyEarnings} USDT for plan ${planId} by user ${userId}`);
-    return true;
+    const claimRef = doc(db, 'users', userId, 'plan_claims', planId);
+    await setDoc(claimRef, {
+      lastClaimTime: Timestamp.fromDate(now),
+      nextClaimTime: Timestamp.fromDate(tomorrow),
+      amount: amount,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    console.log(`[CLAIM] Successfully processed claim for user ${userId}, plan ${planId}`);
+    console.log(`[CLAIM] Next claim time set to ${tomorrow.toISOString()}`);
+    
+    return { 
+      success: true, 
+      newUsdtBalance: updatedUser.usdtEarnings,
+      nextClaimTime: tomorrow
+    };
   } catch (error) {
-    console.error("Error claiming plan earnings:", error);
-    return false;
-  }
-};
-
-// Function to get all claims for a user
-export const getUserClaims = async (userId: string): Promise<any[]> => {
-  try {
-    const claimsCollection = collection(db, 'plan_claims');
-    const q = query(
-      claimsCollection,
-      where("userId", "==", userId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate() || null
-    }));
-  } catch (error) {
-    console.error("Error getting user claims:", error);
-    return [];
+    console.error(`[CLAIM] Error processing USDT claim for plan ${planId}:`, error);
+    return { success: false };
   }
 };
