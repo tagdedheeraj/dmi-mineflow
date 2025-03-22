@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, User as UserIcon, Menu, ArrowLeft } from 'lucide-react';
+import { User as UserIcon, Menu, ArrowLeft } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { NotificationsPanel } from './NotificationsPanel';
 
 const Header: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -60,9 +61,7 @@ const Header: React.FC = () => {
             {user ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100" aria-label="Notifications">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                <NotificationsPanel />
                 
                 {/* User menu */}
                 <DropdownMenu>
