@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { clearTaskRewardsCache } from '@/lib/rewards/taskRewards';
 
 interface TaskReward {
   id: string;
@@ -58,13 +59,16 @@ const TaskRewardsManagement: React.FC = () => {
     const loadTaskRewards = async () => {
       setIsLoading(true);
       try {
+        console.log("Loading task rewards from Firestore...");
         const taskRewardsDoc = await getDoc(doc(db, 'app_settings', 'task_rewards'));
         
         if (taskRewardsDoc.exists()) {
           const data = taskRewardsDoc.data();
+          console.log("Task rewards loaded:", data);
           setTaskRewards(data.tasks || DEFAULT_TASK_REWARDS);
         } else {
           // If document doesn't exist, initialize with default values
+          console.log("No task rewards document found, using defaults");
           setTaskRewards(DEFAULT_TASK_REWARDS);
         }
       } catch (error) {
@@ -98,10 +102,14 @@ const TaskRewardsManagement: React.FC = () => {
   const saveTaskRewards = async () => {
     setIsSaving(true);
     try {
+      console.log("Saving task rewards to Firestore:", taskRewards);
       await setDoc(doc(db, 'app_settings', 'task_rewards'), {
         tasks: taskRewards,
         updatedAt: new Date().toISOString()
       });
+      
+      // Clear the cache to force reload of new values
+      clearTaskRewardsCache();
       
       toast({
         title: "Success",

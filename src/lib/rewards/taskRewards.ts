@@ -58,7 +58,5 @@ export const getTaskReward = async (taskId: string): Promise<number> => {
 // Clear the cache to force reload from Firestore
 export const clearTaskRewardsCache = () => {
   cachedRewards = null;
+  console.log("Task rewards cache cleared");
 };
-
-// Add to rewards index export
-export * from './taskRewards';
