@@ -13,8 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { db, deleteUserAccount } from '@/lib/firebase';
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type UserPlan = {
   planId: string;
@@ -38,6 +48,10 @@ const UserManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  
+  // Deletion state
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,6 +171,38 @@ const UserManagement: React.FC = () => {
       setCurrentPage(currentPage - 1);
     }
   };
+  
+  // Handle user deletion
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const success = await deleteUserAccount(userToDelete.id);
+      
+      if (success) {
+        // Remove the user from the local state
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userToDelete.id));
+        
+        toast({
+          title: "User Deleted",
+          description: `User account "${userToDelete.fullName}" has been successfully deleted.`,
+        });
+      } else {
+        throw new Error("Failed to delete user account");
+      }
+    } catch (error) {
+      console.error("Error during user deletion:", error);
+      toast({
+        title: "Deletion Failed",
+        description: "There was an error deleting this user account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setUserToDelete(null);
+    }
+  };
 
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
@@ -201,6 +247,7 @@ const UserManagement: React.FC = () => {
                   <TableHead>USDT</TableHead>
                   <TableHead>Referrals</TableHead>
                   <TableHead>Active Plans</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -213,6 +260,15 @@ const UserManagement: React.FC = () => {
                     <TableCell>{user.referralCount || 0}</TableCell>
                     <TableCell className="max-w-md truncate">
                       {formatPlans(user.activePlans)}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => setUserToDelete(user)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -249,6 +305,30 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </CardContent>
+      
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm User Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete user "{userToDelete?.fullName}"? 
+              This action cannot be undone and will remove all of the user's 
+              data, including mining history, plans, and transactions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

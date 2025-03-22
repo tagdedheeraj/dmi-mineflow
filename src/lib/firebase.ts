@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -10,7 +9,7 @@ import {
   confirmPasswordReset,
   AuthErrorCodes
 } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, addDoc, Timestamp, serverTimestamp, deleteDoc } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -256,6 +255,59 @@ export const activateMembershipCard = async (cardId: string, transactionId: stri
     return true;
   } catch (error) {
     console.error("Error activating membership card:", error);
+    return false;
+  }
+};
+
+// User deletion function
+export const deleteUserAccount = async (userId: string): Promise<boolean> => {
+  try {
+    console.log(`Attempting to delete user account: ${userId}`);
+    
+    // Delete the user document
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+    
+    // Delete user's mining sessions
+    const sessionsQuery = query(
+      collection(db, 'mining_sessions'),
+      where("userId", "==", userId)
+    );
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+    const sessionDeletePromises = sessionsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(sessionDeletePromises);
+    
+    // Delete user's active plans
+    const plansQuery = query(
+      collection(db, 'active_plans'),
+      where("userId", "==", userId)
+    );
+    const plansSnapshot = await getDocs(plansQuery);
+    const planDeletePromises = plansSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(planDeletePromises);
+    
+    // Delete user's USDT transactions
+    const transactionsQuery = query(
+      collection(db, 'usdt_transactions'),
+      where("userId", "==", userId)
+    );
+    const transactionsSnapshot = await getDocs(transactionsQuery);
+    const transactionDeletePromises = transactionsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(transactionDeletePromises);
+    
+    // Delete user's withdrawal requests
+    const withdrawalsQuery = query(
+      collection(db, 'withdrawal_requests'),
+      where("userId", "==", userId)
+    );
+    const withdrawalsSnapshot = await getDocs(withdrawalsQuery);
+    const withdrawalDeletePromises = withdrawalsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(withdrawalDeletePromises);
+    
+    console.log(`Successfully deleted user account and related data: ${userId}`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting user account:", error);
     return false;
   }
 };
