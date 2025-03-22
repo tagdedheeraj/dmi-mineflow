@@ -14,7 +14,7 @@ interface ActivePlansCardProps {
     canClaim: boolean;
     nextClaimTime: Date | null;
     isLoading: boolean;
-    dailyEarnings: number;
+    dailyEarnings: number; // Important: Include this to display correct amount
   }>;
   isClaimingPlan: string | null;
   onClaimEarnings: (planId: string) => Promise<void>;
@@ -94,7 +94,7 @@ const ActivePlansCard: React.FC<ActivePlansCardProps> = ({
                     <div>Expires: {new Date(plan.expiresAt).toLocaleDateString()}</div>
                     {planInfo && (
                       <div className="col-span-2 mt-1">
-                        <span className="text-green-600 font-medium">+{formatCurrency(planInfo.dailyEarnings)}</span> daily earnings
+                        <span className="text-green-600 font-medium">+{formatCurrency(claimStatus.dailyEarnings)}</span> daily earnings
                       </div>
                     )}
                     {plan.planCost > 0 && (

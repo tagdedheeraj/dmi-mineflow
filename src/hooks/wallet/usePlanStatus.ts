@@ -18,7 +18,7 @@ export const usePlanStatus = (
     canClaim: boolean;
     nextClaimTime: Date | null;
     isLoading: boolean;
-    dailyEarnings: number; // Added daily earnings to the state
+    dailyEarnings: number; 
   }>>({});
   const [isClaimingPlan, setIsClaimingPlan] = useState<string | null>(null);
 
@@ -57,15 +57,17 @@ export const usePlanStatus = (
       for (const plan of activePlans) {
         if (new Date() >= new Date(plan.expiresAt)) continue;
         
-        // Find the plan info to get daily earnings
+        // Find the plan info to get daily earnings - ensure this information is loaded correctly
         const planInfo = miningPlans.find(p => p.id === plan.id);
         const dailyEarnings = planInfo?.dailyEarnings || 0;
+        
+        console.log(`Loading plan ${plan.id}, dailyEarnings: ${dailyEarnings}`);
         
         newStatus[plan.id] = {
           canClaim: false,
           nextClaimTime: null,
           isLoading: true,
-          dailyEarnings // Add daily earnings to the status
+          dailyEarnings
         };
       }
       
@@ -81,6 +83,8 @@ export const usePlanStatus = (
           // Find the plan info to get daily earnings
           const planInfo = miningPlans.find(p => p.id === plan.id);
           const dailyEarnings = planInfo?.dailyEarnings || 0;
+          
+          console.log(`Plan ${plan.id} claim status: canClaim=${canClaim}, nextClaimTime=${nextTime}, dailyEarnings=${dailyEarnings}`);
           
           setClaimableStatus(prev => ({
             ...prev,
@@ -143,15 +147,21 @@ export const usePlanStatus = (
           description: `You have successfully claimed ${planInfo.dailyEarnings.toFixed(2)} USDT from your ${planInfo.name}.`,
         });
         
+        // Update the next claim time to 24 hours from now
+        const nextClaimTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        
+        // Update claim status immediately
         setClaimableStatus(prev => ({
           ...prev,
           [planId]: {
             ...prev[planId],
             canClaim: false,
-            nextClaimTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            nextClaimTime: nextClaimTime,
             dailyEarnings: planInfo.dailyEarnings
           }
         }));
+        
+        console.log(`Claim successful for plan ${planId}. Next claim time set to ${nextClaimTime}`);
       } else {
         toast({
           title: "Claim Failed",
