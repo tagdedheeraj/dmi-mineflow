@@ -33,7 +33,7 @@ export const processDailyUsdtEarnings = async (
         continue;
       }
       
-      // Get the plan info
+      // Find the plan info from the plan data array
       const planInfo = plansData.find((p: any) => p.id === plan.id);
       if (planInfo) {
         console.log(`[DAILY EARNINGS] Found plan info for: ${planInfo.name}, dailyEarnings: ${planInfo.dailyEarnings}`);
@@ -52,6 +52,10 @@ export const processDailyUsdtEarnings = async (
     if (earningDetails.length > 0) {
       console.log(`[DAILY EARNINGS] Found ${earningDetails.length} active plans eligible for manual claim`);
       console.log(`[DAILY EARNINGS] Total possible USDT earnings: ${totalDailyEarnings}`);
+      // Log each plan's earnings for debugging
+      earningDetails.forEach(detail => {
+        console.log(`[DAILY EARNINGS] Plan: ${detail.planName}, Amount: ${detail.amount}, ID: ${detail.planId}`);
+      });
       
       return {
         success: true,

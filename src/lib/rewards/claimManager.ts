@@ -14,10 +14,15 @@ import {
 import { db, addUsdtTransaction } from '../firebase';
 import { getUser } from './rewardsTracking';
 import { updateUsdtEarnings } from './earningsUpdater';
+import { awardPlanPurchaseCommission, verifyReferralConnection } from './referralCommissions';
+import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseManager';
+import { updateLastUsdtUpdateDate } from './dateTracking';
+import { recordPlanClaim } from './claimManager';
 
 // Function to check if a plan's earnings can be claimed
 export const canClaimPlanEarnings = async (userId: string, planId: string): Promise<boolean> => {
   try {
+    console.log(`Checking if user ${userId} can claim earnings for plan ${planId}`);
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
@@ -71,6 +76,7 @@ export const canClaimPlanEarnings = async (userId: string, planId: string): Prom
 // Function to record a claim
 export const recordPlanClaim = async (userId: string, planId: string, amount: number): Promise<boolean> => {
   try {
+    console.log(`Recording claim for plan ${planId} by user ${userId} for amount ${amount}`);
     const claimsCollection = collection(db, 'plan_claims');
     
     await addDoc(claimsCollection, {
@@ -91,6 +97,7 @@ export const recordPlanClaim = async (userId: string, planId: string, amount: nu
 // Function to get the next available claim time for a plan
 export const getNextClaimTime = async (userId: string, planId: string): Promise<Date | null> => {
   try {
+    console.log(`Getting next claim time for plan ${planId} by user ${userId}`);
     const claimsCollection = collection(db, 'plan_claims');
     const q = query(
       claimsCollection,
@@ -102,6 +109,7 @@ export const getNextClaimTime = async (userId: string, planId: string): Promise<
     
     if (querySnapshot.empty) {
       // No claims yet, can claim now
+      console.log(`No claims yet for plan ${planId}, can claim now`);
       return new Date();
     }
     
@@ -121,6 +129,7 @@ export const getNextClaimTime = async (userId: string, planId: string): Promise<
     
     // Calculate next available claim time (24 hours after last claim)
     const nextClaimTime = new Date(lastClaimTime.getTime() + (24 * 60 * 60 * 1000));
+    console.log(`Next claim time for plan ${planId}: ${nextClaimTime.toISOString()}`);
     
     return nextClaimTime;
   } catch (error) {
@@ -132,6 +141,7 @@ export const getNextClaimTime = async (userId: string, planId: string): Promise<
 // Function to claim USDT earnings for a plan
 export const claimPlanEarnings = async (userId: string, planId: string, dailyEarnings: number): Promise<boolean> => {
   try {
+    console.log(`Attempting to claim ${dailyEarnings} USDT for plan ${planId} by user ${userId}`);
     // Check if user can claim
     const canClaim = await canClaimPlanEarnings(userId, planId);
     

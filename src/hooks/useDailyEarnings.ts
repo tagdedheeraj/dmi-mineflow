@@ -6,7 +6,7 @@ import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/l
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
-import { getNextClaimTime, canClaimPlanEarnings } from '@/lib/rewards/claimManager';
+import { getNextClaimTime, canClaimPlanEarnings, claimPlanEarnings } from '@/lib/rewards/claimManager';
 
 export const useDailyEarnings = (
   userId: string | undefined, 
@@ -17,6 +17,7 @@ export const useDailyEarnings = (
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   const [plansClaimTimes, setPlansClaimTimes] = useState<{[planId: string]: Date | null}>({});
   const [plansClaimStatus, setPlansClaimStatus] = useState<{[planId: string]: boolean}>({});
+  const [isProcessing, setIsProcessing] = useState(false);
   const dailyEarningsUpdateTime = "Manual Claim";
 
   const loadLastUpdateDate = useCallback(async () => {
@@ -35,6 +36,7 @@ export const useDailyEarnings = (
   const loadPlanClaimTimes = useCallback(async () => {
     if (!userId || activePlans.length === 0) return;
     
+    console.log(`Loading claim times for ${activePlans.length} active plans`);
     const claimTimes: {[planId: string]: Date | null} = {};
     const claimStatuses: {[planId: string]: boolean} = {};
     
@@ -63,8 +65,9 @@ export const useDailyEarnings = (
   }, [userId, activePlans]);
 
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
-    if (!userId || activePlans.length === 0) return;
+    if (!userId || activePlans.length === 0 || isProcessing) return;
     
+    setIsProcessing(true);
     console.log("Checking daily USDT earnings availability...");
     console.log("Current time (IST):", getISTTimeString(new Date()));
     
@@ -88,8 +91,56 @@ export const useDailyEarnings = (
       await loadPlanClaimTimes();
     } catch (error) {
       console.error("Error checking daily USDT earning availability:", error);
+    } finally {
+      setIsProcessing(false);
     }
-  }, [userId, activePlans, toast, loadPlanClaimTimes]);
+  }, [userId, activePlans, toast, loadPlanClaimTimes, isProcessing]);
+
+  // New function to handle plan earnings claiming
+  const handleClaimPlanEarnings = useCallback(async (planId: string, amount: number) => {
+    if (!userId || isProcessing) return false;
+    
+    setIsProcessing(true);
+    try {
+      console.log(`Claiming ${amount} USDT for plan ${planId}`);
+      const success = await claimPlanEarnings(userId, planId, amount);
+      
+      if (success) {
+        // Refresh user data
+        const updatedUser = await getUser(userId);
+        if (updatedUser) {
+          updateUser(updatedUser);
+        }
+        
+        // Update claim status after successful claim
+        await loadPlanClaimTimes();
+        
+        toast({
+          title: "USDT Claimed Successfully",
+          description: `You've successfully claimed $${amount.toFixed(2)} USDT. Next claim available in 24 hours.`,
+        });
+        
+        return true;
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: "Unable to claim USDT at this time. Please try again later.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error("Error claiming plan earnings:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while claiming your USDT earnings.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [userId, isProcessing, updateUser, loadPlanClaimTimes, toast]);
 
   useEffect(() => {
     loadLastUpdateDate();
@@ -102,7 +153,9 @@ export const useDailyEarnings = (
     plansClaimTimes,
     plansClaimStatus,
     checkAndProcessDailyEarnings,
+    claimPlanEarnings: handleClaimPlanEarnings,
     refreshClaimTimes: loadPlanClaimTimes,
+    isProcessing,
     scheduleNextMidnight: (checkFn: () => void) => {
       const timeUntilMidnight = getTimeUntilMidnightIST();
       
