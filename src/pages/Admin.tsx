@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +23,7 @@ import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import PlanManagement from '@/components/admin/PlanManagement';
 import AutomatedArbitragePlan from '@/components/admin/AutomatedArbitragePlan';
+import TaskRewardsManagement from '@/components/admin/TaskRewardsManagement';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -185,6 +185,9 @@ const Admin: React.FC = () => {
         
         {/* User Management Panel */}
         <UserManagement />
+        
+        {/* Task Rewards Management Panel */}
+        <TaskRewardsManagement />
         
         {/* Automated Arbitrage Plan */}
         <AutomatedArbitragePlan />

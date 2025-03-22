@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -6,7 +7,8 @@ import {
   markTaskAsCompleted, 
   saveTaskSubmission, 
   logTaskCompletion,
-  updateUserBalance 
+  updateUserBalance,
+  getTaskReward 
 } from '@/lib/rewards';
 
 export const useTaskCompletion = () => {
@@ -48,30 +50,22 @@ export const useTaskCompletion = () => {
       throw new Error("Task already completed");
     }
     
-    let rewardAmount = 0;
+    // Get the dynamic reward amount for this task
+    const rewardAmount = await getTaskReward(taskId);
     let needsVerification = false;
     
     switch (taskId) {
       case 'telegram_join':
-        rewardAmount = 10;
-        break;
       case 'telegram_share':
-        rewardAmount = 10;
         break;
       case 'youtube_video':
-        rewardAmount = 500;
-        needsVerification = true;
-        break;
       case 'instagram_post':
-        rewardAmount = 100;
-        needsVerification = true;
-        break;
       case 'twitter_post':
-        rewardAmount = 50;
         needsVerification = true;
         break;
       default:
-        rewardAmount = 0;
+        // For any other tasks
+        break;
     }
     
     try {
