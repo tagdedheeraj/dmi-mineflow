@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, LockClosed, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
+const STAKING_UNLOCK_DATE = new Date('2024-08-25T00:00:00Z');
 
 interface StakingCardProps {
   userBalance: number;
@@ -36,6 +37,11 @@ const StakingCard: React.FC<StakingCardProps> = ({
   const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || totalStaked >= 250);
   
   const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
+
+  // Calculate days until unlock
+  const now = new Date();
+  const daysUntilUnlock = Math.ceil((STAKING_UNLOCK_DATE.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const isStakingLocked = now < STAKING_UNLOCK_DATE;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(USDT_ADDRESS);
@@ -87,6 +93,22 @@ const StakingCard: React.FC<StakingCardProps> = ({
     });
   };
 
+  const handleWithdrawStaking = () => {
+    if (isStakingLocked) {
+      toast({
+        title: "Staking Locked",
+        description: `Staked USDT is locked until August 25, 2024`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Withdrawal initiated",
+      description: `Your withdrawal of ${formatCurrency(totalStaked)} USDT is being processed`,
+    });
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
       <div className="border-b border-gray-100 p-5">
@@ -106,6 +128,19 @@ const StakingCard: React.FC<StakingCardProps> = ({
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-medium mb-2">Stake USDT (BEP-20)</h3>
             <p className="text-sm text-gray-600 mb-4">Minimum $250 - Maximum $5,000</p>
+            
+            {/* Staking Lock Period Alert */}
+            <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4">
+              <LockClosed className="h-4 w-4 text-blue-600 mr-2" />
+              <AlertDescription className="text-blue-700 font-medium flex items-center gap-1">
+                <Calendar className="h-4 w-4" /> Staked USDT is locked until August 25, 2024
+                {isStakingLocked && daysUntilUnlock > 0 && (
+                  <span className="ml-1 text-xs bg-blue-100 px-2 py-0.5 rounded">
+                    {daysUntilUnlock} days remaining
+                  </span>
+                )}
+              </AlertDescription>
+            </Alert>
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Amount to Stake (USDT)</label>
@@ -206,7 +241,32 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   <span className="text-gray-600">Daily Rate:</span>
                   <span className="font-medium">1%</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Lock Status:</span>
+                  <span className={`font-medium flex items-center ${isStakingLocked ? 'text-red-500' : 'text-green-500'}`}>
+                    {isStakingLocked ? (
+                      <>
+                        <LockClosed className="h-4 w-4 mr-1" /> Locked until Aug 25
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-1" /> Unlocked
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
+              
+              {/* Staking Withdrawal Button */}
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 flex items-center justify-center"
+                onClick={handleWithdrawStaking}
+                disabled={totalStaked <= 0}
+              >
+                Withdraw Staked USDT <ArrowUpRight className="ml-1 h-4 w-4" />
+                {isStakingLocked && <LockClosed className="ml-1 h-3 w-3 text-red-500" />}
+              </Button>
             </div>
             
             <div className="bg-gray-50 rounded-lg p-4">
