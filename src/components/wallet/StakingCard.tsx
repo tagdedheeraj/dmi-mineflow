@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
-const STAKING_UNLOCK_DATE = new Date('2024-08-25T00:00:00Z');
+const STAKING_UNLOCK_DATE = new Date('2025-08-25T00:00:00Z');
 
 interface StakingCardProps {
   userBalance: number;
@@ -95,7 +95,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
     if (isStakingLocked) {
       toast({
         title: "Staking Locked",
-        description: `Staked USDT is locked until August 25, 2024`,
+        description: `Staked USDT is locked until August 25, 2025`,
         variant: "destructive"
       });
       return;
@@ -130,7 +130,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
             <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4">
               <Lock className="h-4 w-4 text-blue-600 mr-2" />
               <AlertDescription className="text-blue-700 font-medium flex items-center gap-1">
-                <Calendar className="h-4 w-4" /> Staked USDT is locked until August 25, 2024
+                <Calendar className="h-4 w-4" /> Staked USDT is locked until August 25, 2025
                 {isStakingLocked && daysUntilUnlock > 0 && (
                   <span className="ml-1 text-xs bg-blue-100 px-2 py-0.5 rounded">
                     {daysUntilUnlock} days remaining
