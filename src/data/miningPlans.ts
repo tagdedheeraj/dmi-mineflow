@@ -1,4 +1,3 @@
-
 import { loadMiningPlansFromFirestore } from '@/lib/planManagement';
 
 export interface MiningPlan {
@@ -101,7 +100,7 @@ export const miningPlans: MiningPlan[] = [
 ];
 
 // DMI coin value in USD
-export const DMI_COIN_VALUE = 0.0521;
+export const DMI_COIN_VALUE = 0.1732;
 
 // NowPayments API key
 export const NOW_PAYMENTS_API_KEY = "0BYK16S-PK24G13-NQ0TYHR-61DR2R4";
