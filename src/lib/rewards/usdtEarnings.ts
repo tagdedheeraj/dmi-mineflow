@@ -5,5 +5,8 @@ export * from './planPurchaseManager';
 export * from './earningsUpdater';
 export * from './planPurchaseRewards';
 export * from './dailyEarningsProcessor';
-export * from './referralCommissions';
-// Don't re-export hasClaimableRewardsForPlan since it causes ambiguity
+// Remove conflicting import and rename in this file
+// export * from './referralCommissions';
+
+// Fix the duplicate export by not re-exporting referralCommissions
+// as it's already exported from index.ts
