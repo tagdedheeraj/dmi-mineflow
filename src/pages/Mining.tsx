@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,7 @@ import MiningCard from '@/components/MiningCard';
 import MiningPlans from '@/components/MiningPlans';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
+import CryptoNewsCard from '@/components/CryptoNewsCard';
 import { Clock, Sparkles, Trophy, Zap, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -117,6 +119,9 @@ const Mining: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Add the new CryptoNewsCard component here */}
+          <CryptoNewsCard />
           
           <CoinValueCard />
           
