@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { getUser } from '@/lib/firestore';
 import { createWithdrawalRequest } from '@/lib/withdrawals';
