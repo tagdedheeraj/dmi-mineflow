@@ -5,7 +5,6 @@ import { Coins, Wallet, ArrowUpRight, Copy, Check } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import QRCode from 'react-qr-code';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 
@@ -153,7 +152,11 @@ const StakingCard: React.FC<StakingCardProps> = ({
               
               {showQR && (
                 <div className="mt-3 flex justify-center bg-white p-3 rounded">
-                  <QRCode value={USDT_ADDRESS} size={150} />
+                  <img 
+                    src="/lovable-uploads/909054cc-4fb6-4f8a-86d3-bf2e765f10ab.png" 
+                    alt="USDT Address QR Code" 
+                    className="h-36 w-36"
+                  />
                 </div>
               )}
             </div>

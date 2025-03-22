@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { QrCode, ArrowLeft, Clock, Check, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDuration } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import QRCode from 'react-qr-code';
 
 interface PaymentModalProps {
   planId: string;
@@ -130,9 +129,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <div className="flex justify-center mb-6">
               <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
-                <QRCode 
-                  value={USDT_ADDRESS} 
-                  size={150} 
+                <img 
+                  src="/lovable-uploads/909054cc-4fb6-4f8a-86d3-bf2e765f10ab.png" 
+                  alt="QR Code for USDT Payment" 
+                  className="h-40 w-40"
                 />
               </div>
             </div>
