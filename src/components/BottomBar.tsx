@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Pickaxe, Trophy, Wallet, User, Diamond, HelpCircle, X, Mail, MessageCircle, ExternalLink, BookOpen } from 'lucide-react';
+import { Pickaxe, Trophy, Wallet, User, Diamond, HelpCircle, Mail, MessageCircle, ExternalLink, BookOpen, Sparkles, Star, Heart, LifeBuoy, Lightbulb } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -78,37 +78,39 @@ const BottomBar: React.FC = () => {
               <Sheet open={isHelpOpen} onOpenChange={setIsHelpOpen}>
                 <SheetTrigger asChild>
                   <Button 
-                    className="h-12 w-12 rounded-full bg-dmi text-white shadow-lg hover:bg-dmi/90"
+                    className="h-12 w-12 rounded-full bg-gradient-to-tr from-dmi to-blue-500 text-white shadow-lg hover:shadow-blue-200/50 transition-all hover:scale-105"
                     onClick={() => setIsHelpOpen(true)}
                   >
-                    <HelpCircle className="h-6 w-6" />
+                    <LifeBuoy className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="sm:max-w-md">
-                  <SheetHeader>
-                    <SheetTitle className="text-xl text-dmi flex items-center gap-2">
-                      <HelpCircle className="h-5 w-5" /> DMI Support Center
+                <SheetContent side="right" className="sm:max-w-md overflow-y-auto border-l-4 border-l-dmi">
+                  <SheetHeader className="text-center sm:text-left">
+                    <SheetTitle className="text-2xl text-dmi flex items-center gap-2 justify-center sm:justify-start">
+                      <Sparkles className="h-6 w-6 text-yellow-500" /> DMI Support Center
                     </SheetTitle>
-                    <SheetDescription>
-                      We're here to help you with any questions or issues you may have.
+                    <SheetDescription className="text-base">
+                      We're here to help you succeed with DMI Network
                     </SheetDescription>
                   </SheetHeader>
                   
-                  <div className="mt-6 space-y-6">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base font-medium">Contact Support</CardTitle>
+                  <div className="mt-8 space-y-6">
+                    <Card className="border-2 border-dmi/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-dmi/40 bg-gradient-to-br from-white to-blue-50">
+                      <CardHeader className="pb-3 bg-gradient-to-r from-dmi/10 to-transparent">
+                        <CardTitle className="text-lg font-medium flex items-center gap-2">
+                          <Heart className="h-5 w-5 text-red-500" /> Contact Support
+                        </CardTitle>
                         <CardDescription>
-                          Reach out to our support team for personalized assistance
+                          Our team is ready to assist you personally
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="pb-2">
-                        <div className="flex items-start gap-4 mb-4">
-                          <Mail className="h-5 w-5 text-dmi mt-0.5" />
+                        <div className="flex items-start gap-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                          <Mail className="h-5 w-5 text-dmi mt-1" />
                           <div>
                             <p className="text-sm font-medium">Email Support</p>
                             <p className="text-sm text-muted-foreground">
-                              Get help with your account, staking, or any technical issues
+                              Get help with your account, mining plans, or any technical issues
                             </p>
                           </div>
                         </div>
@@ -116,32 +118,34 @@ const BottomBar: React.FC = () => {
                       <CardFooter>
                         <Button 
                           onClick={handleEmailSupport} 
-                          className="w-full"
+                          className="w-full bg-gradient-to-r from-dmi to-blue-600 hover:from-blue-600 hover:to-dmi transition-all duration-300"
                         >
-                          <Mail className="mr-2 h-4 w-4" /> Contact Support
+                          <Mail className="mr-2 h-4 w-4" /> Contact Support Team
                         </Button>
                       </CardFooter>
                     </Card>
 
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base font-medium">Help Resources</CardTitle>
+                    <Card className="border-2 border-dmi/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-dmi/40 bg-gradient-to-br from-white to-blue-50">
+                      <CardHeader className="pb-3 bg-gradient-to-r from-dmi/10 to-transparent">
+                        <CardTitle className="text-lg font-medium flex items-center gap-2">
+                          <Lightbulb className="h-5 w-5 text-yellow-500" /> Help Resources
+                        </CardTitle>
                         <CardDescription>
                           Find answers to common questions
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="pb-2 space-y-4">
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-4 p-3 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
                           <BookOpen className="h-5 w-5 text-dmi mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Knowledge Base</p>
                             <p className="text-sm text-muted-foreground">
-                              Access tutorials and guides on using DMI platform
+                              Step-by-step guides on using the DMI platform
                             </p>
                           </div>
                         </div>
                         
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-4 p-3 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
                           <MessageCircle className="h-5 w-5 text-dmi mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Community Forum</p>
@@ -151,7 +155,17 @@ const BottomBar: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-4 p-3 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
+                          <Star className="h-5 w-5 text-yellow-500 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Top Mining Tips</p>
+                            <p className="text-sm text-muted-foreground">
+                              Discover strategies to maximize your mining rewards
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4 p-3 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
                           <ExternalLink className="h-5 w-5 text-dmi mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Social Media</p>
@@ -164,16 +178,18 @@ const BottomBar: React.FC = () => {
                     </Card>
                   </div>
                   
-                  <SheetFooter className="mt-6 flex-col sm:flex-row sm:justify-between sm:space-x-0">
-                    <p className="text-xs text-muted-foreground">
-                      DMI Network Support Team © {new Date().getFullYear()}
-                    </p>
+                  <SheetFooter className="mt-6 flex-col sm:flex-row sm:justify-between sm:space-x-0 border-t pt-4">
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                      <p>DMI Network Support © {new Date().getFullYear()}</p>
+                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                    </div>
                   </SheetFooter>
                 </SheetContent>
               </Sheet>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="left">
+          <TooltipContent side="left" className="bg-gradient-to-r from-dmi to-blue-500 text-white border-none">
             <p>Need help?</p>
           </TooltipContent>
         </Tooltip>
