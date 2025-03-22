@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { History, AlertTriangle } from 'lucide-react';
+import { History, AlertTriangle, Clock } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { WithdrawalRequest } from '@/lib/withdrawalTypes';
 
@@ -34,6 +34,11 @@ const TransactionsCard: React.FC<TransactionsCardProps> = ({
     }
   };
 
+  // Sort transactions by date (newest first)
+  const sortedRequests = [...withdrawalRequests].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="border-b border-gray-100 p-5">
@@ -49,15 +54,16 @@ const TransactionsCard: React.FC<TransactionsCardProps> = ({
       </div>
       
       <div className="p-5">
-        {withdrawalRequests.length > 0 ? (
+        {sortedRequests.length > 0 ? (
           <div className="space-y-4">
-            {withdrawalRequests.map(request => (
+            {sortedRequests.map(request => (
               <div key={request.id} className="border border-gray-100 rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="text-gray-900 font-medium">{formatCurrency(request.amount)}</div>
-                    <div className="text-gray-500 text-sm">
-                      {new Date(request.createdAt).toLocaleDateString()}
+                    <div className="flex items-center text-gray-500 text-sm mt-1">
+                      <Clock className="h-3.5 w-3.5 mr-1.5" />
+                      {new Date(request.createdAt).toLocaleDateString()} {new Date(request.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </div>
                   </div>
                   <div>

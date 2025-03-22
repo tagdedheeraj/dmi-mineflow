@@ -1,12 +1,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { getUser, getUserWithdrawalRequests } from '@/lib/firestore';
+import { getUser } from '@/lib/firestore';
 import { createWithdrawalRequest } from '@/lib/withdrawals';
 import { useToast } from '@/hooks/use-toast';
 import { WithdrawalRequest } from '@/lib/withdrawalTypes';
-import { canClaimPlanEarnings, claimPlanEarnings, getNextClaimTime } from '@/lib/rewards/claimManager';
+import { canClaimPlanEarnings, getNextClaimTime, claimPlanEarnings } from '@/lib/rewards/claimManager';
 import { miningPlans } from '@/data/miningPlans';
 import { ActivePlan } from '@/lib/storage';
+
+// Import the getUserWithdrawalRequests function from withdrawals.ts instead of firestore.ts
+import { getUserWithdrawalRequests } from '@/lib/withdrawals';
 
 export const useWalletData = (
   userId: string | undefined, 
