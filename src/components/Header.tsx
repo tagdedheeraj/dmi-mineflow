@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { NotificationsPanel } from './NotificationsPanel';
 
 const Header: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -59,10 +60,10 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-3">
             {user ? (
               <>
-                {/* Notifications */}
-                <Button variant="ghost" size="icon" className="rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100" aria-label="Notifications">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                {/* Notifications - Now using NotificationsPanel component instead of just an icon */}
+                <div className="relative">
+                  <NotificationsPanel />
+                </div>
                 
                 {/* User menu */}
                 <DropdownMenu>

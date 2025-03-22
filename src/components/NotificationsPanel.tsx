@@ -49,7 +49,7 @@ export function NotificationsPanel() {
     };
 
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 60000); // Check every minute
+    const interval = setInterval(fetchUnreadCount, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
   }, [user]);
@@ -59,7 +59,9 @@ export function NotificationsPanel() {
     
     setLoading(true);
     try {
+      console.log("Fetching notifications for user:", user.id);
       const data = await getUserNotifications(user.id, 20);
+      console.log("Fetched notifications:", data);
       setNotifications(data);
       
       // Update unread count

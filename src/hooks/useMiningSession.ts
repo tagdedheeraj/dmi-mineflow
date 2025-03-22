@@ -7,6 +7,7 @@ import {
   checkAndUpdateMining,
   getUser
 } from '@/lib/firestore';
+import { notifyMiningCompleted } from '@/lib/rewards';
 
 export interface UseMiningSessionProps {
   userId: string | undefined;
@@ -63,6 +64,9 @@ export const useMiningSession = (
           
           // Update user balance with earned coins
           await updateUserBalance(earnedCoins);
+          
+          // Send notification about mining completion
+          await notifyMiningCompleted(userId, earnedCoins);
           
           // Get updated user to verify balance
           const updatedUser = await getUser(userId);
