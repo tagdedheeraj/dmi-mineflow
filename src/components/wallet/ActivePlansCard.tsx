@@ -14,6 +14,7 @@ interface ActivePlansCardProps {
     canClaim: boolean;
     nextClaimTime: Date | null;
     isLoading: boolean;
+    dailyEarnings: number;
   }>;
   isClaimingPlan: string | null;
   onClaimEarnings: (planId: string) => Promise<void>;
@@ -66,7 +67,12 @@ const ActivePlansCard: React.FC<ActivePlansCardProps> = ({
               const daysRemaining = planDaysRemaining[plan.id] || 0;
               const totalDays = planInfo?.duration || 30;
               const progressPercent = Math.max(0, Math.min(100, (daysRemaining / totalDays) * 100));
-              const claimStatus = claimableStatus[plan.id] || { canClaim: false, nextClaimTime: null, isLoading: true };
+              const claimStatus = claimableStatus[plan.id] || { 
+                canClaim: false, 
+                nextClaimTime: null, 
+                isLoading: true,
+                dailyEarnings: 0
+              };
               
               return (
                 <div key={plan.id} className="bg-gray-50 rounded-lg p-4">
@@ -118,7 +124,7 @@ const ActivePlansCard: React.FC<ActivePlansCardProps> = ({
                         ) : (
                           <>
                             <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Claim {formatCurrency(planInfo?.dailyEarnings || 0)} USDT
+                            Claim {formatCurrency(claimStatus.dailyEarnings)} USDT
                           </>
                         )}
                       </Button>
