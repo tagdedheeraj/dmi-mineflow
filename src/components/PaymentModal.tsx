@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { formatDuration } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import QRCode from 'react-qr-code';
 
 interface PaymentModalProps {
   planId: string;
@@ -129,10 +130,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <div className="flex justify-center mb-6">
               <div className="border-2 border-gray-200 rounded-lg p-2 overflow-hidden">
-                <img 
-                  src="/lovable-uploads/8db582c6-1930-4f4e-9750-4f993735a428.png" 
-                  alt="Payment QR Code"
-                  className="w-48 h-48"
+                <QRCode 
+                  value={USDT_ADDRESS} 
+                  size={150} 
                 />
               </div>
             </div>
