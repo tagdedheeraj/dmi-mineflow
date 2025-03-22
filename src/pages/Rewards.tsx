@@ -6,7 +6,7 @@ import { Wallet, Diamond } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from '@/components/Header';
-import { Video, Gift, Users } from 'lucide-react';
+import { Video, Gift, Users, Trophy } from 'lucide-react';
 
 // Import custom components
 import RewardStats from '@/components/rewards/RewardStats';
