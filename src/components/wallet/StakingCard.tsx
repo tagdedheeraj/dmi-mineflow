@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Coins, Wallet, ArrowUpRight, Copy, Check } from 'lucide-react';
+import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 
@@ -158,6 +159,15 @@ const StakingCard: React.FC<StakingCardProps> = ({
                     className="h-36 w-36"
                   />
                 </div>
+              )}
+              
+              {showQR && (
+                <Alert className="bg-red-50 border-red-200 text-red-800 mt-3">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-700 font-medium">
+                    WARNING: Submitting false transaction IDs will result in immediate account suspension without any prior warning.
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
             
