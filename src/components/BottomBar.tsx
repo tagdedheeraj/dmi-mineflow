@@ -72,7 +72,7 @@ const BottomBar: React.FC = () => {
               <Popover open={isHelpOpen} onOpenChange={setIsHelpOpen}>
                 <PopoverTrigger asChild>
                   <Button 
-                    className="h-12 w-12 rounded-full bg-dmi text-white shadow-lg hover:bg-dmi/90"
+                    className="h-12 w-12 rounded-full bg-dmi text-white shadow-lg hover:bg-dmi/90 animate-pulse-subtle"
                     onClick={() => setIsHelpOpen(true)}
                   >
                     <HelpCircle className="h-6 w-6" />
@@ -108,23 +108,23 @@ const BottomBar: React.FC = () => {
         </Tooltip>
       </TooltipProvider>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-2 py-2 sm:px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100 shadow-lg px-2 py-2 sm:px-4">
         <div className="max-w-lg mx-auto">
           <nav className="flex justify-between items-center">
             {navItems.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center justify-center w-1/5 py-1 px-2 rounded-lg transition-colors ${
+                className={`flex flex-col items-center justify-center w-1/5 py-2 px-2 rounded-xl transition-all duration-300 ${
                   isActive(item.path)
-                    ? 'text-dmi bg-dmi/5'
-                    : 'text-gray-500 hover:text-dmi hover:bg-gray-50'
+                    ? 'bg-dmi text-white transform scale-105 shadow-md'
+                    : 'text-gray-500 hover:text-dmi hover:bg-white/80 hover:shadow-sm'
                 }`}
               >
                 <item.icon
-                  className={`h-5 w-5 mb-1 ${isActive(item.path) ? 'text-dmi' : ''}`}
+                  className={`h-5 w-5 mb-1 ${isActive(item.path) ? 'animate-pulse-subtle' : ''}`}
                 />
-                <span className="text-xs font-medium">{item.name}</span>
+                <span className={`text-xs font-medium ${isActive(item.path) ? 'font-semibold' : ''}`}>{item.name}</span>
               </button>
             ))}
           </nav>
