@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, LockClosed, Calendar } from 'lucide-react';
+import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, Lock, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +37,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
   
   const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
 
-  // Calculate days until unlock
   const now = new Date();
   const daysUntilUnlock = Math.ceil((STAKING_UNLOCK_DATE.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   const isStakingLocked = now < STAKING_UNLOCK_DATE;
@@ -129,9 +127,8 @@ const StakingCard: React.FC<StakingCardProps> = ({
             <h3 className="font-medium mb-2">Stake USDT (BEP-20)</h3>
             <p className="text-sm text-gray-600 mb-4">Minimum $250 - Maximum $5,000</p>
             
-            {/* Staking Lock Period Alert */}
             <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4">
-              <LockClosed className="h-4 w-4 text-blue-600 mr-2" />
+              <Lock className="h-4 w-4 text-blue-600 mr-2" />
               <AlertDescription className="text-blue-700 font-medium flex items-center gap-1">
                 <Calendar className="h-4 w-4" /> Staked USDT is locked until August 25, 2024
                 {isStakingLocked && daysUntilUnlock > 0 && (
@@ -246,7 +243,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   <span className={`font-medium flex items-center ${isStakingLocked ? 'text-red-500' : 'text-green-500'}`}>
                     {isStakingLocked ? (
                       <>
-                        <LockClosed className="h-4 w-4 mr-1" /> Locked until Aug 25
+                        <Lock className="h-4 w-4 mr-1" /> Locked until Aug 25
                       </>
                     ) : (
                       <>
@@ -257,7 +254,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
                 </div>
               </div>
               
-              {/* Staking Withdrawal Button */}
               <Button 
                 variant="outline" 
                 className="w-full mt-4 flex items-center justify-center"
@@ -265,7 +261,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                 disabled={totalStaked <= 0}
               >
                 Withdraw Staked USDT <ArrowUpRight className="ml-1 h-4 w-4" />
-                {isStakingLocked && <LockClosed className="ml-1 h-3 w-3 text-red-500" />}
+                {isStakingLocked && <Lock className="ml-1 h-3 w-3 text-red-500" />}
               </Button>
             </div>
             
