@@ -51,6 +51,7 @@ export const processDailyUsdtEarnings = async (
     // Just return the plan details - we won't automatically update USDT earnings
     if (earningDetails.length > 0) {
       console.log(`[DAILY EARNINGS] Found ${earningDetails.length} active plans eligible for manual claim`);
+      console.log(`[DAILY EARNINGS] Total possible USDT earnings: ${totalDailyEarnings}`);
       
       return {
         success: true,

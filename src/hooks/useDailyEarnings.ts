@@ -6,7 +6,7 @@ import { getISTDateString, getISTTimeString, getTimeUntilMidnightIST } from '@/l
 import { processDailyUsdtEarnings } from '@/lib/rewards/dailyEarningsProcessor';
 import { getLastUsdtUpdateDate } from '@/lib/rewards/dateTracking';
 import { getUser } from '@/lib/firestore';
-import { getNextClaimTime } from '@/lib/rewards/claimManager';
+import { getNextClaimTime, canClaimPlanEarnings } from '@/lib/rewards/claimManager';
 
 export const useDailyEarnings = (
   userId: string | undefined, 
@@ -16,6 +16,7 @@ export const useDailyEarnings = (
   const { toast } = useToast();
   const [lastUsdtEarningsUpdate, setLastUsdtEarningsUpdate] = useState<string | null>(null);
   const [plansClaimTimes, setPlansClaimTimes] = useState<{[planId: string]: Date | null}>({});
+  const [plansClaimStatus, setPlansClaimStatus] = useState<{[planId: string]: boolean}>({});
   const dailyEarningsUpdateTime = "Manual Claim";
 
   const loadLastUpdateDate = useCallback(async () => {
@@ -35,15 +36,30 @@ export const useDailyEarnings = (
     if (!userId || activePlans.length === 0) return;
     
     const claimTimes: {[planId: string]: Date | null} = {};
+    const claimStatuses: {[planId: string]: boolean} = {};
     
     for (const plan of activePlans) {
       if (new Date() < new Date(plan.expiresAt)) {
-        const nextClaimTime = await getNextClaimTime(userId, plan.id);
-        claimTimes[plan.id] = nextClaimTime;
+        try {
+          // Get next claim time for the plan
+          const nextClaimTime = await getNextClaimTime(userId, plan.id);
+          claimTimes[plan.id] = nextClaimTime;
+          
+          // Check if the plan can be claimed now
+          const canClaim = await canClaimPlanEarnings(userId, plan.id);
+          claimStatuses[plan.id] = canClaim;
+          
+          console.log(`Plan ${plan.id} claim status: ${canClaim ? 'Available' : 'Not Available'}, next claim: ${nextClaimTime?.toISOString() || 'Unknown'}`);
+        } catch (error) {
+          console.error(`Error checking claim status for plan ${plan.id}:`, error);
+          claimTimes[plan.id] = null;
+          claimStatuses[plan.id] = false;
+        }
       }
     }
     
     setPlansClaimTimes(claimTimes);
+    setPlansClaimStatus(claimStatuses);
   }, [userId, activePlans]);
 
   const checkAndProcessDailyEarnings = useCallback(async (plansData: any) => {
@@ -84,6 +100,7 @@ export const useDailyEarnings = (
     lastUsdtEarningsUpdate,
     dailyEarningsUpdateTime,
     plansClaimTimes,
+    plansClaimStatus,
     checkAndProcessDailyEarnings,
     refreshClaimTimes: loadPlanClaimTimes,
     scheduleNextMidnight: (checkFn: () => void) => {
