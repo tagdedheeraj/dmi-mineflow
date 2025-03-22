@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,14 +37,12 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if not admin
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
       navigate('/signin');
     }
   }, [user, isAdmin, isLoading, navigate]);
 
-  // Load withdrawal requests
   const loadWithdrawalRequests = async () => {
     setIsLoading(true);
     console.log("Loading withdrawal requests...");
@@ -133,13 +130,11 @@ const Admin: React.FC = () => {
     }
   };
 
-  // Open rejection dialog
   const handleOpenRejectionDialog = (request: WithdrawalRequest) => {
     setSelectedRequest(request);
     setShowRejectionDialog(true);
   };
 
-  // Filter requests based on search term
   const filteredRequests = (activeTab === "pending" ? pendingRequests : withdrawalRequests)
     .filter(request => 
       request.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -160,33 +155,25 @@ const Admin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Admin Header */}
       <AdminHeader user={user} signOut={signOut} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* App Settings Panel */}
         <AppSettingsPanel 
           currentVersion={appSettings.version}
           currentUpdateUrl={appSettings.updateUrl}
           onSettingsUpdated={loadWithdrawalRequests}
         />
         
-        {/* Plan Management Panel */}
         <PlanManagement />
         
-        {/* User Management Panel */}
         <UserManagement />
         
-        {/* Automated Arbitrage Plan */}
         <AutomatedArbitragePlan />
         
-        {/* User Coins Management Panel */}
         <UserCoinsManagement />
         
-        {/* Custom Notification Panel */}
         <CustomNotificationPanel />
         
-        {/* Withdrawal Requests Management */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-6">Withdrawal Requests Management</h2>
           
@@ -206,7 +193,6 @@ const Admin: React.FC = () => {
             setSelectedRequest={setSelectedRequest}
           />
           
-          {/* Rejection Dialog */}
           <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
             <RejectionDialog 
               selectedRequest={selectedRequest}
@@ -216,7 +202,6 @@ const Admin: React.FC = () => {
             />
           </Dialog>
           
-          {/* Rejection Details Dialog */}
           <Dialog>
             {activeTab === "all" && 
               filteredRequests
