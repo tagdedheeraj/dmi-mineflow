@@ -26,7 +26,7 @@ const WithdrawalTabs: React.FC<WithdrawalTabsProps> = ({
   setSelectedRequest,
 }) => {
   return (
-    <Tabs defaultValue="pending" onValueChange={setActiveTab}>
+    <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="mb-4">
         <TabsTrigger value="pending" className="flex items-center">
           <Clock className="h-4 w-4 mr-2" />

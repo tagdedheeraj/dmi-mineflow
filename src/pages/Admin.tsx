@@ -34,6 +34,7 @@ const Admin: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -73,6 +74,14 @@ const Admin: React.FC = () => {
     loadWithdrawalRequests();
   }, []);
 
+  useEffect(() => {
+    if (selectedRequest) {
+      setShowRejectionDialog(true);
+    } else {
+      setShowRejectionDialog(false);
+    }
+  }, [selectedRequest]);
+
   const handleApproveRequest = async (request: WithdrawalRequest) => {
     if (!user || !request.id) return;
     
@@ -100,7 +109,14 @@ const Admin: React.FC = () => {
   };
 
   const handleRejectRequest = async () => {
-    if (!user || !selectedRequest || !selectedRequest.id || !rejectionReason) return;
+    if (!user || !selectedRequest || !selectedRequest.id || !rejectionReason) {
+      console.error("Cannot reject: missing data", { 
+        userId: user?.id, 
+        requestId: selectedRequest?.id,
+        reason: rejectionReason 
+      });
+      return;
+    }
     
     try {
       console.log(`Rejecting request ${selectedRequest.id} with reason: ${rejectionReason}`);
@@ -117,6 +133,7 @@ const Admin: React.FC = () => {
         });
         setRejectionReason("");
         setSelectedRequest(null);
+        setShowRejectionDialog(false);
         loadWithdrawalRequests(); // Refresh the list after rejection
       } else {
         throw new Error("Failed to reject request.");
@@ -199,7 +216,13 @@ const Admin: React.FC = () => {
           />
           
           {/* Rejection Dialog */}
-          <Dialog>
+          <Dialog open={showRejectionDialog} onOpenChange={(open) => {
+            if (!open) {
+              setSelectedRequest(null);
+              setRejectionReason("");
+            }
+            setShowRejectionDialog(open);
+          }}>
             <RejectionDialog 
               selectedRequest={selectedRequest}
               rejectionReason={rejectionReason}

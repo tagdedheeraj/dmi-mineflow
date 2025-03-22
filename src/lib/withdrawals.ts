@@ -1,3 +1,4 @@
+
 import { 
   collection,
   addDoc,
@@ -138,14 +139,17 @@ export const approveWithdrawalRequest = async (
   adminId: string
 ): Promise<boolean> => {
   try {
+    console.log(`Starting approval process for request ${requestId} by admin ${adminId}`);
     const requestRef = doc(db, 'withdrawal_requests', requestId);
     const requestSnap = await getDoc(requestRef);
     
     if (!requestSnap.exists()) {
+      console.error(`Withdrawal request with ID ${requestId} does not exist`);
       return false;
     }
     
     const request = requestSnap.data() as WithdrawalRequest;
+    console.log(`Found request data:`, request);
     
     // Add a USDT transaction record for the withdrawal
     await addUsdtTransaction(
@@ -155,6 +159,7 @@ export const approveWithdrawalRequest = async (
       `Withdrawal approved (${request.usdtAddress})`,
       Date.now()
     );
+    console.log(`Added transaction record for user ${request.userId}`);
     
     // Update the request status
     await updateDoc(requestRef, {
@@ -178,17 +183,23 @@ export const rejectWithdrawalRequest = async (
   rejectionReason: string
 ): Promise<boolean> => {
   try {
+    console.log(`Starting rejection process for request ${requestId} by admin ${adminId}`);
+    console.log(`Rejection reason: ${rejectionReason}`);
+    
     const requestRef = doc(db, 'withdrawal_requests', requestId);
     const requestSnap = await getDoc(requestRef);
     
     if (!requestSnap.exists()) {
+      console.error(`Withdrawal request with ID ${requestId} does not exist`);
       return false;
     }
     
     const request = requestSnap.data() as WithdrawalRequest;
+    console.log(`Found request data:`, request);
     
     // Return the USDT to the user's account if rejected
     await updateUsdtEarnings(request.userId, request.amount);
+    console.log(`Returned ${request.amount} USDT to user ${request.userId}`);
     
     // Add a transaction record for the returned amount
     await addUsdtTransaction(
@@ -198,6 +209,7 @@ export const rejectWithdrawalRequest = async (
       `Withdrawal rejected: ${rejectionReason}`,
       Date.now()
     );
+    console.log(`Added refund transaction record`);
     
     // Update the request status
     await updateDoc(requestRef, {
