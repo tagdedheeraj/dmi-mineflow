@@ -8,6 +8,7 @@ import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseM
 import { updateLastUsdtUpdateDate } from './dateTracking';
 import { updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+// Import from claimManager directly instead of a circular import
 import { recordPlanClaim } from './claimManager';
 
 // Enhanced function for plan purchase rewards with duplicate prevention

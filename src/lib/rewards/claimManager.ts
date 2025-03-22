@@ -17,7 +17,8 @@ import { updateUsdtEarnings } from './earningsUpdater';
 import { awardPlanPurchaseCommission, verifyReferralConnection } from './referralCommissions';
 import { wasPlanPurchasedToday, markPlanAsPurchasedToday } from './planPurchaseManager';
 import { updateLastUsdtUpdateDate } from './dateTracking';
-import { recordPlanClaim } from './claimManager';
+// Remove the circular import of recordPlanClaim
+// import { recordPlanClaim } from './claimManager';
 
 // Function to check if a plan's earnings can be claimed
 export const canClaimPlanEarnings = async (userId: string, planId: string): Promise<boolean> => {
