@@ -66,6 +66,7 @@ const UserCoinsManagement: React.FC = () => {
 
     setIsUpdating(true);
     try {
+      // We are ADDING to the balance, not replacing it
       const updatedUser = await updateUserBalance(foundUser.id, amount);
       
       if (updatedUser) {
@@ -76,7 +77,7 @@ const UserCoinsManagement: React.FC = () => {
         
         toast({
           title: "Coins Updated",
-          description: `Added ${amount} DMI coins to ${foundUser.fullName}'s account.`,
+          description: `Added ${amount} DMI coins to ${foundUser.fullName}'s account. New balance: ${updatedUser.balance} DMI coins.`,
         });
         
         // Reset amount after successful update
@@ -156,6 +157,9 @@ const UserCoinsManagement: React.FC = () => {
                   {isUpdating ? "Updating..." : "Add Coins"}
                 </Button>
               </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Note: This will add to the user's existing balance, not replace it.
+              </p>
             </div>
           </div>
         )}
