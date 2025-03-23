@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -125,17 +124,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(firestoreUser);
             }
           } else {
-            // Create a new user profile if it doesn't exist
-            const newUser: User = {
-              id: firebaseUser.uid,
-              fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              email: firebaseUser.email || '',
-              balance: 100, // Default balance for new users
-              createdAt: Date.now(),
-              deviceId: getDeviceId(),
-            };
-            setUser(newUser);
-            await saveFirestoreUser(newUser);
+            // If the user exists in Firebase Auth but not in Firestore, it means the account was deleted by admin
+            toast({
+              title: "Account Deleted",
+              description: "Your account has been deleted due to suspicious activity. Please contact support for more information.",
+              variant: "destructive",
+            });
+            await signOutUser();
+            setUser(null);
+            return;
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
