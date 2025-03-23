@@ -3,12 +3,20 @@ import React from 'react';
 import { AlertTriangle, Download, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppVersionCheck } from '@/hooks/useAppVersionCheck';
+import { useLocation } from 'react-router-dom';
 
 const AppUpdateNotification = () => {
   const { needsUpdate, updateUrl, currentVersion, lastVersion, isUpdated, markAsUpdated } = useAppVersionCheck();
-
-  // Don't show anything if there's no update to show
-  if (!needsUpdate && !isUpdated) return null;
+  const location = useLocation();
+  
+  // Define paths where we don't want to show the update notification
+  const hiddenPaths = ['/signin', '/signup', '/profile'];
+  
+  // Check if current path is in the hidden paths list
+  const shouldHideNotification = hiddenPaths.some(path => location.pathname.startsWith(path));
+  
+  // Don't show anything if there's no update to show or we're on a hidden path
+  if ((!needsUpdate && !isUpdated) || shouldHideNotification) return null;
 
   // Show different UI based on update status
   const handleUpdate = () => {

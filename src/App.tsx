@@ -10,7 +10,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { MiningProvider } from "./contexts/MiningContext";
 import { isAuthRequired } from "./lib/secureStorage";
 import AppLock from "./components/AppLock";
-import AppUpdateNotification from "./components/AppUpdateNotification";
+// Removed AppUpdateNotification import since we're not showing it globally
 
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -61,7 +61,7 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <MiningProvider>
-                <AppUpdateNotification />
+                {/* Removed AppUpdateNotification component from here */}
                 <Routes>
                   <Route path="/" element={<Navigate to="/mining" replace />} />
                   <Route path="/signin" element={<SignIn />} />

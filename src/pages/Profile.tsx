@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
-import AppUpdateNotification from '@/components/AppUpdateNotification';
+// Remove AppUpdateNotification import
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
@@ -154,7 +155,7 @@ const Profile: React.FC = () => {
           Back to Mining
         </Button>
         
-        {(needsUpdate || isUpdated) && <AppUpdateNotification />}
+        {/* Removed AppUpdateNotification component from here */}
         
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
