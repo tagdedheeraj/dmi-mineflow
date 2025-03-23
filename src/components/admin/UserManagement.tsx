@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -113,7 +114,13 @@ const UserManagement: React.FC = () => {
       
       // Get basic user data (avoid nested queries while loading the page)
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as {
+          fullName?: string;
+          email?: string; 
+          balance?: number;
+          usdtEarnings?: number;
+        };
+        
         return {
           id: doc.id,
           fullName: data.fullName || 'Unknown',
@@ -158,6 +165,14 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, [currentPage, searchTerm]);
+
+  // Add a refresh function that can be manually triggered
+  const refreshUsersList = () => {
+    setCurrentPage(1);
+    setLastVisible(null);
+    setIsFirstPage(true);
+    fetchUsers();
+  };
 
   // Format plans for display
   const formatPlans = (plans?: UserPlan[]): string => {
@@ -246,11 +261,7 @@ const UserManagement: React.FC = () => {
             />
           </div>
           <Button 
-            onClick={() => {
-              setSearchTerm("");
-              setCurrentPage(1);
-              fetchUsers();
-            }} 
+            onClick={refreshUsersList} 
             variant="outline"
             disabled={isLoading}
           >
