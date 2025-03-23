@@ -46,12 +46,13 @@ export const useUserManagement = () => {
     fetchUsers
   });
 
-  // Search hook
+  // Search hook - pass refreshUsersList to search hook
   const {
     handleSearch
   } = useUserSearch({
     setSearchTerm,
-    setCurrentPage
+    setCurrentPage,
+    refreshUsersList // Pass refreshUsersList to useUserSearch
   });
 
   return {

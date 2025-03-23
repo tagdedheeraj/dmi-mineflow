@@ -87,15 +87,16 @@ export const useUsersFetching = () => {
       console.log("Processed user data:", usersData.length, "users");
       setUsers(usersData);
       
-      // If searching, filter client-side
+      // If searching, filter client-side more effectively
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const filtered = usersData.filter(
           user => 
-            user.fullName.toLowerCase().includes(term) ||
-            user.email.toLowerCase().includes(term)
+            (user.fullName && user.fullName.toLowerCase().includes(term)) ||
+            (user.email && user.email.toLowerCase().includes(term))
         );
         console.log("Filtered users by search term:", filtered.length, "results");
+        console.log("Filtered users emails:", filtered.map(u => u.email));
         setFilteredUsers(filtered);
       } else {
         console.log("No search term, setting filtered users to all users");
@@ -120,7 +121,7 @@ export const useUsersFetching = () => {
   useEffect(() => {
     console.log("useEffect triggered for fetchUsers");
     fetchUsers();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm]); // Depend on currentPage and searchTerm
 
   // Calculate total pages
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);

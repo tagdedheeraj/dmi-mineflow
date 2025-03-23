@@ -15,8 +15,8 @@ export const usePagination = ({
   // Refresh function
   const refreshUsersList = useCallback(() => {
     console.log("Manual refresh triggered");
-    setCurrentPage(1);
-    fetchUsers(false, false, true);
+    setCurrentPage(1); // Reset to first page when refreshing
+    return fetchUsers(false, false, true); // Return the promise for chain calls
   }, [fetchUsers, setCurrentPage]);
 
   // Pagination handlers

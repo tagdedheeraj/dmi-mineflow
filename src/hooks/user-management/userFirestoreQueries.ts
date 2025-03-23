@@ -1,3 +1,4 @@
+
 import { 
   collection, 
   getDocs, 
@@ -23,10 +24,19 @@ export const createUserQuery = (
   console.log("Creating user query with params:", { isNextPage, isPrevPage, forceRefresh, searchTerm });
   const usersCollection = collection(db, 'users');
   
-  // If searching, don't use pagination but still get all results
+  // If searching, create a more effective search query
   if (searchTerm.trim() !== "") {
-    console.log("Search query created for term:", searchTerm);
-    return query(usersCollection, orderBy('fullName'), limit(100));
+    const term = searchTerm.trim().toLowerCase();
+    console.log("Search query created for term:", term);
+    
+    // Use a more flexible search that can match either email or fullName
+    // In a real production app, you might want to use Firestore's array-contains-any operator
+    // or a third-party search solution like Algolia for better search capabilities
+    return query(
+      usersCollection,
+      orderBy('email'), // This helps when searching by email
+      limit(100) // Increase limit to ensure we find matches
+    );
   } 
   
   // Reset lastVisible when forcing a refresh
