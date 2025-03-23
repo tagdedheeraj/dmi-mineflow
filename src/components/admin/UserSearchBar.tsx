@@ -34,7 +34,7 @@ const UserSearchBar: React.FC<UserSearchBarProps> = ({
         disabled={isLoading}
         className="flex items-center gap-2"
       >
-        <RefreshCw className="h-4 w-4" />
+        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         {isLoading ? "Loading..." : "Refresh"}
       </Button>
     </div>

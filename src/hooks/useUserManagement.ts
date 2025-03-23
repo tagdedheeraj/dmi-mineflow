@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -7,7 +8,8 @@ import {
   where, 
   limit, 
   startAfter, 
-  orderBy 
+  orderBy,
+  documentId
 } from 'firebase/firestore';
 import { db, deleteUserAccount } from '@/lib/firebase';
 
@@ -50,15 +52,18 @@ export const useUserManagement = () => {
   const fetchUsers = async (isNextPage = false, isPrevPage = false, forceRefresh = false) => {
     setIsLoading(true);
     try {
+      console.log("Fetching users with params:", { isNextPage, isPrevPage, forceRefresh, searchTerm });
       const usersCollection = collection(db, 'users');
       let userQuery;
       
-      // If searching, use client-side filtering
+      // If searching, don't use pagination but still get all results
       if (searchTerm.trim() !== "") {
         userQuery = query(usersCollection, orderBy('fullName'), limit(100));
+        console.log("Search query created for term:", searchTerm);
       } else {
         // Reset lastVisible when forcing a refresh
         if (forceRefresh) {
+          console.log("Force refreshing users list");
           setLastVisible(null);
           userQuery = query(
             usersCollection,
@@ -68,6 +73,7 @@ export const useUserManagement = () => {
         }
         // Otherwise use server-side pagination
         else if (isNextPage && lastVisible) {
+          console.log("Moving to next page with lastVisible:", lastVisible.id);
           userQuery = query(
             usersCollection, 
             orderBy('fullName'),
@@ -75,6 +81,7 @@ export const useUserManagement = () => {
             limit(USERS_PER_PAGE)
           );
         } else if (isPrevPage) {
+          console.log("Moving to previous page:", currentPage - 1);
           // For previous page, we'll fetch the current page - 1
           userQuery = query(
             usersCollection,
@@ -82,6 +89,7 @@ export const useUserManagement = () => {
             limit(USERS_PER_PAGE * (currentPage - 1))
           );
         } else {
+          console.log("Fetching first page or current page:", currentPage);
           // First page
           userQuery = query(
             usersCollection,
@@ -91,19 +99,24 @@ export const useUserManagement = () => {
         }
       }
       
+      console.log("Executing Firestore query...");
       const userSnapshot = await getDocs(userQuery);
+      console.log(`Query returned ${userSnapshot.docs.length} users`);
       
       // Update pagination trackers
       if (userSnapshot.docs.length > 0) {
         const lastVisibleDoc = userSnapshot.docs[userSnapshot.docs.length - 1];
         setLastVisible(lastVisibleDoc);
+        console.log("Set lastVisible to:", lastVisibleDoc.id);
       }
       
       // Get total count on first load or refresh
       if ((!isNextPage && !isPrevPage && !searchTerm) || forceRefresh) {
+        console.log("Getting total user count");
         // Get total count more efficiently (may need a counter collection in a production app)
         const countSnapshot = await getDocs(query(collection(db, 'users')));
         setTotalUsers(countSnapshot.size);
+        console.log("Total users count:", countSnapshot.size);
       }
       
       // Get basic user data (avoid nested queries while loading the page)
@@ -126,6 +139,7 @@ export const useUserManagement = () => {
         };
       });
       
+      console.log("Processed user data:", usersData.length, "users");
       setUsers(usersData);
       
       // If searching, filter client-side
@@ -136,8 +150,10 @@ export const useUserManagement = () => {
             user.fullName.toLowerCase().includes(term) ||
             user.email.toLowerCase().includes(term)
         );
+        console.log("Filtered users by search term:", filtered.length, "results");
         setFilteredUsers(filtered);
       } else {
+        console.log("No search term, setting filtered users to all users");
         setFilteredUsers(usersData);
       }
       
@@ -157,11 +173,13 @@ export const useUserManagement = () => {
 
   // Initial fetch
   useEffect(() => {
+    console.log("useEffect triggered for fetchUsers");
     fetchUsers();
   }, [currentPage, searchTerm]);
 
   // Refresh function
   const refreshUsersList = () => {
+    console.log("Manual refresh triggered");
     setCurrentPage(1);
     setLastVisible(null);
     setIsFirstPage(true);
@@ -170,12 +188,14 @@ export const useUserManagement = () => {
 
   // Pagination handlers
   const nextPage = () => {
+    console.log("Moving to next page from", currentPage);
     setCurrentPage(currentPage + 1);
     fetchUsers(true, false);
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
+      console.log("Moving to previous page from", currentPage);
       setCurrentPage(currentPage - 1);
       fetchUsers(false, true);
     }
@@ -216,6 +236,7 @@ export const useUserManagement = () => {
 
   // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("Search term changed to:", e.target.value);
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page on new search
   };
