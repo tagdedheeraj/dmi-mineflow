@@ -249,37 +249,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const firestoreUser = await getFirestoreUser(firebaseUser.uid);
       console.log("AuthContext: Firestore user retrieved:", firestoreUser?.id || "not found");
       
-      if (firestoreUser) {
-        if (firestoreUser.suspended) {
-          toast({
-            title: "Account Suspended",
-            description: firestoreUser.suspendedReason || "This account has been suspended.",
-            variant: "destructive",
-          });
-          await signOutUser();
-          throw new Error("Account suspended");
-        }
+      // If the user doesn't exist in Firestore, that means the account was deleted by admin
+      if (!firestoreUser) {
+        // Sign out the user immediately since they shouldn't be allowed to proceed
+        await signOutUser();
         
-        // Update deviceId while preserving existing balance and other user data
-        const updatedUser = {
-          ...firestoreUser,
-          deviceId: getDeviceId()
-        };
-        await saveFirestoreUser(updatedUser);
-        setUser(updatedUser);
-      } else {
-        // Create a new user profile if it doesn't exist
-        const newUser: User = {
-          id: firebaseUser.uid,
-          fullName: firebaseUser.displayName || email.split('@')[0] || 'User',
-          email: email,
-          balance: 100, // Default balance only for brand new users
-          createdAt: Date.now(),
-          deviceId: getDeviceId(),
-        };
-        await saveFirestoreUser(newUser);
-        setUser(newUser);
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been deleted due to suspicious activity. Please contact support for more information.",
+          variant: "destructive",
+        });
+        
+        throw new Error("Account deleted due to suspicious activity");
       }
+      
+      if (firestoreUser.suspended) {
+        toast({
+          title: "Account Suspended",
+          description: firestoreUser.suspendedReason || "This account has been suspended.",
+          variant: "destructive",
+        });
+        await signOutUser();
+        throw new Error("Account suspended");
+      }
+      
+      // Update deviceId while preserving existing balance and other user data
+      const updatedUser = {
+        ...firestoreUser,
+        deviceId: getDeviceId()
+      };
+      await saveFirestoreUser(updatedUser);
+      setUser(updatedUser);
       
       // Navigate admin to admin page, others to mining
       if (email === ADMIN_EMAIL) {
@@ -297,6 +297,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error("Sign in error details in AuthContext:", error);
+      
+      // Special handling for the case where we've deliberately thrown our custom error
+      if (error.message === "Account deleted due to suspicious activity") {
+        // We've already shown the toast above, so just throw the error to prevent login
+        throw error;
+      }
+      
       console.error("Error code:", error.code);
       console.error("Error message:", error.message);
       

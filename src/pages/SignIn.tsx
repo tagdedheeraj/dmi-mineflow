@@ -12,11 +12,13 @@ const SignIn: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAccountDeleted, setIsAccountDeleted] = useState(false);
   const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsAccountDeleted(false);
     
     if (!email || !password) {
       setError('Please fill in all fields');
@@ -38,6 +40,13 @@ const SignIn: React.FC = () => {
       console.error("Sign in component error:", err);
       console.error("Error code:", err.code);
       console.error("Error message:", err.message);
+      
+      // Check if this is our special deleted account error
+      if (err.message === "Account deleted due to suspicious activity") {
+        setIsAccountDeleted(true);
+        setError('Your account has been deleted due to suspicious activity. Please contact support for more information.');
+        return;
+      }
       
       // Display a more user-friendly error message
       if (err.code === 'auth/invalid-credential' || 
@@ -75,12 +84,19 @@ const SignIn: React.FC = () => {
         </div>
         
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-          {error && (
+          {isAccountDeleted ? (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex flex-col items-center text-red-800 text-center">
+              <AlertCircle className="h-6 w-6 mb-2 flex-shrink-0" />
+              <h3 className="font-bold">Account Deleted</h3>
+              <p>{error}</p>
+              <p className="mt-2 text-sm">If you believe this is a mistake, please contact support.</p>
+            </div>
+          ) : error ? (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md flex items-center text-red-800 text-sm">
               <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
               <p>{error}</p>
             </div>
-          )}
+          ) : null}
           
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
@@ -115,7 +131,7 @@ const SignIn: React.FC = () => {
             <Button 
               type="submit" 
               className="w-full bg-dmi hover:bg-dmi-dark text-white button-hover-effect"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isAccountDeleted}
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
