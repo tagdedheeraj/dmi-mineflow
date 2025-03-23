@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -12,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db, deleteUserAccount } from '@/lib/firebase';
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import {
@@ -42,6 +41,8 @@ type UserData = {
   activePlans?: UserPlan[];
 };
 
+const USERS_PER_PAGE = 10;
+
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
@@ -55,67 +56,92 @@ const UserManagement: React.FC = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [isFirstPage, setIsFirstPage] = useState(true);
 
-  // Fetch all users
-  const fetchAllUsers = async () => {
+  // More efficient fetch users function
+  const fetchUsers = async (isNextPage = false, isPrevPage = false) => {
     setIsLoading(true);
     try {
       const usersCollection = collection(db, 'users');
-      const userSnapshot = await getDocs(usersCollection);
+      let userQuery;
       
-      const usersData: UserData[] = [];
-      
-      for (const userDoc of userSnapshot.docs) {
-        const userData = userDoc.data();
-        
-        // Fetch referral count
-        let referralCount = 0;
-        try {
-          const referralsRef = collection(db, 'referrals');
-          const referralsSnapshot = await getDocs(referralsRef);
-          referralCount = referralsSnapshot.docs.filter(
-            doc => doc.data().referrerId === userDoc.id && doc.data().level === 1
-          ).length;
-        } catch (err) {
-          console.error("Error fetching referrals:", err);
+      // If searching, use client-side filtering
+      if (searchTerm.trim() !== "") {
+        userQuery = query(usersCollection, orderBy('fullName'), limit(100));
+      } else {
+        // Otherwise use server-side pagination
+        if (isNextPage && lastVisible) {
+          userQuery = query(
+            usersCollection, 
+            orderBy('fullName'),
+            startAfter(lastVisible),
+            limit(USERS_PER_PAGE)
+          );
+        } else if (isPrevPage) {
+          // For previous page, we'll fetch the current page - 1
+          userQuery = query(
+            usersCollection,
+            orderBy('fullName'),
+            limit(USERS_PER_PAGE * (currentPage - 1))
+          );
+        } else {
+          // First page
+          userQuery = query(
+            usersCollection,
+            orderBy('fullName'),
+            limit(USERS_PER_PAGE)
+          );
         }
-        
-        // Fetch active plans
-        let activePlans: UserPlan[] = [];
-        try {
-          const plansRef = collection(db, 'active_plans');
-          const plansSnapshot = await getDocs(plansRef);
-          const now = new Date();
-          
-          activePlans = plansSnapshot.docs
-            .filter(doc => doc.data().userId === userDoc.id)
-            .map(doc => {
-              const plan = doc.data();
-              return {
-                planId: plan.planId,
-                expiresAt: new Date(plan.expiresAt).toLocaleDateString(),
-                boostMultiplier: plan.boostMultiplier
-              };
-            })
-            .filter(plan => new Date(plan.expiresAt) > now);
-        } catch (err) {
-          console.error("Error fetching plans:", err);
-        }
-        
-        usersData.push({
-          id: userDoc.id,
-          fullName: userData.fullName || 'Unknown',
-          email: userData.email || 'Unknown',
-          balance: userData.balance || 0,
-          usdtEarnings: userData.usdtEarnings || 0,
-          referralCount,
-          activePlans: activePlans.length > 0 ? activePlans : undefined
-        });
       }
       
+      const userSnapshot = await getDocs(userQuery);
+      
+      // Update pagination trackers
+      const lastVisibleDoc = userSnapshot.docs[userSnapshot.docs.length - 1];
+      if (lastVisibleDoc) {
+        setLastVisible(lastVisibleDoc);
+      }
+      
+      // Get total count on first load
+      if (!isNextPage && !isPrevPage && !searchTerm) {
+        // Get total count more efficiently (may need a counter collection in a production app)
+        const countSnapshot = await getDocs(query(collection(db, 'users')));
+        setTotalUsers(countSnapshot.size);
+      }
+      
+      // Get basic user data (avoid nested queries while loading the page)
+      const usersData: UserData[] = userSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          fullName: data.fullName || 'Unknown',
+          email: data.email || 'Unknown',
+          balance: data.balance || 0,
+          usdtEarnings: data.usdtEarnings || 0,
+          referralCount: 0, // Will be populated on demand
+          activePlans: [] // Will be populated on demand
+        };
+      });
+      
       setUsers(usersData);
-      setFilteredUsers(usersData);
+      
+      // If searching, filter client-side
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const filtered = usersData.filter(
+          user => 
+            user.fullName.toLowerCase().includes(term) ||
+            user.email.toLowerCase().includes(term)
+        );
+        setFilteredUsers(filtered);
+      } else {
+        setFilteredUsers(usersData);
+      }
+      
+      // Set first page flag
+      setIsFirstPage(currentPage === 1);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -128,24 +154,10 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // Fetch users on initial load and when search/pagination changes
   useEffect(() => {
-    fetchAllUsers();
-  }, []);
-
-  // Filter users based on search term
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const term = searchTerm.toLowerCase();
-      const filtered = users.filter(
-        user => 
-          user.fullName.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term)
-      );
-      setFilteredUsers(filtered);
-    }
-  }, [searchTerm, users]);
+    fetchUsers();
+  }, [currentPage, searchTerm]);
 
   // Format plans for display
   const formatPlans = (plans?: UserPlan[]): string => {
@@ -153,22 +165,16 @@ const UserManagement: React.FC = () => {
     return plans.map(p => `${p.planId} (${p.boostMultiplier}x, expires: ${p.expiresAt})`).join(", ");
   };
 
-  // Calculate pagination values
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-
   // Pagination handlers
   const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
+    setCurrentPage(currentPage + 1);
+    fetchUsers(true, false);
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
+      fetchUsers(false, true);
     }
   };
   
@@ -183,6 +189,7 @@ const UserManagement: React.FC = () => {
       if (success) {
         // Remove the user from the local state
         setUsers(prevUsers => prevUsers.filter(user => user.id !== userToDelete.id));
+        setFilteredUsers(prevUsers => prevUsers.filter(user => user.id !== userToDelete.id));
         
         toast({
           title: "User Deleted",
@@ -204,6 +211,25 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // Function to fetch additional user details when needed (e.g., on demand)
+  const fetchUserDetails = async (userId: string) => {
+    try {
+      // Implementation can be added later if needed for showing detailed user info
+      console.log("Fetching details for user:", userId);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
+
+  // Calculate total pages based on user count
+  const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
+
+  // Handle search
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
+
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
       <CardHeader>
@@ -215,12 +241,16 @@ const UserManagement: React.FC = () => {
             <Input
               placeholder="Search users by name or email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
               className="w-full"
             />
           </div>
           <Button 
-            onClick={fetchAllUsers} 
+            onClick={() => {
+              setSearchTerm("");
+              setCurrentPage(1);
+              fetchUsers();
+            }} 
             variant="outline"
             disabled={isLoading}
           >
@@ -245,22 +275,16 @@ const UserManagement: React.FC = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>DMI Coins</TableHead>
                   <TableHead>USDT</TableHead>
-                  <TableHead>Referrals</TableHead>
-                  <TableHead>Active Plans</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentUsers.map((user) => (
+                {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.balance.toFixed(2)}</TableCell>
                     <TableCell>${user.usdtEarnings?.toFixed(2) || "0.00"}</TableCell>
-                    <TableCell>{user.referralCount || 0}</TableCell>
-                    <TableCell className="max-w-md truncate">
-                      {formatPlans(user.activePlans)}
-                    </TableCell>
                     <TableCell>
                       <Button 
                         variant="destructive" 
@@ -278,25 +302,25 @@ const UserManagement: React.FC = () => {
             {/* Pagination controls */}
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-gray-500">
-                Showing {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
+                Showing page {currentPage} of {totalPages || 1}
               </div>
               <div className="flex items-center space-x-2">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={prevPage}
-                  disabled={currentPage === 1}
+                  disabled={isFirstPage || isLoading}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm">
-                  Page {currentPage} of {totalPages || 1}
+                  Page {currentPage}
                 </span>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={nextPage}
-                  disabled={currentPage === totalPages || totalPages === 0}
+                  disabled={filteredUsers.length < USERS_PER_PAGE || isLoading}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
