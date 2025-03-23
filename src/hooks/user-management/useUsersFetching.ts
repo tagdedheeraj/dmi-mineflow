@@ -121,7 +121,7 @@ export const useUsersFetching = () => {
   useEffect(() => {
     console.log("useEffect triggered for fetchUsers");
     fetchUsers();
-  }, [currentPage, searchTerm]); // Depend on currentPage and searchTerm
+  }, [currentPage]); // Only depend on currentPage to avoid unnecessary fetches
 
   // Calculate total pages
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);

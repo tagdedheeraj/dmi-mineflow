@@ -34,48 +34,17 @@ export const createUserQuery = (
     // or a third-party search solution like Algolia for better search capabilities
     return query(
       usersCollection,
-      orderBy('email'), // This helps when searching by email
+      // Remove the orderBy to allow more flexible search
       limit(100) // Increase limit to ensure we find matches
     );
   } 
   
-  // Reset lastVisible when forcing a refresh
-  if (forceRefresh) {
-    console.log("Force refreshing users list");
-    return query(
-      usersCollection,
-      orderBy('fullName'),
-      limit(USERS_PER_PAGE)
-    );
-  }
-  
-  // Otherwise use server-side pagination
-  if (isNextPage && lastVisible) {
-    console.log("Moving to next page with lastVisible:", lastVisible.id);
-    return query(
-      usersCollection, 
-      orderBy('fullName'),
-      startAfter(lastVisible),
-      limit(USERS_PER_PAGE)
-    );
-  } 
-  
-  if (isPrevPage) {
-    console.log("Moving to previous page:", currentPage - 1);
-    // For previous page, we'll fetch the current page - 1
-    return query(
-      usersCollection,
-      orderBy('fullName'),
-      limit(USERS_PER_PAGE * (currentPage - 1))
-    );
-  } 
-  
-  console.log("Fetching first page or current page:", currentPage);
-  // First page
+  // For initial load, force refresh, or page navigation, get all users
+  console.log("Getting all users with no search term");
   return query(
     usersCollection,
-    orderBy('fullName'),
-    limit(USERS_PER_PAGE)
+    orderBy('email'), // Order by email to make it easier to find specific emails
+    limit(100) // Fetch more users to ensure we get all of them
   );
 };
 

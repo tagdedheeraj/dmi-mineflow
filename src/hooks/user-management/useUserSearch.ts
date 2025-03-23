@@ -18,11 +18,9 @@ export const useUserSearch = ({
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page on new search
     
-    // If search term is cleared, refresh the list to show all users
-    if (e.target.value === '') {
-      console.log("Search term cleared, refreshing user list");
-      refreshUsersList();
-    }
+    // Always refresh the list when search changes to ensure we get fresh data
+    console.log("Search term changed, refreshing user list");
+    refreshUsersList();
   }, [setSearchTerm, setCurrentPage, refreshUsersList]);
 
   return {
