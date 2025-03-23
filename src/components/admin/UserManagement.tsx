@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -14,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc, collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db, deleteUserAccount } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +61,7 @@ const UserManagement: React.FC = () => {
   const [isFirstPage, setIsFirstPage] = useState(true);
 
   // More efficient fetch users function
-  const fetchUsers = async (isNextPage = false, isPrevPage = false) => {
+  const fetchUsers = async (isNextPage = false, isPrevPage = false, forceRefresh = false) => {
     setIsLoading(true);
     try {
       const usersCollection = collection(db, 'users');
@@ -72,8 +71,17 @@ const UserManagement: React.FC = () => {
       if (searchTerm.trim() !== "") {
         userQuery = query(usersCollection, orderBy('fullName'), limit(100));
       } else {
+        // Reset lastVisible when forcing a refresh
+        if (forceRefresh) {
+          setLastVisible(null);
+          userQuery = query(
+            usersCollection,
+            orderBy('fullName'),
+            limit(USERS_PER_PAGE)
+          );
+        }
         // Otherwise use server-side pagination
-        if (isNextPage && lastVisible) {
+        else if (isNextPage && lastVisible) {
           userQuery = query(
             usersCollection, 
             orderBy('fullName'),
@@ -100,13 +108,13 @@ const UserManagement: React.FC = () => {
       const userSnapshot = await getDocs(userQuery);
       
       // Update pagination trackers
-      const lastVisibleDoc = userSnapshot.docs[userSnapshot.docs.length - 1];
-      if (lastVisibleDoc) {
+      if (userSnapshot.docs.length > 0) {
+        const lastVisibleDoc = userSnapshot.docs[userSnapshot.docs.length - 1];
         setLastVisible(lastVisibleDoc);
       }
       
-      // Get total count on first load
-      if (!isNextPage && !isPrevPage && !searchTerm) {
+      // Get total count on first load or refresh
+      if ((!isNextPage && !isPrevPage && !searchTerm) || forceRefresh) {
         // Get total count more efficiently (may need a counter collection in a production app)
         const countSnapshot = await getDocs(query(collection(db, 'users')));
         setTotalUsers(countSnapshot.size);
@@ -171,7 +179,7 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1);
     setLastVisible(null);
     setIsFirstPage(true);
-    fetchUsers();
+    fetchUsers(false, false, true);
   };
 
   // Format plans for display
@@ -264,7 +272,9 @@ const UserManagement: React.FC = () => {
             onClick={refreshUsersList} 
             variant="outline"
             disabled={isLoading}
+            className="flex items-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             {isLoading ? "Loading..." : "Refresh"}
           </Button>
         </div>
