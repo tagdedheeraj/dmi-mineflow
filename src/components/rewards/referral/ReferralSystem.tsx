@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -83,7 +82,7 @@ const ReferralSystem: React.FC = () => {
       
       setCommissionHistory(history);
       setTotalCommission(total);
-      setCommissionBreakdown(breakdown);
+      setCommissionBreakdown(breakdown as CommissionBreakdown);
       
       console.log("Commission data refreshed:", { totalCommission: total, breakdown });
     } catch (error) {
@@ -115,17 +114,14 @@ const ReferralSystem: React.FC = () => {
         setReferralNetwork(network);
       });
       
-      // Fetch commission data
       refreshCommissionData();
       
-      // Check if user has premium plan
       hasPremiumPlan(user.id).then(result => {
         setIsPremium(result);
       });
     }
   }, [user, updateUser, refreshKey, refreshCommissionData]);
   
-  // Set up interval to refresh commission data every 30 seconds
   useEffect(() => {
     if (!user?.id) return;
     
@@ -136,7 +132,6 @@ const ReferralSystem: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [user?.id, refreshCommissionData]);
   
-  // Handle tab change - refresh data when switching to commission tab
   const handleTabChange = (value: string): void => {
     setActiveTab(value);
     if (value === "commission") {
@@ -177,7 +172,6 @@ const ReferralSystem: React.FC = () => {
         }
         
         setInputCode('');
-        // Refresh commission data after applying code
         setRefreshKey(prev => prev + 1);
       } else {
         toast({

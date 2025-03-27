@@ -7,6 +7,15 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// Interface for commission breakdown
+export interface CommissionBreakdown {
+  level1: number;
+  level2: number;
+  level3: number;
+  level4: number;
+  level5: number;
+}
+
 // Function to get commission history for a referrer
 export const getCommissionHistory = async (referrerId: string): Promise<any[]> => {
   try {
@@ -36,11 +45,11 @@ export const getTotalCommissionEarned = async (referrerId: string): Promise<numb
 };
 
 // Function to get commission breakdown by level
-export const getCommissionBreakdown = async (referrerId: string): Promise<{[key: string]: number}> => {
+export const getCommissionBreakdown = async (referrerId: string): Promise<CommissionBreakdown> => {
   try {
     const commissions = await getCommissionHistory(referrerId);
     
-    const breakdown = {
+    const breakdown: CommissionBreakdown = {
       level1: 0,
       level2: 0,
       level3: 0,
