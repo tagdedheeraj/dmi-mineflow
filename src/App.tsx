@@ -22,6 +22,7 @@ import Rewards from "./pages/Rewards";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import BottomBar from "./components/BottomBar";
+import Download from "./pages/Download";
 
 const queryClient = new QueryClient();
 
@@ -61,11 +62,11 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <MiningProvider>
-                {/* Removed AppUpdateNotification component from here */}
                 <Routes>
                   <Route path="/" element={<Navigate to="/mining" replace />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/signup" element={<SignUp />} />
+                  <Route path="/download" element={<Download />} />
                   <Route 
                     path="/mining" 
                     element={

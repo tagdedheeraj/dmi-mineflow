@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import PlanManagement from '@/components/admin/PlanManagement';
 import AutomatedArbitragePlan from '@/components/admin/AutomatedArbitragePlan';
 import TaskRewardsManagement from '@/components/admin/TaskRewardsManagement';
+import AppFileManagement from '@/components/admin/AppFileManagement';
 
 const Admin: React.FC = () => {
   const { user, isAdmin, signOut, appSettings } = useAuth();
@@ -179,6 +181,9 @@ const Admin: React.FC = () => {
           currentUpdateUrl={appSettings.updateUrl}
           onSettingsUpdated={loadWithdrawalRequests}
         />
+        
+        {/* App File Management */}
+        <AppFileManagement />
         
         {/* Plan Management Panel */}
         <PlanManagement />

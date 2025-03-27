@@ -781,3 +781,43 @@ export const updateAppSettings = async (version: string, updateUrl: string) => {
     return false;
   }
 };
+
+// App file management functions
+export const updateAppFile = async (fileName: string, fileType: string, fileBase64: string): Promise<boolean> => {
+  try {
+    const appFileRef = doc(db, 'settings', 'appFile');
+    
+    await setDoc(appFileRef, {
+      fileName,
+      fileType,
+      fileBase64,
+      updatedAt: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating app file:", error);
+    return false;
+  }
+};
+
+export const getAppFileInfo = async (): Promise<{fileName: string, fileType: string, updatedAt: any} | null> => {
+  try {
+    const appFileRef = doc(db, 'settings', 'appFile');
+    const appFileDoc = await getDoc(appFileRef);
+    
+    if (appFileDoc.exists()) {
+      const data = appFileDoc.data();
+      return {
+        fileName: data.fileName,
+        fileType: data.fileType,
+        updatedAt: data.updatedAt
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error getting app file info:", error);
+    return null;
+  }
+};
