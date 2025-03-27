@@ -1,66 +1,52 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  User,
-  getDeviceId,
-} from '@/lib/storage'; // Keeping the types from storage
+import { getDeviceId } from '@/lib/storage'; // Keeping the types from storage
 import { 
   getUser as getFirestoreUser, 
-  saveUser as saveFirestoreUser,
+  saveUser as saveFirestoreUser, 
   registerAccountOnDevice,
   getAppSettings
 } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { auth, signInWithEmail, createUserWithEmail, signOutUser } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser, AuthError } from 'firebase/auth';
-import { notifyAppUpdate } from '@/lib/rewards/notificationService';
+import { 
+  auth, 
+  signInWithEmail, 
+  createUserWithEmail, 
+  signOutUser 
+} from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
-// Add AppSettings interface
-interface AppSettings {
-  version: string;
-  updateUrl: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  isAdmin: boolean;
-  appSettings: AppSettings;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (fullName: string, email: string, password: string) => Promise<void>;
-  signOut: () => void;
-  updateBalance: (newBalance: number) => void;
-  updateUser: (updatedUser: User) => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
-}
-
-const AuthContext = createContext<AuthContextType>({
+const AuthContext = createContext({
   user: null,
   isAuthenticated: false,
   loading: true,
   isAdmin: false,
-  appSettings: { version: '1.0.0', updateUrl: 'https://dminetwork.us' },
+  appSettings: {
+    version: '1.0.0',
+    updateUrl: 'https://dminetwork.us'
+  },
   signIn: async () => {},
   signUp: async () => {},
   signOut: () => {},
   updateBalance: () => {},
   updateUser: () => {},
-  changePassword: async () => false,
+  changePassword: async () => false
 });
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 // Admin email for special access
 const ADMIN_EMAIL = "tagdedheeraj4@gmail.com";
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [appSettings, setAppSettings] = useState<AppSettings>({ 
-    version: '1.0.0', 
-    updateUrl: 'https://dminetwork.us' 
+  const [appSettings, setAppSettings] = useState({
+    version: '1.0.0',
+    updateUrl: 'https://dminetwork.us'
   });
   const navigate = useNavigate();
   const { toast } = useToast();
