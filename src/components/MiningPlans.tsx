@@ -24,7 +24,7 @@ const MiningPlans: React.FC = () => {
     loadPlans();
   }, []);
   
-  const loadPlans = async () => {
+  const loadPlans = async (): Promise<void> => {
     setIsLoadingPlans(true);
     try {
       const plans = await getPlans();
@@ -37,7 +37,7 @@ const MiningPlans: React.FC = () => {
     }
   };
   
-  const handleRefreshPlans = async () => {
+  const handleRefreshPlans = async (): Promise<void> => {
     try {
       const refreshedPlans = await reloadPlans();
       setAvailablePlans(refreshedPlans);
@@ -67,13 +67,13 @@ const MiningPlans: React.FC = () => {
   const currentWeeklyEarnings = currentDailyEarnings * 7;
   const currentMonthlyEarnings = currentDailyEarnings * 30;
 
-  const handlePurchase = (plan: MiningPlan) => {
+  const handlePurchase = (plan: MiningPlan): void => {
     if (isProcessing) return;
     setSelectedPlan(plan);
     setShowPaymentModal(true);
   };
 
-  const handlePaymentComplete = async (transactionId: string) => {
+  const handlePaymentComplete = async (transactionId: string): Promise<void> => {
     if (!selectedPlan || !user || isProcessing) return;
     
     setIsProcessing(true);
@@ -84,7 +84,6 @@ const MiningPlans: React.FC = () => {
       console.log(`[PURCHASE DEBUG] Plan details - boost: ${selectedPlan.miningBoost}, duration: ${selectedPlan.duration}, dailyEarnings: ${selectedPlan.dailyEarnings}, price: ${selectedPlan.price}`);
       console.log(`[PURCHASE DEBUG] User purchasing plan: ${user.id}, has referrer: ${user.appliedReferralCode ? 'yes' : 'no'}`);
       
-      // Make sure we pass the planId, dailyEarnings and price to properly record the purchase
       const activePlan = await updateMiningBoost(
         selectedPlan.miningBoost, 
         selectedPlan.duration, 
@@ -95,15 +94,10 @@ const MiningPlans: React.FC = () => {
       
       console.log(`[PURCHASE DEBUG] Plan activation result:`, activePlan);
       
-      // Multiple attempts to get updated user data after plan activation
-      console.log("[PURCHASE DEBUG] First attempt to get updated user data");
       let updatedUser = await getUser(user.id);
       
       if (!updatedUser || (updatedUser.usdtEarnings === 0 && selectedPlan.dailyEarnings > 0)) {
-        console.log("[PURCHASE DEBUG] First attempt didn't return expected USDT earnings, waiting and trying again");
-        // Wait a bit and try again
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("[PURCHASE DEBUG] Second attempt to get updated user data");
         updatedUser = await getUser(user.id);
       }
       

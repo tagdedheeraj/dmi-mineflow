@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +9,18 @@ import {
   getTodayDateKey
 } from '@/lib/rewards';
 
-export const useAdWatching = () => {
+interface AdWatchingData {
+  isWatchingAd: boolean;
+  isAdComplete: boolean;
+  countdownTime: number;
+  todayAdsWatched: number;
+  todayEarnings: number;
+  MAX_DAILY_ADS: number;
+  handleWatchAd: () => void;
+  formatCountdown: (seconds: number) => string;
+}
+
+export const useAdWatching = (): AdWatchingData => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   
@@ -82,14 +92,14 @@ export const useAdWatching = () => {
   }, [user, todayAdsWatched, todayEarnings]);
   
   // Format countdown time as MM:SS
-  const formatCountdown = (seconds: number) => {
+  const formatCountdown = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
   
   // Handle watching an ad
-  const handleWatchAd = () => {
+  const handleWatchAd = (): void => {
     if (!user) {
       toast({
         title: "Not Logged In",
@@ -147,7 +157,7 @@ export const useAdWatching = () => {
   };
   
   // Handle ad completion
-  const onAdComplete = async () => {
+  const onAdComplete = async (): Promise<void> => {
     if (!user) return;
     
     // Ad completed

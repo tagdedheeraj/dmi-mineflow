@@ -26,13 +26,28 @@ import ReferralNetworkTab from './ReferralNetworkTab';
 import CommissionTab from './CommissionTab';
 import ContestTab from './ContestTab';
 
+interface ReferralStats {
+  totalReferrals: number;
+  level1Count: number;
+  level2Count: number;
+  totalEarnings: number;
+}
+
+interface CommissionBreakdown {
+  level1: number;
+  level2: number;
+  level3: number;
+  level4: number;
+  level5: number;
+}
+
 const ReferralSystem: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [referralCode, setReferralCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const [referredUsers, setReferredUsers] = useState<any[]>([]);
-  const [referralStats, setReferralStats] = useState<any>({ 
+  const [referralStats, setReferralStats] = useState<ReferralStats>({ 
     totalReferrals: 0, 
     level1Count: 0, 
     level2Count: 0, 
@@ -43,7 +58,7 @@ const ReferralSystem: React.FC = () => {
   const [referralNetwork, setReferralNetwork] = useState<any[]>([]);
   const [commissionHistory, setCommissionHistory] = useState<any[]>([]);
   const [totalCommission, setTotalCommission] = useState(0);
-  const [commissionBreakdown, setCommissionBreakdown] = useState<any>({
+  const [commissionBreakdown, setCommissionBreakdown] = useState<CommissionBreakdown>({
     level1: 0,
     level2: 0,
     level3: 0,
@@ -54,7 +69,7 @@ const ReferralSystem: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Function to refresh commission data
-  const refreshCommissionData = useCallback(async () => {
+  const refreshCommissionData = useCallback(async (): Promise<void> => {
     if (!user?.id) return;
     
     console.log("Refreshing commission data...");
@@ -122,14 +137,14 @@ const ReferralSystem: React.FC = () => {
   }, [user?.id, refreshCommissionData]);
   
   // Handle tab change - refresh data when switching to commission tab
-  const handleTabChange = (value: string) => {
+  const handleTabChange = (value: string): void => {
     setActiveTab(value);
     if (value === "commission") {
       refreshCommissionData();
     }
   };
   
-  const copyReferralCode = () => {
+  const copyReferralCode = (): void => {
     navigator.clipboard.writeText(referralCode);
     toast({
       title: "Copied!",

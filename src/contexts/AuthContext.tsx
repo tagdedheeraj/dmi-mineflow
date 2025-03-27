@@ -1,6 +1,7 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDeviceId } from '@/lib/storage'; // Keeping the types from storage
+import { User, getDeviceId } from '@/lib/storage'; // Import User type from storage
 import { 
   getUser as getFirestoreUser, 
   saveUser as saveFirestoreUser, 
@@ -16,7 +17,28 @@ import {
 } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-const AuthContext = createContext({
+// Define AppSettings interface
+interface AppSettings {
+  version: string;
+  updateUrl: string;
+}
+
+// Define the AuthContext type
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  isAdmin: boolean;
+  appSettings: AppSettings;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (fullName: string, email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateBalance: (newBalance: number) => Promise<void>;
+  updateUser: (updatedUser: User) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+}
+
+const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   loading: true,
@@ -27,8 +49,8 @@ const AuthContext = createContext({
   },
   signIn: async () => {},
   signUp: async () => {},
-  signOut: () => {},
-  updateBalance: () => {},
+  signOut: async () => {},
+  updateBalance: async () => {},
   updateUser: () => {},
   changePassword: async () => false
 });
@@ -40,11 +62,11 @@ export const useAuth = () => {
 // Admin email for special access
 const ADMIN_EMAIL = "tagdedheeraj4@gmail.com";
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [appSettings, setAppSettings] = useState({
+  const [appSettings, setAppSettings] = useState<AppSettings>({
     version: '1.0.0',
     updateUrl: 'https://dminetwork.us'
   });

@@ -11,7 +11,12 @@ import {
   getTaskReward 
 } from '@/lib/rewards';
 
-export const useTaskCompletion = () => {
+interface TaskCompletionData {
+  completedTasks: string[];
+  handleCompleteTask: (taskId: string, data?: any) => Promise<void>;
+}
+
+export const useTaskCompletion = (): TaskCompletionData => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   
@@ -32,7 +37,7 @@ export const useTaskCompletion = () => {
     loadCompletedTasks();
   }, [user]);
   
-  const handleCompleteTask = async (taskId: string, data?: any) => {
+  const handleCompleteTask = async (taskId: string, data?: any): Promise<void> => {
     if (!user) {
       toast({
         title: "Not Logged In",
