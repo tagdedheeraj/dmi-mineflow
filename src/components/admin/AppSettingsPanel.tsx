@@ -1,11 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { updateAppSettings, getAppSettings } from '@/lib/firestore';
+import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { notifyAppUpdate } from '@/lib/rewards/notificationService';
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -21,24 +19,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   const [version, setVersion] = useState(currentVersion);
   const [updateUrl, setUpdateUrl] = useState(currentUpdateUrl);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showLovableBadge, setShowLovableBadge] = useState(false);
   const { toast } = useToast();
-
-  // Fetch the current setting for lovable badge when component mounts
-  useEffect(() => {
-    const fetchLovableBadgeSetting = async () => {
-      try {
-        const settings = await getAppSettings();
-        if (settings && settings.showLovableBadge !== undefined) {
-          setShowLovableBadge(settings.showLovableBadge);
-        }
-      } catch (error) {
-        console.error("Error fetching lovable badge setting:", error);
-      }
-    };
-    
-    fetchLovableBadgeSetting();
-  }, []);
 
   const handleSaveSettings = async () => {
     if (!version.trim() || !updateUrl.trim()) {
@@ -64,7 +45,8 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      const success = await updateAppSettings(version, updateUrl, showLovableBadge);
+      // Pass false for showLovableBadge to ensure it's always disabled
+      const success = await updateAppSettings(version, updateUrl, false);
       
       if (success) {
         // Update local storage for admin's own version
@@ -72,7 +54,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
         
         toast({
           title: "Settings Updated",
-          description: "App version, update URL, and Lovable badge settings have been successfully updated.",
+          description: "App version and update URL have been successfully updated.",
         });
         
         // This will trigger the settings update in the parent component
@@ -119,22 +101,6 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
             onChange={(e) => setUpdateUrl(e.target.value)}
             placeholder="https://example.com/download"
             className="w-full"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <label htmlFor="lovableBadge" className="block text-sm font-medium text-gray-700">
-              Show "Edit with Lovable" Badge
-            </label>
-            <p className="text-sm text-gray-500">
-              Enable or disable the "Edit with Lovable" popup on the site
-            </p>
-          </div>
-          <Switch
-            id="lovableBadge"
-            checked={showLovableBadge}
-            onCheckedChange={setShowLovableBadge}
           />
         </div>
         

@@ -29,20 +29,17 @@ const queryClient = new QueryClient();
 const App = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [appReady, setAppReady] = useState(false);
-  const [showLovableBadge, setShowLovableBadge] = useState(false);
 
   useEffect(() => {
     // Check if authentication is required
     const authRequired = isAuthRequired();
     setIsLocked(authRequired);
     
-    // Fetch app settings to check if Lovable badge should be shown
+    // Fetch app settings to initialize app version
     const fetchAppSettings = async () => {
       try {
         const settings = await getAppSettings();
         if (settings) {
-          setShowLovableBadge(settings.showLovableBadge || false);
-          
           // Initialize app version in localStorage if it doesn't exist
           if (!localStorage.getItem('appVersion')) {
             localStorage.setItem('appVersion', settings.version || '0.0.0');
@@ -57,23 +54,6 @@ const App = () => {
     
     fetchAppSettings();
   }, []);
-
-  // Dynamically add/remove the Lovable script based on the setting
-  useEffect(() => {
-    const lovableScript = document.getElementById('lovable-script');
-    
-    if (showLovableBadge && !lovableScript) {
-      // Add the script if it should be shown and doesn't exist
-      const script = document.createElement('script');
-      script.id = 'lovable-script';
-      script.src = 'https://cdn.gpteng.co/gptengineer.js';
-      script.type = 'module';
-      document.body.appendChild(script);
-    } else if (!showLovableBadge && lovableScript) {
-      // Remove the script if it shouldn't be shown but exists
-      lovableScript.remove();
-    }
-  }, [showLovableBadge]);
 
   const handleUnlock = () => {
     setIsLocked(false);
