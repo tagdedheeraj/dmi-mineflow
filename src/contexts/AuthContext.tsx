@@ -5,7 +5,10 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -30,6 +33,10 @@ export interface User {
   appliedReferralCode: string | null;
   createdAt: any;
   lastLogin: any;
+  balance: number;
+  fullName?: string;
+  usdtEarnings?: number;
+  usdtAddress?: string;
 }
 
 // Define the auth context interface
@@ -37,12 +44,15 @@ interface AuthContextProps {
   user: User | null;
   isAdmin: boolean;
   isApproved: boolean;
+  isAuthenticated: boolean;
+  loading: boolean;
   appSettings: AppSettings;
   signUp: (email: string, password: string, userName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 // Create the auth context
@@ -50,6 +60,8 @@ const AuthContext = createContext<AuthContextProps>({
   user: null,
   isAdmin: false,
   isApproved: false,
+  isAuthenticated: false,
+  loading: true,
   appSettings: {
     version: '1.0.0',
     updateUrl: 'https://dminetwork.us/download',
@@ -59,7 +71,8 @@ const AuthContext = createContext<AuthContextProps>({
   signIn: async () => {},
   signOut: async () => {},
   updateUser: async () => {},
-  resetPassword: async () => {}
+  resetPassword: async () => {},
+  changePassword: async () => false
 });
 
 interface AuthProviderProps {
@@ -71,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isApproved, setIsApproved] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Update the default app settings to include editWithLovableEnabled
   const [appSettings, setAppSettings] = useState<AppSettings>({
@@ -82,11 +96,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setIsAuthenticated(true);
         // Fetch user data from Firestore
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
-          setUser(userData);
+          setUser({
+            ...userData,
+            balance: userData.balance || 0, // Ensure balance has a default value
+            id: firebaseUser.uid // Ensure id is set
+          });
           setIsAdmin(userData.isAdmin || false);
           setIsApproved(userData.isApproved || false);
         } else {
@@ -101,7 +120,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             referralCode: null,
             appliedReferralCode: null,
             createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp()
+            lastLogin: serverTimestamp(),
+            balance: 0
           };
           await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
           setUser(newUser);
@@ -112,6 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null);
         setIsAdmin(false);
         setIsApproved(false);
+        setIsAuthenticated(false);
       }
       setLoading(false);
     });
@@ -165,7 +186,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         referralCode: null,
         appliedReferralCode: null,
         createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp()
+        lastLogin: serverTimestamp(),
+        balance: 0
       };
 
       // Store the user data in Firestore
@@ -213,6 +235,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAdmin(false);
       setIsApproved(false);
+      setIsAuthenticated(false);
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -245,16 +268,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      const user = auth.currentUser;
+      
+      if (!user || !user.email) {
+        console.error("No user is currently signed in.");
+        return false;
+      }
+      
+      // Create credential
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      
+      // Reauthenticate
+      await reauthenticateWithCredential(user, credential);
+      
+      // Change password
+      await updatePassword(user, newPassword);
+      
+      console.log("Password updated successfully");
+      return true;
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return false;
+    }
+  };
+
   const value = {
     user,
     isAdmin,
     isApproved,
+    isAuthenticated,
+    loading,
     appSettings,
     signUp,
     signIn,
     signOut,
     updateUser,
-    resetPassword
+    resetPassword,
+    changePassword
   };
 
   return (
