@@ -17,4 +17,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Prevent any Lovable-related features from loading
+  define: {
+    'import.meta.env.VITE_DISABLE_LOVABLE': JSON.stringify('true'),
+  }
 }));

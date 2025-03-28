@@ -23,6 +23,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import BottomBar from "./components/BottomBar";
 import Download from "./pages/Download";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -75,7 +76,7 @@ const App = () => {
             <AuthProvider>
               <MiningProvider>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/mining" replace />} />
+                  <Route path="/" element={<Index />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/signup" element={<SignUp />} />
                   <Route path="/download" element={<Download />} />

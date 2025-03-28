@@ -45,23 +45,19 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Always pass false for the third parameter to ensure badge is disabled
-      const success = await updateAppSettings(version, updateUrl, false);
+      // Explicitly set the third parameter to false to ensure badge is always disabled
+      await updateAppSettings(version, updateUrl, false);
       
-      if (success) {
-        // Update local storage for admin's own version
-        localStorage.setItem('appVersion', version);
-        
-        toast({
-          title: "Settings Updated",
-          description: "App version and update URL have been successfully updated.",
-        });
-        
-        // This will trigger the settings update in the parent component
-        onSettingsUpdated();
-      } else {
-        throw new Error("Failed to update settings");
-      }
+      // Update local storage for admin's own version
+      localStorage.setItem('appVersion', version);
+      
+      toast({
+        title: "Settings Updated",
+        description: "App version and update URL have been successfully updated.",
+      });
+      
+      // This will trigger the settings update in the parent component
+      onSettingsUpdated();
     } catch (error) {
       console.error("Error updating app settings:", error);
       toast({

@@ -1,11 +1,38 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
+
+  // Add an effect to remove any dynamically added Lovable scripts
+  useEffect(() => {
+    // Find and remove any dynamically added script tags related to Lovable
+    const scripts = document.querySelectorAll('script');
+    scripts.forEach(script => {
+      if (script.src.includes('lovable') || script.src.includes('gpteng') || script.src.includes('gptengineer') || script.src.includes('edit-with-lovable')) {
+        script.parentNode?.removeChild(script);
+      }
+    });
+
+    // Remove any Lovable-related elements from the DOM
+    const elements = document.querySelectorAll('div, button, a');
+    elements.forEach(element => {
+      if (element.id?.includes('lovable') || 
+          element.className?.includes('lovable') || 
+          element.innerHTML?.includes('lovable') ||
+          element.id?.includes('gpteng') || 
+          element.className?.includes('gpteng') || 
+          element.innerHTML?.includes('gpteng') ||
+          element.id?.includes('edit-with') || 
+          element.className?.includes('edit-with') || 
+          element.innerHTML?.includes('edit-with')) {
+        element.parentNode?.removeChild(element);
+      }
+    });
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
