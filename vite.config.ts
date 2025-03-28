@@ -17,8 +17,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Prevent any Lovable-related features from loading
+  // Completely disable any Lovable-related features
   define: {
     'import.meta.env.VITE_DISABLE_LOVABLE': JSON.stringify('true'),
+    'window.enableLovable': 'false',
+    'window.enableGPTEngineer': 'false',
+    'window.DISABLE_LOVABLE': 'true',
+    'window.DISABLE_GPTENGINEER': 'true',
   }
 }));
