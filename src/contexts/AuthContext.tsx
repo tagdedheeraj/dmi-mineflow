@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, getDeviceId } from '@/lib/storage'; // Import User type from storage
@@ -21,6 +20,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 interface AppSettings {
   version: string;
   updateUrl: string;
+  showLovableBadge?: boolean;
 }
 
 // Define the AuthContext type
@@ -45,7 +45,8 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   appSettings: {
     version: '1.0.0',
-    updateUrl: 'https://dminetwork.us'
+    updateUrl: 'https://dminetwork.us',
+    showLovableBadge: false
   },
   signIn: async () => {},
   signUp: async () => {},
@@ -68,7 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>({
     version: '1.0.0',
-    updateUrl: 'https://dminetwork.us'
+    updateUrl: 'https://dminetwork.us',
+    showLovableBadge: false
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -79,7 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const settings = await getAppSettings();
         if (settings) {
-          setAppSettings(settings);
+          setAppSettings({
+            version: settings.version,
+            updateUrl: settings.updateUrl,
+            showLovableBadge: settings.showLovableBadge
+          });
           
           // Compare with stored version and update localStorage if admin
           const storedVersion = localStorage.getItem('appVersion');

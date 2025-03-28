@@ -740,41 +740,43 @@ export const getDeviceId = (): string => {
   return deviceId;
 };
 
-// Get app settings from Firestore
+// Get app settings
 export const getAppSettings = async () => {
   try {
-    const appSettingsDoc = await getDoc(doc(db, 'settings', 'appSettings'));
+    const appSettingsRef = doc(db, 'app_settings', 'current');
+    const appSettingsDoc = await getDoc(appSettingsRef);
     
     if (appSettingsDoc.exists()) {
-      return appSettingsDoc.data() as { version: string; updateUrl: string };
-    } else {
-      // Create default settings if they don't exist
-      const defaultSettings = {
-        version: '1.0.0',
-        updateUrl: 'https://dminetwork.us'
+      const data = appSettingsDoc.data();
+      return {
+        version: data.version || '1.0.0',
+        updateUrl: data.updateUrl || 'https://dminetwork.us',
+        showLovableBadge: data.showLovableBadge !== undefined ? data.showLovableBadge : false
       };
-      
-      await setDoc(doc(db, 'settings', 'appSettings'), defaultSettings);
-      return defaultSettings;
+    } else {
+      // If no settings exist, return defaults
+      return {
+        version: '1.0.0',
+        updateUrl: 'https://dminetwork.us',
+        showLovableBadge: false
+      };
     }
   } catch (error) {
     console.error("Error getting app settings:", error);
-    // Return default values if there's an error
-    return { 
-      version: '1.0.0', 
-      updateUrl: 'https://dminetwork.us' 
-    };
+    return null;
   }
 };
 
-// Update app settings (admin only)
-export const updateAppSettings = async (version: string, updateUrl: string) => {
+// Update app settings
+export const updateAppSettings = async (version: string, updateUrl: string, showLovableBadge: boolean = false) => {
   try {
-    await setDoc(
-      doc(db, 'settings', 'appSettings'), 
-      { version, updateUrl },
-      { merge: true }
-    );
+    const appSettingsRef = doc(db, 'app_settings', 'current');
+    await setDoc(appSettingsRef, {
+      version,
+      updateUrl,
+      showLovableBadge,
+      updatedAt: serverTimestamp()
+    });
     return true;
   } catch (error) {
     console.error("Error updating app settings:", error);
