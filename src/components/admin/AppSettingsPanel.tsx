@@ -45,8 +45,8 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Explicitly set the third parameter to false to ensure badge is always disabled
-      await updateAppSettings(version, updateUrl, false);
+      // Allow the badge to be enabled
+      await updateAppSettings(version, updateUrl, true);
       
       // Update local storage for admin's own version
       localStorage.setItem('appVersion', version);

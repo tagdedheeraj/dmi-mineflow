@@ -1,62 +1,11 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
-
-  // More aggressive cleanup for any Lovable-related elements
-  useEffect(() => {
-    // Function to remove all Lovable-related elements
-    const removeLovableElements = () => {
-      // Find and remove any script tags related to Lovable
-      const scripts = document.querySelectorAll('script');
-      scripts.forEach(script => {
-        if (script.src.includes('lovable') || 
-            script.src.includes('gpteng') || 
-            script.src.includes('gptengineer') || 
-            script.src.includes('edit-with')) {
-          script.parentNode?.removeChild(script);
-        }
-      });
-
-      // Remove any iframe elements (which may contain the popup)
-      const iframes = document.querySelectorAll('iframe');
-      iframes.forEach(iframe => iframe.remove());
-
-      // Remove any Lovable-related elements from the DOM
-      const elements = document.querySelectorAll('div, button, a, span');
-      elements.forEach(element => {
-        if ((element.id && (
-              element.id.includes('lovable') || 
-              element.id.includes('gpteng') || 
-              element.id.includes('edit-with')
-            )) || 
-            (element.className && (
-              element.className.includes('lovable') || 
-              element.className.includes('gpteng') || 
-              element.className.includes('edit-with')
-            )) || 
-            (element.innerHTML && (
-              element.innerHTML.includes('lovable') || 
-              element.innerHTML.includes('gpteng') || 
-              element.innerHTML.includes('edit-with')
-            ))) {
-          element.parentNode?.removeChild(element);
-        }
-      });
-    };
-
-    // Run immediately
-    removeLovableElements();
-    
-    // And set up an interval to keep checking/removing
-    const intervalId = setInterval(removeLovableElements, 1000);
-    
-    // Clean up the interval when component unmounts
-    return () => clearInterval(intervalId);
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
