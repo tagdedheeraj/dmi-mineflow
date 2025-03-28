@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { notifyAppUpdate } from '@/lib/rewards/notificationService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '@/components/ui/label';
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -17,8 +19,12 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   currentUpdateUrl,
   onSettingsUpdated
 }) => {
+  const { appSettings } = useAuth();
   const [version, setVersion] = useState(currentVersion);
   const [updateUrl, setUpdateUrl] = useState(currentUpdateUrl);
+  const [editWithLovableEnabled, setEditWithLovableEnabled] = useState(
+    appSettings.editWithLovableEnabled !== undefined ? appSettings.editWithLovableEnabled : true
+  );
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
@@ -46,7 +52,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      const success = await updateAppSettings(version, updateUrl);
+      const success = await updateAppSettings(version, updateUrl, editWithLovableEnabled);
       
       if (success) {
         // Update local storage for admin's own version
@@ -54,7 +60,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
         
         toast({
           title: "Settings Updated",
-          description: "App version and update URL have been successfully updated.",
+          description: "App settings have been successfully updated.",
         });
         
         // This will trigger the settings update in the parent component
@@ -102,6 +108,17 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
             placeholder="https://example.com/download"
             className="w-full"
           />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="editWithLovableEnabled"
+            checked={editWithLovableEnabled}
+            onCheckedChange={setEditWithLovableEnabled}
+          />
+          <Label htmlFor="editWithLovableEnabled" className="text-sm font-medium text-gray-700">
+            Enable "Edit with Lovable" Popup
+          </Label>
         </div>
         
         <Button 

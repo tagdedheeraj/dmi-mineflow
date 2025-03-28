@@ -13,6 +13,31 @@
     <link rel="apple-touch-icon" href="/lovable-uploads/0dad5230-9381-4a8d-a415-7ba365276bdd.png">
     <!-- For Android -->
     <link rel="manifest" href="/manifest.json">
+    <script>
+      // Check if "Edit with Lovable" is enabled
+      function checkLovableEnabled() {
+        // If we have a setting in localStorage, use that
+        const settings = localStorage.getItem('appSettings');
+        if (settings) {
+          try {
+            const parsedSettings = JSON.parse(settings);
+            return parsedSettings.editWithLovableEnabled !== false; // Default to true if undefined
+          } catch (e) {
+            console.error('Error parsing app settings', e);
+            return true; // Default to enabled if error
+          }
+        }
+        return true; // Default to enabled if no setting
+      }
+      
+      // If enabled, dynamically add the script
+      if (checkLovableEnabled()) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.gpteng.co/gptengineer.js';
+        script.type = 'module';
+        document.head.appendChild(script);
+      }
+    </script>
   </head>
 
   <body>
