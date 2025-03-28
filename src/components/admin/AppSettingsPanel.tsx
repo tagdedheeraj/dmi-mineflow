@@ -45,7 +45,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Pass false for showLovableBadge to ensure it's always disabled
+      // Always pass false for the third parameter to ensure badge is disabled
       const success = await updateAppSettings(version, updateUrl, false);
       
       if (success) {
