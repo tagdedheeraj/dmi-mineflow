@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import { MiningProvider } from "./contexts/MiningContext";
 import { isAuthRequired } from "./lib/secureStorage";
 import AppLock from "./components/AppLock";
@@ -25,18 +25,6 @@ import BottomBar from "./components/BottomBar";
 import Download from "./pages/Download";
 
 const queryClient = new QueryClient();
-
-// Component to handle app settings synchronization
-const AppSettingsSynchronizer = () => {
-  const { appSettings } = useAuth();
-  
-  useEffect(() => {
-    // Save appSettings to localStorage when they change
-    localStorage.setItem('appSettings', JSON.stringify(appSettings));
-  }, [appSettings]);
-  
-  return null; // This component doesn't render anything
-};
 
 const App = () => {
   const [isLocked, setIsLocked] = useState(false);
@@ -73,7 +61,6 @@ const App = () => {
         ) : (
           <BrowserRouter>
             <AuthProvider>
-              <AppSettingsSynchronizer />
               <MiningProvider>
                 <Routes>
                   <Route path="/" element={<Navigate to="/mining" replace />} />

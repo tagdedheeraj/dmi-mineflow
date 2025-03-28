@@ -768,21 +768,13 @@ export const getAppSettings = async () => {
 };
 
 // Update app settings (admin only)
-export const updateAppSettings = async (
-  version: string, 
-  updateUrl: string, 
-  editWithLovableEnabled: boolean = true
-): Promise<boolean> => {
+export const updateAppSettings = async (version: string, updateUrl: string) => {
   try {
-    const settingsRef = doc(db, 'app_settings', 'main');
-    
-    await setDoc(settingsRef, {
-      version,
-      updateUrl,
-      editWithLovableEnabled,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-    
+    await setDoc(
+      doc(db, 'settings', 'appSettings'), 
+      { version, updateUrl },
+      { merge: true }
+    );
     return true;
   } catch (error) {
     console.error("Error updating app settings:", error);
