@@ -8,7 +8,8 @@ import {
   orderBy,
   serverTimestamp,
   doc,
-  updateDoc
+  updateDoc,
+  getDoc
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { getUser, updateUserBalance } from "./userService";
@@ -47,12 +48,17 @@ export const saveStakingTransaction = async (
     const docRef = await addDoc(stakingCollection, stakingData);
     console.log(`[Firestore] Staking transaction saved with ID: ${docRef.id}`);
     
-    // Update the user's staking data in their profile
-    const user = await getUser(userId);
-    if (user) {
-      const userRef = doc(db, 'users', userId);
-      const totalStaked = (user.stakingData?.totalStaked || 0) + amount;
-      const totalEarned = user.stakingData?.totalEarned || 0;
+    // Get current user data to update staking totals
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const currentStakingData = userData.stakingData || { totalStaked: 0, totalEarned: 0 };
+      
+      // Update the user's staking data in their profile
+      const totalStaked = (currentStakingData.totalStaked || 0) + amount;
+      const totalEarned = currentStakingData.totalEarned || 0;
       
       await updateDoc(userRef, {
         stakingData: {
@@ -62,6 +68,8 @@ export const saveStakingTransaction = async (
       });
       
       console.log(`[Firestore] Updated user staking data: totalStaked=${totalStaked}, totalEarned=${totalEarned}`);
+    } else {
+      console.error(`[Firestore] User document not found for ID: ${userId}`);
     }
     
     return docRef.id;
@@ -77,11 +85,15 @@ export const addStakingEarnings = async (
   earningsAmount: number
 ): Promise<boolean> => {
   try {
-    const user = await getUser(userId);
-    if (user) {
-      const userRef = doc(db, 'users', userId);
-      const totalStaked = user.stakingData?.totalStaked || 0;
-      const totalEarned = (user.stakingData?.totalEarned || 0) + earningsAmount;
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const currentStakingData = userData.stakingData || { totalStaked: 0, totalEarned: 0 };
+      
+      const totalStaked = currentStakingData.totalStaked || 0;
+      const totalEarned = (currentStakingData.totalEarned || 0) + earningsAmount;
       
       await updateDoc(userRef, {
         stakingData: {
@@ -93,6 +105,8 @@ export const addStakingEarnings = async (
       console.log(`[Firestore] Added staking earnings: ${earningsAmount} to user ${userId}`);
       return true;
     }
+    
+    console.error(`[Firestore] User document not found for ID: ${userId}`);
     return false;
   } catch (error) {
     console.error("Error adding staking earnings:", error);
@@ -103,6 +117,7 @@ export const addStakingEarnings = async (
 // Get user's staking history
 export const getStakingHistory = async (userId: string): Promise<StakingTransaction[]> => {
   try {
+    console.log(`[Firestore] Getting staking history for user ${userId}`);
     const stakingCollection = collection(db, 'staking_transactions');
     const q = query(
       stakingCollection,

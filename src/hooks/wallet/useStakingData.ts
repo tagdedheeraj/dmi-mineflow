@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { getStakingHistory, saveStakingTransaction, StakingTransaction } from '@/lib/firestore';
+import { getStakingHistory, saveStakingTransaction, StakingTransaction } from '@/lib/firestore/stakingService';
 import { getUser } from '@/lib/firestore/userService';
 import { useToast } from '@/hooks/use-toast';
 

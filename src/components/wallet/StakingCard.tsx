@@ -43,7 +43,8 @@ const StakingCard: React.FC<StakingCardProps> = ({
     setTxId,
     isSubmitting,
     handleStakeAmountChange,
-    handleSubmitStaking
+    handleSubmitStaking,
+    loadStakingHistory
   } = useStakingData(userId, updateUser);
 
   // Determine if user has staked or has a premium plan
@@ -57,7 +58,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
     const amount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
     setWithdrawableAmount(amount);
     setWithdrawableUsdValue(amount * DMI_COIN_VALUE);
-  }, [canWithdrawAirdrop, userBalance]);
+  }, [canWithdrawAirdrop, userBalance, totalStaked, totalEarned]);
 
   const now = new Date();
   const daysUntilUnlock = Math.ceil((STAKING_UNLOCK_DATE.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

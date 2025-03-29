@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMining } from '@/contexts/MiningContext';
@@ -66,8 +66,16 @@ const Wallet: React.FC = () => {
   // Use the staking data hook for history
   const { 
     stakingHistory, 
-    isLoading: isStakingLoading 
+    isLoading: isStakingLoading,
+    loadStakingHistory
   } = useStakingData(user?.id, updateUser);
+
+  // Load staking history when the component mounts
+  useEffect(() => {
+    if (user?.id) {
+      loadStakingHistory();
+    }
+  }, [user?.id, loadStakingHistory]);
 
   if (!user) {
     navigate('/signin');
