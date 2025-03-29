@@ -15,6 +15,7 @@ import AutomatedArbitragePlan from '@/components/admin/AutomatedArbitragePlan';
 import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
 import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel';
 import WithdrawalRequestsManagement from '@/components/admin/WithdrawalRequestsManagement';
+import UserPlanManagement from '@/components/admin/UserPlanManagement';
 
 const Admin: React.FC = () => {
   const { appSettings } = useAuth();
@@ -34,6 +35,9 @@ const Admin: React.FC = () => {
         showBadge={appSettings.showLovableBadge}
         onSettingsUpdated={handleSettingsUpdated}
       />
+      
+      {/* User Plan Management */}
+      <UserPlanManagement />
       
       {/* App File Management */}
       <AppFileManagement />
