@@ -74,7 +74,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
         window.HIDE_LOVABLE_BADGE = true;
         document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
         
-        // Force any existing badge to be removed
+        // Force any existing badges to be removed
         const existingBadges = document.querySelectorAll('[data-lovable-badge]');
         existingBadges.forEach(badge => badge.remove());
       } else {
