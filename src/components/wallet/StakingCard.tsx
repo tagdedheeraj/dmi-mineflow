@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DMI_COIN_VALUE } from '@/data/miningPlans';
+import { updateUserBalance, getUser } from '@/lib/firestore';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 const STAKING_UNLOCK_DATE = new Date('2025-08-25T00:00:00Z');
@@ -17,6 +18,8 @@ interface StakingCardProps {
   hasPremiumPlan?: boolean;
   totalStaked?: number;
   totalEarned?: number;
+  userId?: string;
+  updateUser: (user: any) => void;
 }
 
 const StakingCard: React.FC<StakingCardProps> = ({
@@ -24,7 +27,9 @@ const StakingCard: React.FC<StakingCardProps> = ({
   hasAirdrop = false,
   hasPremiumPlan = false,
   totalStaked = 0,
-  totalEarned = 0
+  totalEarned = 0,
+  userId,
+  updateUser
 }) => {
   const [stakeAmount, setStakeAmount] = useState<string>('250');
   const [txId, setTxId] = useState<string>('');
@@ -35,21 +40,28 @@ const StakingCard: React.FC<StakingCardProps> = ({
   const [localTotalStaked, setLocalTotalStaked] = useState(totalStaked);
   const [localTotalEarned, setLocalTotalEarned] = useState(totalEarned);
   const [hasStaked, setHasStaked] = useState(totalStaked > 0);
+  const [withdrawableAmount, setWithdrawableAmount] = useState(0);
+  const [withdrawableUsdValue, setWithdrawableUsdValue] = useState(0);
 
   // Update local state when props change
   useEffect(() => {
     setLocalTotalStaked(totalStaked);
     setLocalTotalEarned(totalEarned);
-    setHasStaked(totalStaked > 0);
-  }, [totalStaked, totalEarned]);
+    setHasStaked(totalStaked > 0 || localTotalStaked > 0);
+  }, [totalStaked, totalEarned, localTotalStaked]);
 
+  // Calculate daily profit
   const dailyProfit = parseFloat(stakeAmount) * 0.01;
   
   // Update canWithdrawAirdrop to account for local staking status
   const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || hasStaked || localTotalStaked >= 250);
   
-  const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
-  const withdrawableUsdValue = withdrawableAmount * DMI_COIN_VALUE;
+  // Update withdrawable amount and USD value when canWithdrawAirdrop or userBalance changes
+  useEffect(() => {
+    const amount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
+    setWithdrawableAmount(amount);
+    setWithdrawableUsdValue(amount * DMI_COIN_VALUE);
+  }, [canWithdrawAirdrop, userBalance]);
 
   const now = new Date();
   const daysUntilUnlock = Math.ceil((STAKING_UNLOCK_DATE.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -76,6 +88,20 @@ const StakingCard: React.FC<StakingCardProps> = ({
     }
   };
 
+  const updateUserData = async () => {
+    if (userId) {
+      try {
+        const latestUserData = await getUser(userId);
+        if (latestUserData) {
+          updateUser(latestUserData);
+          console.log("Updated user data after staking:", latestUserData);
+        }
+      } catch (error) {
+        console.error("Error updating user data after staking:", error);
+      }
+    }
+  };
+
   const handleSubmitStaking = () => {
     if (!txId.trim()) {
       toast({
@@ -95,6 +121,20 @@ const StakingCard: React.FC<StakingCardProps> = ({
       // Update local state to show changes immediately
       setLocalTotalStaked(prevStaked => prevStaked + numStakeAmount);
       setHasStaked(true);
+      
+      // Calculate daily earnings and add them to total earned
+      const dailyEarning = numStakeAmount * 0.01;
+      setLocalTotalEarned(prevEarned => prevEarned + dailyEarning);
+      
+      // Update withdrawable amount if user now qualifies for airdrop withdrawal
+      if (!canWithdrawAirdrop && hasAirdrop && numStakeAmount >= 250) {
+        const newWithdrawableAmount = userBalance * 0.5;
+        setWithdrawableAmount(newWithdrawableAmount);
+        setWithdrawableUsdValue(newWithdrawableAmount * DMI_COIN_VALUE);
+      }
+      
+      // Update user data in Firestore
+      updateUserData();
       
       toast({
         title: "Staking submitted!",

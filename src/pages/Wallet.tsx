@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,7 +51,9 @@ const Wallet: React.FC = () => {
     isClaimingPlan,
     handleRefresh,
     handleClaimEarnings,
-    handleWithdrawalRequest
+    handleWithdrawalRequest,
+    userId,
+    updateUser: walletUpdateUser
   } = useWalletData(
     user?.id, 
     updateUser,
@@ -71,6 +74,12 @@ const Wallet: React.FC = () => {
 
   const handleWithdraw = () => {
     setIsWithdrawalModalOpen(true);
+  };
+
+  // Simulated staking data for now - in a real app this would come from Firestore
+  const stakingData = {
+    totalStaked: user?.stakingData?.totalStaked || 0,
+    totalEarned: user?.stakingData?.totalEarned || 0
   };
 
   return (
@@ -116,8 +125,10 @@ const Wallet: React.FC = () => {
           userBalance={user.balance}
           hasAirdrop={true} // Example: Set based on actual airdrop status
           hasPremiumPlan={hasPremiumPlan}
-          totalStaked={0} // This would come from actual user staking data
-          totalEarned={0} // This would come from actual user staking earnings
+          totalStaked={stakingData.totalStaked}
+          totalEarned={stakingData.totalEarned}
+          userId={user.id}
+          updateUser={updateUser}
         />
         
         {/* Mining Speed Card */}

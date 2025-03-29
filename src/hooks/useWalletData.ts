@@ -81,7 +81,10 @@ export const useWalletData = (
     isClaimingPlan,
     handleRefresh,
     handleClaimEarnings,
-    handleWithdrawalRequest
+    handleWithdrawalRequest,
+    // Add userId and updateUser to the return value
+    userId,
+    updateUser
   };
 };
 
