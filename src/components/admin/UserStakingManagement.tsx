@@ -13,10 +13,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Search, RefreshCw, Coins } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  AlertCircle, 
+  Search, 
+  RefreshCw, 
+  Coins, 
+  PlusCircle 
+} from 'lucide-react';
+import { 
+  Alert, 
+  AlertDescription, 
+  AlertTitle 
+} from "@/components/ui/alert";
 import { db } from '@/lib/firebase';
 import { collection, query, getDocs, where, orderBy } from 'firebase/firestore';
+import { saveAdminStakingTransaction } from '@/lib/firestore/stakingService';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { randomUUID } from '@/lib/utils';
 
 // Staking data type definition
 interface StakingData {
@@ -33,13 +66,35 @@ interface StakingData {
   transactionId: string;
 }
 
+// Form schema for manual staking
+const manualStakingSchema = z.object({
+  userEmail: z.string().email({ message: "Please enter a valid email address" }),
+  amount: z.string().refine(val => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 250 && num <= 5000;
+  }, { message: "Amount must be between 250 and 5000 USDT" }),
+  transactionId: z.string().min(10, { message: "Transaction ID must be at least 10 characters" }),
+});
+
 const UserStakingManagement: React.FC = () => {
   const [stakingRecords, setStakingRecords] = useState<StakingData[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<StakingData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Form setup for manual staking
+  const form = useForm<z.infer<typeof manualStakingSchema>>({
+    resolver: zodResolver(manualStakingSchema),
+    defaultValues: {
+      userEmail: "",
+      amount: "250",
+      transactionId: "",
+    },
+  });
 
   // Fetch all staking records with user information
   const fetchStakingRecords = async () => {
@@ -128,6 +183,49 @@ const UserStakingManagement: React.FC = () => {
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   };
 
+  // Handle manual staking form submission
+  const onSubmitManualStaking = async (values: z.infer<typeof manualStakingSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const amount = parseFloat(values.amount);
+      const result = await saveAdminStakingTransaction(
+        values.userEmail,
+        amount,
+        values.transactionId || `admin-${randomUUID().slice(0, 8)}`
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+        
+        // Reset form and close dialog
+        form.reset();
+        setIsDialogOpen(false);
+        
+        // Refresh staking records
+        await fetchStakingRecords();
+        setActionSuccess(true);
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating manual staking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create staking transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -135,6 +233,98 @@ const UserStakingManagement: React.FC = () => {
           <Coins className="h-6 w-6 mr-2 text-purple-500" />
           User Staking Management
         </CardTitle>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-purple-600 hover:bg-purple-700">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Manual Staking
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Manual Staking</DialogTitle>
+              <DialogDescription>
+                Create a staking transaction for any user by entering their email address.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmitManualStaking)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="userEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="user@example.com" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the email of the user you want to create staking for
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount (USDT)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="250" 
+                          max="5000" 
+                          step="50" 
+                          placeholder="250" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the staking amount (250-5000 USDT)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="transactionId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transaction ID</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Transaction ID" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter a transaction ID or reference for this staking
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    type="submit" 
+                    className="bg-purple-600 hover:bg-purple-700"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Create Staking"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
         {actionSuccess && (
@@ -142,7 +332,7 @@ const UserStakingManagement: React.FC = () => {
             <AlertCircle className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Action Completed Successfully</AlertTitle>
             <AlertDescription className="text-green-700">
-              The staking data has been refreshed.
+              The staking data has been updated.
             </AlertDescription>
           </Alert>
         )}

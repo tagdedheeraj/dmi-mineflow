@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   addDoc,
@@ -12,7 +11,7 @@ import {
   getDoc
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { getUser, updateUserBalance } from "./userService";
+import { getUser, updateUserBalance, findUserByEmail } from "./userService";
 
 export interface StakingTransaction {
   id?: string;
@@ -146,5 +145,50 @@ export const getStakingHistory = async (userId: string): Promise<StakingTransact
   } catch (error) {
     console.error("Error getting staking history:", error);
     return [];
+  }
+};
+
+// Create a new function to save manual staking transaction by admin
+export const saveAdminStakingTransaction = async (
+  userEmail: string,
+  amount: number,
+  txId: string
+): Promise<{success: boolean, message: string, userId?: string}> => {
+  try {
+    console.log(`[Firestore] Admin creating staking transaction for user email: ${userEmail}, amount: ${amount}`);
+    
+    // Find user by email
+    const user = await findUserByEmail(userEmail);
+    
+    if (!user) {
+      return {
+        success: false,
+        message: `No user found with email: ${userEmail}`
+      };
+    }
+    
+    const userId = user.id;
+    
+    // Save the staking transaction using the existing function
+    const stakingId = await saveStakingTransaction(userId, amount, txId);
+    
+    if (stakingId) {
+      return {
+        success: true,
+        message: `Successfully created staking transaction for user: ${user.fullName || userEmail}`,
+        userId
+      };
+    } else {
+      return {
+        success: false,
+        message: "Failed to save staking transaction"
+      };
+    }
+  } catch (error) {
+    console.error("Error creating admin staking transaction:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error occurred"}`
+    };
   }
 };

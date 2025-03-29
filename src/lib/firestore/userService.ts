@@ -5,7 +5,12 @@ import {
   getDoc, 
   updateDoc, 
   increment,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type { User } from '../storage';
@@ -22,6 +27,35 @@ export const getUser = async (userId: string): Promise<User | null> => {
     return null;
   } catch (error) {
     console.error("Error fetching user:", error);
+    return null;
+  }
+};
+
+// Find user by email
+export const findUserByEmail = async (email: string): Promise<User | null> => {
+  try {
+    if (!email) return null;
+    
+    console.log(`[Firestore] Searching for user with email: ${email}`);
+    const usersCollection = collection(db, 'users');
+    const q = query(
+      usersCollection,
+      where("email", "==", email.toLowerCase().trim()),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      console.log(`[Firestore] No user found with email: ${email}`);
+      return null;
+    }
+    
+    const userData = querySnapshot.docs[0].data() as User;
+    console.log(`[Firestore] Found user with email: ${email}, id: ${userData.id}`);
+    return userData;
+  } catch (error) {
+    console.error("Error finding user by email:", error);
     return null;
   }
 };
