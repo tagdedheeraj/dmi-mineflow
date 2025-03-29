@@ -45,8 +45,8 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Allow the badge to be enabled
-      await updateAppSettings(version, updateUrl, true);
+      // Always set showBadge to false to ensure the Lovable badge is disabled
+      await updateAppSettings(version, updateUrl, false);
       
       // Update local storage for admin's own version
       localStorage.setItem('appVersion', version);
