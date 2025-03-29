@@ -1,0 +1,9 @@
+
+/* CSS to forcefully hide the Lovable badge when disabled */
+[data-hide-lovable-badge="true"] [data-lovable-badge],
+html[data-hide-lovable-badge="true"] [data-lovable-badge] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

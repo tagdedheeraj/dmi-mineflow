@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,19 +11,6 @@ import { isAuthRequired } from "./lib/secureStorage";
 import AppLock from "./components/AppLock";
 import { getAppSettings } from "./lib/firestore";
 
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import Mining from "./pages/Mining";
-import Profile from "./pages/Profile";
-import Wallet from "./pages/Wallet";
-import Plans from "./pages/Plans";
-import Rewards from "./pages/Rewards";
-import Admin from "./pages/Admin";
-import NotFound from "./pages/NotFound";
-import BottomBar from "./components/BottomBar";
-import Download from "./pages/Download";
-import Index from "./pages/Index";
-
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -36,6 +22,13 @@ const App = () => {
     const authRequired = isAuthRequired();
     setIsLocked(authRequired);
     
+    // Check and apply the Lovable badge setting
+    const showLovableBadge = localStorage.getItem('showLovableBadge');
+    if (showLovableBadge === 'false') {
+      window.HIDE_LOVABLE_BADGE = true;
+      document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+    }
+    
     // Fetch app settings to initialize app version
     const fetchAppSettings = async () => {
       try {
@@ -44,6 +37,17 @@ const App = () => {
           // Initialize app version in localStorage if it doesn't exist
           if (!localStorage.getItem('appVersion')) {
             localStorage.setItem('appVersion', settings.version || '0.0.0');
+          }
+          
+          // Update badge visibility setting if it's defined in the settings
+          if (settings.showLovableBadge !== undefined) {
+            localStorage.setItem('showLovableBadge', settings.showLovableBadge ? 'true' : 'false');
+            
+            // Apply the setting immediately
+            if (!settings.showLovableBadge) {
+              window.HIDE_LOVABLE_BADGE = true;
+              document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+            }
           }
         }
         setAppReady(true);

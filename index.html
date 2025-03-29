@@ -16,6 +16,11 @@
     <script>
       // Check if the badge should be hidden based on admin settings
       window.HIDE_LOVABLE_BADGE = localStorage.getItem('showLovableBadge') === 'false';
+      
+      // Add this to force the badge to be hidden if setting is false
+      if (window.HIDE_LOVABLE_BADGE) {
+        document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+      }
     </script>
   </head>
 

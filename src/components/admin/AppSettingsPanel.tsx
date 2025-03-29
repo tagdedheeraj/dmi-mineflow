@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
@@ -25,6 +25,14 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   const [displayLovableBadge, setDisplayLovableBadge] = useState(showBadge);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
+  
+  // Initialize the badge display setting from localStorage if available
+  useEffect(() => {
+    const storedBadgeSetting = localStorage.getItem('showLovableBadge');
+    if (storedBadgeSetting !== null) {
+      setDisplayLovableBadge(storedBadgeSetting === 'true');
+    }
+  }, []);
 
   const handleSaveSettings = async () => {
     if (!version.trim() || !updateUrl.trim()) {
@@ -60,6 +68,19 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       
       // Save the badge display preference to localStorage for immediate effect
       localStorage.setItem('showLovableBadge', displayLovableBadge ? 'true' : 'false');
+      
+      // Force the badge to be hidden immediately if setting is disabled
+      if (!displayLovableBadge) {
+        window.HIDE_LOVABLE_BADGE = true;
+        document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+        
+        // Force any existing badge to be removed
+        const existingBadges = document.querySelectorAll('[data-lovable-badge]');
+        existingBadges.forEach(badge => badge.remove());
+      } else {
+        window.HIDE_LOVABLE_BADGE = false;
+        document.documentElement.removeAttribute('data-hide-lovable-badge');
+      }
       
       toast({
         title: "Settings Updated",
