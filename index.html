@@ -13,6 +13,10 @@
     <link rel="apple-touch-icon" href="/lovable-uploads/0dad5230-9381-4a8d-a415-7ba365276bdd.png">
     <!-- For Android -->
     <link rel="manifest" href="/manifest.json">
+    <script>
+      // Check if the badge should be hidden based on admin settings
+      window.HIDE_LOVABLE_BADGE = localStorage.getItem('showLovableBadge') === 'false';
+    </script>
   </head>
 
   <body>

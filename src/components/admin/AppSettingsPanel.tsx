@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,15 +50,20 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Allow the badge to be enabled or disabled based on user preference
+      console.log("Updating app settings with badge display:", displayLovableBadge);
+      
+      // Update settings with the badge display preference
       await updateAppSettings(version, updateUrl, displayLovableBadge);
       
       // Update local storage for admin's own version
       localStorage.setItem('appVersion', version);
       
+      // Save the badge display preference to localStorage for immediate effect
+      localStorage.setItem('showLovableBadge', displayLovableBadge ? 'true' : 'false');
+      
       toast({
         title: "Settings Updated",
-        description: "App version and update URL have been successfully updated.",
+        description: "App settings have been successfully updated.",
       });
       
       // This will trigger the settings update in the parent component
