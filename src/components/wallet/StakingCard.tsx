@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, Lock, Calendar } from 'lucide-react';
+import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, Lock, Calendar, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -122,6 +123,19 @@ const StakingCard: React.FC<StakingCardProps> = ({
       </div>
       
       <div className="p-5">
+        {/* New Airdrop Withdrawal Eligibility Alert */}
+        <Alert className="mb-5 bg-yellow-50 border-yellow-200">
+          <Info className="h-4 w-4 text-yellow-600 mr-2" />
+          <AlertDescription className="text-yellow-800">
+            <p className="font-medium">Airdrop Withdrawal Eligibility:</p>
+            <ul className="mt-1 text-sm list-disc pl-5 space-y-1">
+              <li>Users who stake $250+ or purchase a $500 arbitrage plan can withdraw 50% of their airdrop coins.</li>
+              <li>Users without staking will not be able to withdraw and will lose their airdrop coins after April 10.</li>
+              <li>Withdrawals will be available after April 10, 2025.</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-medium mb-2">Stake USDT (BEP-20)</h3>
@@ -273,7 +287,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   <p className="text-xs text-gray-600 mt-1">
                     {canWithdrawAirdrop 
                       ? "You are eligible to withdraw 50% of your DMI coins" 
-                      : "Stake at least $250 or purchase a $500 plan to withdraw 50% airdrop coins"}
+                      : "Stake at least $250 or purchase a $500 plan to withdraw 50% airdrop coins. Without staking, airdrop coins will be removed after April 10."}
                   </p>
                 </div>
               </div>
