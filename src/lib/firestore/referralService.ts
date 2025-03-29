@@ -8,7 +8,9 @@ import {
   getDoc,
   addDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  DocumentData,
+  QueryDocumentSnapshot
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { updateUserBalance } from "./userService";
@@ -176,12 +178,13 @@ export const getReferredUsers = async (userId: string): Promise<any[]> => {
     
     const referredUsers = [];
     
-    for (const doc of querySnapshot.docs) {
-      const data = doc.data();
-      const referredUserRef = await getDoc(doc(db, 'users', data.referredId));
+    for (const referralDoc of querySnapshot.docs) {
+      const data = referralDoc.data();
+      const referredUserRef = doc(db, 'users', data.referredId);
+      const referredUserSnap = await getDoc(referredUserRef);
       
-      if (referredUserRef.exists()) {
-        const userData = referredUserRef.data();
+      if (referredUserSnap.exists()) {
+        const userData = referredUserSnap.data();
         referredUsers.push({
           id: data.referredId,
           fullName: userData.fullName,
@@ -268,10 +271,11 @@ export const getReferralNetwork = async (userId: string): Promise<any[]> => {
     // Add Level 1 users to network
     for (const referralDoc of l1QuerySnapshot.docs) {
       const data = referralDoc.data();
-      const referredUserRef = await getDoc(doc(db, 'users', data.referredId));
+      const referredUserRef = doc(db, 'users', data.referredId);
+      const referredUserSnap = await getDoc(referredUserRef);
       
-      if (referredUserRef.exists()) {
-        const userData = referredUserRef.data();
+      if (referredUserSnap.exists()) {
+        const userData = referredUserSnap.data();
         network.push({
           id: data.referredId,
           name: userData.fullName,
@@ -291,10 +295,11 @@ export const getReferralNetwork = async (userId: string): Promise<any[]> => {
         // Add Level 2 users to network
         for (const l2Doc of l2QuerySnapshot.docs) {
           const l2Data = l2Doc.data();
-          const l2UserRef = await getDoc(doc(db, 'users', l2Data.referredId));
+          const l2UserRef = doc(db, 'users', l2Data.referredId);
+          const l2UserSnap = await getDoc(l2UserRef);
           
-          if (l2UserRef.exists()) {
-            const l2UserData = l2UserRef.data();
+          if (l2UserSnap.exists()) {
+            const l2UserData = l2UserSnap.data();
             network.push({
               id: l2Data.referredId,
               name: l2UserData.fullName,
