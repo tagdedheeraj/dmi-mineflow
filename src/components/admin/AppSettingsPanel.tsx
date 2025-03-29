@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -104,24 +104,39 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
           />
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="lovable-badge"
-            checked={displayLovableBadge}
-            onCheckedChange={setDisplayLovableBadge}
-          />
-          <label
-            htmlFor="lovable-badge"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Display Lovable Badge
-          </label>
+        <div className="flex flex-col space-y-2 border-t pt-4 mt-4">
+          <h3 className="text-md font-medium">Lovable Badge Settings</h3>
+          <p className="text-sm text-gray-500 mb-2">
+            When enabled, the "Edit with Lovable" popup will be displayed on your website. 
+            Disable this setting to remove the popup completely.
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="lovable-badge"
+                checked={displayLovableBadge}
+                onCheckedChange={setDisplayLovableBadge}
+              />
+              <label
+                htmlFor="lovable-badge"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Display "Edit with Lovable" Popup
+              </label>
+            </div>
+            
+            {displayLovableBadge ? (
+              <Badge variant="default" className="bg-green-500">Enabled</Badge>
+            ) : (
+              <Badge variant="outline" className="text-red-500 border-red-500">Disabled</Badge>
+            )}
+          </div>
         </div>
         
         <Button 
           onClick={handleSaveSettings} 
           disabled={isUpdating}
-          className="w-full"
+          className="w-full mt-4"
         >
           {isUpdating ? "Updating..." : "Save Settings"}
         </Button>

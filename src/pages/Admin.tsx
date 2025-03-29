@@ -18,6 +18,12 @@ import WithdrawalRequestsManagement from '@/components/admin/WithdrawalRequestsM
 
 const Admin: React.FC = () => {
   const { appSettings } = useAuth();
+  
+  // Function to refresh settings after update
+  const handleSettingsUpdated = () => {
+    // Force a refresh of the page to apply new settings
+    window.location.reload();
+  };
 
   return (
     <AdminLayout>
@@ -25,7 +31,8 @@ const Admin: React.FC = () => {
       <AppSettingsPanel 
         currentVersion={appSettings.version}
         currentUpdateUrl={appSettings.updateUrl}
-        onSettingsUpdated={() => {}}
+        showBadge={appSettings.showBadge}
+        onSettingsUpdated={handleSettingsUpdated}
       />
       
       {/* App File Management */}
