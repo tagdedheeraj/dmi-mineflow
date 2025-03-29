@@ -37,12 +37,16 @@ const App = () => {
     const authRequired = isAuthRequired();
     setIsLocked(authRequired);
     
-    // Check and apply the Lovable badge setting
-    const showLovableBadge = localStorage.getItem('showLovableBadge');
-    if (showLovableBadge === 'false') {
-      window.HIDE_LOVABLE_BADGE = true;
-      document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
-    }
+    // Force hide Lovable badge
+    window.HIDE_LOVABLE_BADGE = true;
+    document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+    localStorage.setItem('showLovableBadge', 'false');
+    
+    // Continuously remove any badges that might appear
+    const badgeRemovalInterval = setInterval(() => {
+      const badges = document.querySelectorAll('[data-lovable-badge]');
+      badges.forEach(badge => badge.remove());
+    }, 500);
     
     // Fetch app settings to initialize app version
     const fetchAppSettings = async () => {
@@ -54,16 +58,10 @@ const App = () => {
             localStorage.setItem('appVersion', settings.version || '0.0.0');
           }
           
-          // Update badge visibility setting if it's defined in the settings
-          if (settings.showLovableBadge !== undefined) {
-            localStorage.setItem('showLovableBadge', settings.showLovableBadge ? 'true' : 'false');
-            
-            // Apply the setting immediately
-            if (!settings.showLovableBadge) {
-              window.HIDE_LOVABLE_BADGE = true;
-              document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
-            }
-          }
+          // Force badge hiding regardless of settings
+          localStorage.setItem('showLovableBadge', 'false');
+          window.HIDE_LOVABLE_BADGE = true;
+          document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
         }
         setAppReady(true);
       } catch (error) {
@@ -73,6 +71,10 @@ const App = () => {
     };
     
     fetchAppSettings();
+    
+    return () => {
+      clearInterval(badgeRemovalInterval);
+    };
   }, []);
 
   const handleUnlock = () => {

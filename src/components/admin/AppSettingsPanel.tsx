@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,21 +16,23 @@ interface AppSettingsProps {
 const AppSettingsPanel: React.FC<AppSettingsProps> = ({ 
   currentVersion, 
   currentUpdateUrl,
-  showBadge = true,
+  showBadge = false,
   onSettingsUpdated
 }) => {
   const [version, setVersion] = useState(currentVersion);
   const [updateUrl, setUpdateUrl] = useState(currentUpdateUrl);
-  const [displayLovableBadge, setDisplayLovableBadge] = useState(showBadge);
+  const [displayLovableBadge, setDisplayLovableBadge] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
   
-  // Initialize the badge display setting from localStorage if available
   useEffect(() => {
-    const storedBadgeSetting = localStorage.getItem('showLovableBadge');
-    if (storedBadgeSetting !== null) {
-      setDisplayLovableBadge(storedBadgeSetting === 'true');
-    }
+    setDisplayLovableBadge(false);
+    localStorage.setItem('showLovableBadge', 'false');
+    window.HIDE_LOVABLE_BADGE = true;
+    document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+    
+    const badges = document.querySelectorAll('[data-lovable-badge]');
+    badges.forEach(badge => badge.remove());
   }, []);
 
   const handleSaveSettings = async () => {
@@ -44,7 +45,6 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       return;
     }
 
-    // Basic URL validation
     try {
       new URL(updateUrl);
     } catch (e) {
@@ -58,36 +58,22 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      console.log("Updating app settings with badge display:", displayLovableBadge);
+      await updateAppSettings(version, updateUrl, false);
       
-      // Update settings with the badge display preference
-      await updateAppSettings(version, updateUrl, displayLovableBadge);
-      
-      // Update local storage for admin's own version
       localStorage.setItem('appVersion', version);
+      localStorage.setItem('showLovableBadge', 'false');
       
-      // Save the badge display preference to localStorage for immediate effect
-      localStorage.setItem('showLovableBadge', displayLovableBadge ? 'true' : 'false');
+      window.HIDE_LOVABLE_BADGE = true;
+      document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
       
-      // Force the badge to be hidden immediately if setting is disabled
-      if (!displayLovableBadge) {
-        window.HIDE_LOVABLE_BADGE = true;
-        document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
-        
-        // Force any existing badges to be removed
-        const existingBadges = document.querySelectorAll('[data-lovable-badge]');
-        existingBadges.forEach(badge => badge.remove());
-      } else {
-        window.HIDE_LOVABLE_BADGE = false;
-        document.documentElement.removeAttribute('data-hide-lovable-badge');
-      }
+      const badges = document.querySelectorAll('[data-lovable-badge]');
+      badges.forEach(badge => badge.remove());
       
       toast({
         title: "Settings Updated",
         description: "App settings have been successfully updated.",
       });
       
-      // This will trigger the settings update in the parent component
       onSettingsUpdated();
     } catch (error) {
       console.error("Error updating app settings:", error);
@@ -131,32 +117,16 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
           />
         </div>
         
-        <div className="flex flex-col space-y-2 border-t pt-4 mt-4">
-          <h3 className="text-md font-medium">Lovable Badge Settings</h3>
-          <p className="text-sm text-gray-500 mb-2">
-            When enabled, the "Edit with Lovable" popup will be displayed on your website. 
-            Disable this setting to remove the popup completely.
-          </p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="lovable-badge"
-                checked={displayLovableBadge}
-                onCheckedChange={setDisplayLovableBadge}
-              />
-              <label
-                htmlFor="lovable-badge"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Display "Edit with Lovable" Popup
-              </label>
-            </div>
-            
-            {displayLovableBadge ? (
-              <Badge variant="default" className="bg-green-500">Enabled</Badge>
-            ) : (
-              <Badge variant="outline" className="text-red-500 border-red-500">Disabled</Badge>
-            )}
+        <div className="hidden">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="lovable-badge"
+              checked={false}
+              onCheckedChange={() => {}}
+            />
+            <label className="text-sm font-medium">
+              Display "Edit with Lovable" Popup
+            </label>
           </div>
         </div>
         
