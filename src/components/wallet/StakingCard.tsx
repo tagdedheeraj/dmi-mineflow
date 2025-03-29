@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Coins, Wallet, ArrowUpRight, Copy, Check, AlertTriangle, Lock, Calendar, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -32,10 +32,21 @@ const StakingCard: React.FC<StakingCardProps> = ({
   const [showQR, setShowQR] = useState(false);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localTotalStaked, setLocalTotalStaked] = useState(totalStaked);
+  const [localTotalEarned, setLocalTotalEarned] = useState(totalEarned);
+  const [hasStaked, setHasStaked] = useState(totalStaked > 0);
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalTotalStaked(totalStaked);
+    setLocalTotalEarned(totalEarned);
+    setHasStaked(totalStaked > 0);
+  }, [totalStaked, totalEarned]);
 
   const dailyProfit = parseFloat(stakeAmount) * 0.01;
   
-  const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || totalStaked >= 250);
+  // Update canWithdrawAirdrop to account for local staking status
+  const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || hasStaked || localTotalStaked >= 250);
   
   const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
   const withdrawableUsdValue = withdrawableAmount * DMI_COIN_VALUE;
@@ -78,6 +89,13 @@ const StakingCard: React.FC<StakingCardProps> = ({
     setIsSubmitting(true);
     
     setTimeout(() => {
+      // Update the staking stats immediately upon successful submission
+      const numStakeAmount = parseFloat(stakeAmount);
+      
+      // Update local state to show changes immediately
+      setLocalTotalStaked(prevStaked => prevStaked + numStakeAmount);
+      setHasStaked(true);
+      
       toast({
         title: "Staking submitted!",
         description: `Your staking request of $${stakeAmount} USDT is being processed`,
@@ -106,7 +124,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
     
     toast({
       title: "Withdrawal initiated",
-      description: `Your withdrawal of ${formatCurrency(totalStaked)} USDT is being processed`,
+      description: `Your withdrawal of ${formatCurrency(localTotalStaked)} USDT is being processed`,
     });
   };
 
@@ -244,11 +262,11 @@ const StakingCard: React.FC<StakingCardProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Staked:</span>
-                  <span className="font-medium">{formatCurrency(totalStaked)}</span>
+                  <span className="font-medium">{formatCurrency(localTotalStaked)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Earned:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(totalEarned)}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(localTotalEarned)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Daily Rate:</span>
@@ -274,7 +292,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                 variant="outline" 
                 className="w-full mt-4 flex items-center justify-center"
                 onClick={handleWithdrawStaking}
-                disabled={totalStaked <= 0}
+                disabled={localTotalStaked <= 0}
               >
                 Withdraw Staked USDT <ArrowUpRight className="ml-1 h-4 w-4" />
                 {isStakingLocked && <Lock className="ml-1 h-3 w-3 text-red-500" />}
