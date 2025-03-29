@@ -4,20 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from "@/components/ui/switch";
 
 interface AppSettingsProps {
   currentVersion: string;
   currentUpdateUrl: string;
+  showBadge?: boolean;
   onSettingsUpdated: () => void;
 }
 
 const AppSettingsPanel: React.FC<AppSettingsProps> = ({ 
   currentVersion, 
   currentUpdateUrl,
+  showBadge = true,
   onSettingsUpdated
 }) => {
   const [version, setVersion] = useState(currentVersion);
   const [updateUrl, setUpdateUrl] = useState(currentUpdateUrl);
+  const [displayLovableBadge, setDisplayLovableBadge] = useState(showBadge);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
@@ -45,8 +49,8 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
 
     setIsUpdating(true);
     try {
-      // Always set showBadge to false to ensure the Lovable badge is disabled
-      await updateAppSettings(version, updateUrl, false);
+      // Allow the badge to be enabled or disabled based on user preference
+      await updateAppSettings(version, updateUrl, displayLovableBadge);
       
       // Update local storage for admin's own version
       localStorage.setItem('appVersion', version);
@@ -98,6 +102,20 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
             placeholder="https://example.com/download"
             className="w-full"
           />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="lovable-badge"
+            checked={displayLovableBadge}
+            onCheckedChange={setDisplayLovableBadge}
+          />
+          <label
+            htmlFor="lovable-badge"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Display Lovable Badge
+          </label>
         </div>
         
         <Button 
