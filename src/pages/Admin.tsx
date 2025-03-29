@@ -31,7 +31,7 @@ const Admin: React.FC = () => {
       <AppSettingsPanel 
         currentVersion={appSettings.version}
         currentUpdateUrl={appSettings.updateUrl}
-        showBadge={appSettings.showBadge}
+        showBadge={appSettings.showLovableBadge}
         onSettingsUpdated={handleSettingsUpdated}
       />
       
