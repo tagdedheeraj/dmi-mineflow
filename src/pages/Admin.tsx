@@ -16,6 +16,7 @@ import UserCoinsManagement from '@/components/admin/UserCoinsManagement';
 import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel';
 import WithdrawalRequestsManagement from '@/components/admin/WithdrawalRequestsManagement';
 import UserPlanManagement from '@/components/admin/UserPlanManagement';
+import UserStakingManagement from '@/components/admin/UserStakingManagement';
 
 const Admin: React.FC = () => {
   const { appSettings } = useAuth();
@@ -38,6 +39,9 @@ const Admin: React.FC = () => {
       
       {/* User Plan Management */}
       <UserPlanManagement />
+      
+      {/* User Staking Management */}
+      <UserStakingManagement />
       
       {/* App File Management */}
       <AppFileManagement />
