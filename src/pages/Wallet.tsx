@@ -76,7 +76,7 @@ const Wallet: React.FC = () => {
     setIsWithdrawalModalOpen(true);
   };
 
-  // Simulated staking data for now - in a real app this would come from Firestore
+  // Simulated staking data - correctly access with default fallback values if not present
   const stakingData = {
     totalStaked: user?.stakingData?.totalStaked || 0,
     totalEarned: user?.stakingData?.totalEarned || 0

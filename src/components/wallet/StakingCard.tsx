@@ -93,6 +93,17 @@ const StakingCard: React.FC<StakingCardProps> = ({
       try {
         const latestUserData = await getUser(userId);
         if (latestUserData) {
+          // Ensure we include updated staking data in the user object
+          if (!latestUserData.stakingData) {
+            latestUserData.stakingData = {
+              totalStaked: localTotalStaked,
+              totalEarned: localTotalEarned
+            };
+          } else {
+            latestUserData.stakingData.totalStaked = localTotalStaked;
+            latestUserData.stakingData.totalEarned = localTotalEarned;
+          }
+          
           updateUser(latestUserData);
           console.log("Updated user data after staking:", latestUserData);
         }
@@ -133,7 +144,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
         setWithdrawableUsdValue(newWithdrawableAmount * DMI_COIN_VALUE);
       }
       
-      // Update user data in Firestore
+      // Update user data in Firestore with the updated staking data
       updateUserData();
       
       toast({
