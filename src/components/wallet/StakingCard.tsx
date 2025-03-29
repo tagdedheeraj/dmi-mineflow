@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DMI_COIN_VALUE } from '@/data/miningPlans';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 const STAKING_UNLOCK_DATE = new Date('2025-08-25T00:00:00Z');
@@ -37,6 +38,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
   const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || totalStaked >= 250);
   
   const withdrawableAmount = canWithdrawAirdrop ? userBalance * 0.5 : 0;
+  const withdrawableUsdValue = withdrawableAmount * DMI_COIN_VALUE;
 
   const now = new Date();
   const daysUntilUnlock = Math.ceil((STAKING_UNLOCK_DATE.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -293,11 +295,15 @@ const StakingCard: React.FC<StakingCardProps> = ({
               </div>
               
               <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
+                <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-600">Available for withdrawal:</span>
-                  <span className="font-medium">
-                    {formatCurrency(withdrawableAmount)} DMI
+                  <span className="font-medium text-green-600">
+                    {withdrawableAmount.toLocaleString()} DMI
                   </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mb-2">
+                  <span>Estimated value:</span>
+                  <span className="font-medium">{formatCurrency(withdrawableUsdValue)}</span>
                 </div>
                 <div className="text-xs text-gray-500">
                   50% withdrawals available after <span className="font-medium text-amber-600">April 10, 2025</span>
