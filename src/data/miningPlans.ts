@@ -1,4 +1,5 @@
 import { loadMiningPlansFromFirestore } from '@/lib/planManagement';
+import { getDmiCoinValue } from '@/lib/firestore/settingsService';
 
 export interface MiningPlan {
   id: string;
@@ -99,11 +100,23 @@ export const miningPlans: MiningPlan[] = [
   }
 ];
 
-// DMI coin value in USD
-export const DMI_COIN_VALUE = 0.1732;
+// Default DMI coin value in USD (this will be used as fallback)
+export const DEFAULT_DMI_COIN_VALUE = 0.1732;
 
-// NowPayments API key
-export const NOW_PAYMENTS_API_KEY = "0BYK16S-PK24G13-NQ0TYHR-61DR2R4";
+// DMI coin value in USD - initially set to default value but will be updated
+export let DMI_COIN_VALUE = DEFAULT_DMI_COIN_VALUE;
+
+// Function to get the current DMI coin value (fetches from Firestore)
+export const getCurrentDmiCoinValue = async (): Promise<number> => {
+  try {
+    const value = await getDmiCoinValue();
+    DMI_COIN_VALUE = value; // Update the global value
+    return value;
+  } catch (error) {
+    console.error("Error getting current DMI coin value:", error);
+    return DEFAULT_DMI_COIN_VALUE;
+  }
+};
 
 // Cache for loaded plans
 let cachedPlans: MiningPlan[] | null = null;
@@ -113,6 +126,9 @@ export const reloadPlans = async (): Promise<MiningPlan[]> => {
   try {
     // Try to get plans from Firestore
     const firestorePlans = await loadMiningPlansFromFirestore();
+    
+    // Also update the DMI coin value while we're at it
+    await getCurrentDmiCoinValue();
     
     if (firestorePlans && firestorePlans.length > 0) {
       console.log("Loaded mining plans from Firestore:", firestorePlans.length);

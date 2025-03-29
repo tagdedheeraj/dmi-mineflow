@@ -17,6 +17,7 @@ import CustomNotificationPanel from '@/components/admin/CustomNotificationPanel'
 import WithdrawalRequestsManagement from '@/components/admin/WithdrawalRequestsManagement';
 import UserPlanManagement from '@/components/admin/UserPlanManagement';
 import UserStakingManagement from '@/components/admin/UserStakingManagement';
+import DmiCoinValueManagement from '@/components/admin/DmiCoinValueManagement';
 
 const Admin: React.FC = () => {
   const { appSettings } = useAuth();
@@ -36,6 +37,9 @@ const Admin: React.FC = () => {
         showBadge={appSettings.showLovableBadge}
         onSettingsUpdated={handleSettingsUpdated}
       />
+      
+      {/* DMI Coin Value Management */}
+      <DmiCoinValueManagement />
       
       {/* User Plan Management */}
       <UserPlanManagement />

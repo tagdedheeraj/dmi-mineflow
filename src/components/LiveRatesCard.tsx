@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Coins, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { DMI_COIN_VALUE } from '@/data/miningPlans';
+import { DMI_COIN_VALUE, getCurrentDmiCoinValue } from '@/data/miningPlans';
 
 interface CryptoRate {
   symbol: string;
@@ -46,8 +46,33 @@ const LiveRatesCard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const fetchDmiCoinValue = async () => {
+    try {
+      const dmiValue = await getCurrentDmiCoinValue();
+      
+      setCryptoRates(prevRates => {
+        const newRates = [...prevRates];
+        const dmiIndex = newRates.findIndex(rate => rate.symbol === 'DMI');
+        
+        if (dmiIndex !== -1) {
+          newRates[dmiIndex] = {
+            ...newRates[dmiIndex],
+            price: dmiValue
+          };
+        }
+        
+        return newRates;
+      });
+    } catch (error) {
+      console.error('Error fetching DMI coin value:', error);
+    }
+  };
+
   const fetchBinanceRates = async () => {
     try {
+      // Fetch DMI coin value first
+      await fetchDmiCoinValue();
+      
       // Fetch data for BTC/USDT, ETH/USDT and BNB/USDT
       const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'];
       const responses = await Promise.all(

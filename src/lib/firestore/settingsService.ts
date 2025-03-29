@@ -1,4 +1,3 @@
-
 import { 
   doc, 
   getDoc,
@@ -88,5 +87,47 @@ export const getAppFileInfo = async (): Promise<{fileName: string, fileType: str
   } catch (error) {
     console.error("Error getting app file info:", error);
     return null;
+  }
+};
+
+// Get DMI coin value 
+export const getDmiCoinValue = async (): Promise<number> => {
+  try {
+    const coinValueRef = doc(db, 'settings', 'dmiCoinValue');
+    const coinValueDoc = await getDoc(coinValueRef);
+    
+    if (coinValueDoc.exists()) {
+      return coinValueDoc.data().value || 0.1732; // Default to the hardcoded value if no value field
+    } else {
+      // If no document exists, create it with the default value
+      await setDoc(coinValueRef, {
+        value: 0.1732,
+        updatedAt: serverTimestamp()
+      });
+      return 0.1732;
+    }
+  } catch (error) {
+    console.error("Error getting DMI coin value:", error);
+    return 0.1732; // Default fallback value
+  }
+};
+
+// Update DMI coin value
+export const updateDmiCoinValue = async (value: number): Promise<boolean> => {
+  try {
+    if (value <= 0) {
+      throw new Error("DMI coin value must be greater than 0");
+    }
+    
+    const coinValueRef = doc(db, 'settings', 'dmiCoinValue');
+    await setDoc(coinValueRef, {
+      value,
+      updatedAt: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating DMI coin value:", error);
+    return false;
   }
 };
