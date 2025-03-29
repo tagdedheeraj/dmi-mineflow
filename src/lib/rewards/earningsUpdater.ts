@@ -5,7 +5,7 @@ import {
   updateDoc,
   increment
 } from 'firebase/firestore';
-import { User } from '../storage';
+import { User } from '../storage/types';
 import { db, addUsdtTransaction } from '../firebase';
 import { getUser } from './rewardsTracking';
 import { notifyUsdtEarnings } from './notificationService';

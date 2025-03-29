@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { getUser } from '@/lib/firestore';
+import { getUser } from '@/lib/firestore/userService';
 import { useToast } from '@/hooks/use-toast';
 
 export const useWalletRefresh = (
