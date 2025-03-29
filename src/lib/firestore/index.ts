@@ -7,3 +7,4 @@ export * from './miningService';
 export * from './planService';
 export * from './settingsService';
 export * from './referralService';
+export * from './stakingService';

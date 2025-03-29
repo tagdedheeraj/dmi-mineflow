@@ -16,6 +16,8 @@ import ActivePlansCard from '@/components/wallet/ActivePlansCard';
 import TransactionsCard from '@/components/wallet/TransactionsCard';
 import WithdrawalModal from '@/components/wallet/WithdrawalModal';
 import StakingCard from '@/components/wallet/StakingCard';
+import StakingHistoryCard from '@/components/wallet/StakingHistoryCard';
+import useStakingData from '@/hooks/wallet/useStakingData';
 
 const Wallet: React.FC = () => {
   const { user, updateUser, isAdmin } = useAuth();
@@ -61,6 +63,12 @@ const Wallet: React.FC = () => {
     user?.balance || 0
   );
 
+  // Use the staking data hook for history
+  const { 
+    stakingHistory, 
+    isLoading: isStakingLoading 
+  } = useStakingData(user?.id, updateUser);
+
   if (!user) {
     navigate('/signin');
     return null;
@@ -76,7 +84,7 @@ const Wallet: React.FC = () => {
     setIsWithdrawalModalOpen(true);
   };
 
-  // Simulated staking data - correctly access with default fallback values if not present
+  // Staking data with proper fallbacks
   const stakingData = {
     totalStaked: user?.stakingData?.totalStaked || 0,
     totalEarned: user?.stakingData?.totalEarned || 0
@@ -120,7 +128,7 @@ const Wallet: React.FC = () => {
           onWithdraw={handleWithdraw}
         />
         
-        {/* New Staking Card */}
+        {/* Staking Card */}
         <StakingCard 
           userBalance={user.balance}
           hasAirdrop={true} // Example: Set based on actual airdrop status
@@ -129,6 +137,14 @@ const Wallet: React.FC = () => {
           totalEarned={stakingData.totalEarned}
           userId={user.id}
           updateUser={updateUser}
+        />
+        
+        {/* Staking History Card */}
+        <StakingHistoryCard
+          stakingHistory={stakingHistory}
+          isLoading={isStakingLoading}
+          totalStaked={stakingData.totalStaked}
+          totalEarned={stakingData.totalEarned}
         />
         
         {/* Mining Speed Card */}

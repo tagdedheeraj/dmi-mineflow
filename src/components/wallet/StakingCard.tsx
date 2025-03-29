@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DMI_COIN_VALUE } from '@/data/miningPlans';
-import { updateUserBalance, getUser } from '@/lib/firestore';
+import useStakingData from '@/hooks/wallet/useStakingData';
 
 const USDT_ADDRESS = "0x9c94C54F5878D647CD91F13Fa89Db6E01A4bCFfB";
 const STAKING_UNLOCK_DATE = new Date('2025-08-25T00:00:00Z');
@@ -31,30 +31,30 @@ const StakingCard: React.FC<StakingCardProps> = ({
   userId,
   updateUser
 }) => {
-  const [stakeAmount, setStakeAmount] = useState<string>('250');
-  const [txId, setTxId] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localTotalStaked, setLocalTotalStaked] = useState(totalStaked);
-  const [localTotalEarned, setLocalTotalEarned] = useState(totalEarned);
-  const [hasStaked, setHasStaked] = useState(totalStaked > 0);
   const [withdrawableAmount, setWithdrawableAmount] = useState(0);
   const [withdrawableUsdValue, setWithdrawableUsdValue] = useState(0);
 
-  // Update local state when props change
-  useEffect(() => {
-    setLocalTotalStaked(totalStaked);
-    setLocalTotalEarned(totalEarned);
-    setHasStaked(totalStaked > 0 || localTotalStaked > 0);
-  }, [totalStaked, totalEarned, localTotalStaked]);
+  // Use the staking data hook
+  const {
+    stakingAmount,
+    txId,
+    setTxId,
+    isSubmitting,
+    handleStakeAmountChange,
+    handleSubmitStaking
+  } = useStakingData(userId, updateUser);
 
   // Calculate daily profit
-  const dailyProfit = parseFloat(stakeAmount) * 0.01;
+  const dailyProfit = parseFloat(stakingAmount) * 0.01;
   
-  // Update canWithdrawAirdrop to account for local staking status
-  const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || hasStaked || localTotalStaked >= 250);
+  // Determine if user has staked or has a premium plan
+  const hasStaked = totalStaked > 0;
+  
+  // Update canWithdrawAirdrop to account for staking status
+  const canWithdrawAirdrop = hasAirdrop && (hasPremiumPlan || hasStaked);
   
   // Update withdrawable amount and USD value when canWithdrawAirdrop or userBalance changes
   useEffect(() => {
@@ -77,85 +77,6 @@ const StakingCard: React.FC<StakingCardProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const numValue = parseFloat(value);
-    
-    if (value === '') {
-      setStakeAmount('');
-    } else if (!isNaN(numValue) && numValue >= 250 && numValue <= 5000) {
-      setStakeAmount(value);
-    }
-  };
-
-  const updateUserData = async () => {
-    if (userId) {
-      try {
-        const latestUserData = await getUser(userId);
-        if (latestUserData) {
-          // Ensure we include updated staking data in the user object
-          if (!latestUserData.stakingData) {
-            latestUserData.stakingData = {
-              totalStaked: localTotalStaked,
-              totalEarned: localTotalEarned
-            };
-          } else {
-            latestUserData.stakingData.totalStaked = localTotalStaked;
-            latestUserData.stakingData.totalEarned = localTotalEarned;
-          }
-          
-          updateUser(latestUserData);
-          console.log("Updated user data after staking:", latestUserData);
-        }
-      } catch (error) {
-        console.error("Error updating user data after staking:", error);
-      }
-    }
-  };
-
-  const handleSubmitStaking = () => {
-    if (!txId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter your transaction ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    setTimeout(() => {
-      // Update the staking stats immediately upon successful submission
-      const numStakeAmount = parseFloat(stakeAmount);
-      
-      // Update local state to show changes immediately
-      setLocalTotalStaked(prevStaked => prevStaked + numStakeAmount);
-      setHasStaked(true);
-      
-      // Calculate daily earnings and add them to total earned
-      const dailyEarning = numStakeAmount * 0.01;
-      setLocalTotalEarned(prevEarned => prevEarned + dailyEarning);
-      
-      // Update withdrawable amount if user now qualifies for airdrop withdrawal
-      if (!canWithdrawAirdrop && hasAirdrop && numStakeAmount >= 250) {
-        const newWithdrawableAmount = userBalance * 0.5;
-        setWithdrawableAmount(newWithdrawableAmount);
-        setWithdrawableUsdValue(newWithdrawableAmount * DMI_COIN_VALUE);
-      }
-      
-      // Update user data in Firestore with the updated staking data
-      updateUserData();
-      
-      toast({
-        title: "Staking submitted!",
-        description: `Your staking request of $${stakeAmount} USDT is being processed`,
-      });
-      setIsSubmitting(false);
-      setTxId('');
-    }, 1500);
-  };
-
   const handleWithdrawAirdrop = () => {
     toast({
       title: "Withdrawal initiated",
@@ -175,7 +96,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
     
     toast({
       title: "Withdrawal initiated",
-      description: `Your withdrawal of ${formatCurrency(localTotalStaked)} USDT is being processed`,
+      description: `Your withdrawal of ${formatCurrency(totalStaked)} USDT is being processed`,
     });
   };
 
@@ -194,7 +115,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
       </div>
       
       <div className="p-5">
-        {/* New Airdrop Withdrawal Eligibility Alert with Highlighted Text */}
+        {/* Alert showing withdrawal eligibility */}
         <Alert className="mb-5 bg-yellow-50 border-yellow-200">
           <Info className="h-4 w-4 text-yellow-600 mr-2" />
           <AlertDescription className="text-yellow-800">
@@ -228,14 +149,14 @@ const StakingCard: React.FC<StakingCardProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">Amount to Stake (USDT)</label>
               <Input
                 type="number"
-                value={stakeAmount}
+                value={stakingAmount}
                 onChange={handleStakeAmountChange}
                 min={250}
                 max={5000}
                 placeholder="Enter amount (min. $250)"
                 className="w-full"
               />
-              {parseFloat(stakeAmount) > 0 && (
+              {parseFloat(stakingAmount) > 0 && (
                 <div className="mt-2 text-sm text-green-600">
                   Daily earnings: {formatCurrency(dailyProfit)} (1%)
                 </div>
@@ -301,7 +222,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
             <Button 
               className="w-full"
               onClick={handleSubmitStaking}
-              disabled={parseFloat(stakeAmount) < 250 || !txId.trim() || isSubmitting}
+              disabled={parseFloat(stakingAmount) < 250 || !txId.trim() || isSubmitting}
             >
               {isSubmitting ? "Processing..." : "Submit Staking"}
             </Button>
@@ -313,11 +234,11 @@ const StakingCard: React.FC<StakingCardProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Staked:</span>
-                  <span className="font-medium">{formatCurrency(localTotalStaked)}</span>
+                  <span className="font-medium">{formatCurrency(totalStaked)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Earned:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(localTotalEarned)}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(totalEarned)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Daily Rate:</span>
@@ -343,7 +264,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                 variant="outline" 
                 className="w-full mt-4 flex items-center justify-center"
                 onClick={handleWithdrawStaking}
-                disabled={localTotalStaked <= 0}
+                disabled={totalStaked <= 0}
               >
                 Withdraw Staked USDT <ArrowUpRight className="ml-1 h-4 w-4" />
                 {isStakingLocked && <Lock className="ml-1 h-3 w-3 text-red-500" />}
