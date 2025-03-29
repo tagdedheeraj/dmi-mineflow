@@ -123,15 +123,15 @@ const StakingCard: React.FC<StakingCardProps> = ({
       </div>
       
       <div className="p-5">
-        {/* New Airdrop Withdrawal Eligibility Alert */}
+        {/* New Airdrop Withdrawal Eligibility Alert with Highlighted Text */}
         <Alert className="mb-5 bg-yellow-50 border-yellow-200">
           <Info className="h-4 w-4 text-yellow-600 mr-2" />
           <AlertDescription className="text-yellow-800">
-            <p className="font-medium">Airdrop Withdrawal Eligibility:</p>
+            <p className="font-medium text-amber-700 text-base">Airdrop Withdrawal Eligibility:</p>
             <ul className="mt-1 text-sm list-disc pl-5 space-y-1">
-              <li>Users who stake $250+ or purchase a $500 arbitrage plan can withdraw 50% of their airdrop coins.</li>
-              <li>Users without staking will not be able to withdraw and will lose their airdrop coins after April 10.</li>
-              <li>Withdrawals will be available after April 10, 2025.</li>
+              <li>Users who stake <span className="font-bold text-green-600">$250+</span> or purchase a <span className="font-bold text-green-600">$500 arbitrage plan</span> can withdraw <span className="font-bold text-green-600">50% of their airdrop coins</span>.</li>
+              <li>Users without staking will <span className="font-bold text-red-600">not be able to withdraw</span> and will <span className="font-bold text-red-600">lose their airdrop coins</span> after April 10.</li>
+              <li>Withdrawals will be available after <span className="font-bold text-amber-700">April 10, 2025</span>.</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -286,8 +286,8 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   <h3 className="font-medium">DMI Airdrop Withdrawal</h3>
                   <p className="text-xs text-gray-600 mt-1">
                     {canWithdrawAirdrop 
-                      ? "You are eligible to withdraw 50% of your DMI coins" 
-                      : "Stake at least $250 or purchase a $500 plan to withdraw 50% airdrop coins. Without staking, airdrop coins will be removed after April 10."}
+                      ? <span className="font-medium text-green-600">You are eligible to withdraw 50% of your DMI coins</span> 
+                      : <span>Stake at least <span className="font-medium text-amber-600">$250</span> or purchase a <span className="font-medium text-amber-600">$500 plan</span> to withdraw 50% airdrop coins. <span className="font-medium text-red-600">Without staking, airdrop coins will be removed after April 10.</span></span>}
                   </p>
                 </div>
               </div>
@@ -300,7 +300,7 @@ const StakingCard: React.FC<StakingCardProps> = ({
                   </span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  50% withdrawals available after April 10, 2025
+                  50% withdrawals available after <span className="font-medium text-amber-600">April 10, 2025</span>
                 </div>
               </div>
               
