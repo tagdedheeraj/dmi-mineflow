@@ -1,7 +1,11 @@
 
-/* CSS to forcefully hide the Lovable badge when disabled */
+/* Complete CSS solution to hide the Lovable badge */
+[data-lovable-badge],
 [data-hide-lovable-badge="true"] [data-lovable-badge],
-html[data-hide-lovable-badge="true"] [data-lovable-badge] {
+html[data-hide-lovable-badge="true"] [data-lovable-badge],
+div[data-lovable-badge],
+a[data-lovable-badge],
+*[data-lovable-badge] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -15,11 +19,21 @@ html[data-hide-lovable-badge="true"] [data-lovable-badge] {
   overflow: hidden !important;
   clip: rect(0, 0, 0, 0) !important;
   clip-path: inset(100%) !important;
+  max-height: 0 !important;
+  max-width: 0 !important;
 }
 
-/* Additional selector to ensure we catch all instances */
-[data-lovable-badge] {
+/* Global selector to target any elements containing "lovable" in attributes */
+[class*="lovable"],
+[id*="lovable"],
+[data-*="lovable"] {
   display: none !important;
   visibility: hidden !important;
-  opacity: 0 !important;
+}
+
+/* Hide all fixed positioned elements that could be the badge */
+#root ~ div[style*="fixed"],
+body > div[style*="fixed"]:not(#root *) {
+  display: none !important;
+  visibility: hidden !important;
 }

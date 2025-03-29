@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-hide-lovable-badge="true">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,36 +14,71 @@
     <link rel="manifest" href="/manifest.json">
     <style>
       /* Immediate badge hiding on page load */
-      [data-lovable-badge] {
+      [data-lovable-badge],
+      div[data-lovable-badge],
+      *[data-lovable-badge],
+      [class*="lovable"],
+      [id*="lovable"],
+      body > div[style*="fixed"]:not(#root *) {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
+        pointer-events: none !important;
+        max-height: 0 !important;
+        max-width: 0 !important;
       }
     </style>
     <script>
       // Force badge to be hidden immediately
       window.HIDE_LOVABLE_BADGE = true;
       document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
+      document.body && document.body.setAttribute('data-hide-lovable-badge', 'true');
       
       // Store setting permanently
       localStorage.setItem('showLovableBadge', 'false');
       
-      // Script to continuously hide badges
+      // Aggressive script to continuously hide and remove badges
       (function() {
         function hideBadges() {
-          const badges = document.querySelectorAll('[data-lovable-badge]');
-          if (badges.length > 0) {
-            badges.forEach(badge => badge.remove());
-          }
-          // Keep checking for badges
-          setTimeout(hideBadges, 200);
+          // Find and remove any badge elements
+          const selectors = [
+            '[data-lovable-badge]',
+            '[class*="lovable"]',
+            '[id*="lovable"]',
+            'div[style*="position: fixed"]',
+            'div[style*="position:fixed"]',
+            'body > div:not(#root)'
+          ];
+          
+          selectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+              if (el.id !== 'root' && !el.closest('#root')) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                el.setAttribute('aria-hidden', 'true');
+                try { el.remove(); } catch(e) {}
+              }
+            });
+          });
+          
+          // Keep checking for badges more frequently
+          setTimeout(hideBadges, 100);
         }
+        
+        // Start hiding badges
         hideBadges();
+        
+        // Also run on DOMContentLoaded and load events
+        document.addEventListener('DOMContentLoaded', hideBadges);
+        window.addEventListener('load', hideBadges);
       })();
     </script>
   </head>
 
-  <body>
+  <body data-hide-lovable-badge="true">
     <div id="root"></div>
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
