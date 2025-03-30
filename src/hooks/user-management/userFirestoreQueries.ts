@@ -30,12 +30,9 @@ export const createUserQuery = (
     console.log("Search query created for term:", term);
     
     // Use a more flexible search that can match either email or fullName
-    // In a real production app, you might want to use Firestore's array-contains-any operator
-    // or a third-party search solution like Algolia for better search capabilities
     return query(
       usersCollection,
-      // Remove the orderBy to allow more flexible search
-      limit(USERS_PER_PAGE) // Use the constant for consistency
+      limit(USERS_PER_PAGE)
     );
   } 
   

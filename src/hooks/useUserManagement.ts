@@ -20,7 +20,7 @@ export const useUserManagement = () => {
     fetchUsers
   } = useUsersFetching();
 
-  // Handle user deletion from the list
+  // Handle user deleted from the list
   const handleUserDeleted = useCallback((userId: string) => {
     // We don't need to manually update the users array here
     // Just refresh the list to get the latest data
@@ -39,11 +39,13 @@ export const useUserManagement = () => {
   const {
     refreshUsersList,
     nextPage,
-    prevPage
+    prevPage,
+    goToPage
   } = usePagination({
     currentPage,
     setCurrentPage,
-    fetchUsers
+    fetchUsers,
+    totalPages
   });
 
   // Search hook - pass refreshUsersList to search hook
@@ -52,7 +54,7 @@ export const useUserManagement = () => {
   } = useUserSearch({
     setSearchTerm,
     setCurrentPage,
-    refreshUsersList // Pass refreshUsersList to useUserSearch
+    refreshUsersList
   });
 
   return {
@@ -69,6 +71,7 @@ export const useUserManagement = () => {
     refreshUsersList,
     nextPage,
     prevPage,
+    goToPage,
     setUserToDelete,
     handleDeleteUser,
   };
