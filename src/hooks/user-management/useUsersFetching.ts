@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { getDocs, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +18,8 @@ export type UserData = {
   usdtEarnings: number;
   referralCount?: number;
   activePlans?: UserPlan[];
+  createdAt?: number;
+  isNew?: boolean;
 };
 
 export const useUsersFetching = () => {
@@ -28,13 +29,11 @@ export const useUsersFetching = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [isFirstPage, setIsFirstPage] = useState(true);
 
-  // Fetch users function
   const fetchUsers = async (isNextPage = false, isPrevPage = false, forceRefresh = false) => {
     setIsLoading(true);
     try {
@@ -51,27 +50,28 @@ export const useUsersFetching = () => {
       const userSnapshot = await getDocs(userQuery);
       console.log(`Query returned ${userSnapshot.docs.length} users`);
       
-      // Update pagination trackers
       if (userSnapshot.docs.length > 0) {
         const lastVisibleDoc = userSnapshot.docs[userSnapshot.docs.length - 1];
         setLastVisible(lastVisibleDoc);
         console.log("Set lastVisible to:", lastVisibleDoc.id);
       }
       
-      // Get total count on first load or refresh
       if ((!isNextPage && !isPrevPage && !searchTerm) || forceRefresh) {
         const count = await getUsersCount();
         setTotalUsers(count);
       }
       
-      // Get basic user data (avoid nested queries while loading the page)
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
         const data = doc.data() as {
           fullName?: string;
           email?: string; 
           balance?: number;
           usdtEarnings?: number;
+          createdAt?: number;
         };
+        
+        const createdAt = data.createdAt || Date.now();
+        const isNew = (Date.now() - createdAt) < (24 * 60 * 60 * 1000);
         
         return {
           id: doc.id,
@@ -79,15 +79,16 @@ export const useUsersFetching = () => {
           email: data.email || 'Unknown',
           balance: data.balance || 0,
           usdtEarnings: data.usdtEarnings || 0,
-          referralCount: 0, // Will be populated on demand
-          activePlans: [] // Will be populated on demand
+          referralCount: 0,
+          activePlans: [],
+          createdAt: createdAt,
+          isNew: isNew
         };
       });
       
       console.log("Processed user data:", usersData.length, "users");
       setUsers(usersData);
       
-      // If searching, filter client-side more effectively
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const filtered = usersData.filter(
@@ -103,7 +104,6 @@ export const useUsersFetching = () => {
         setFilteredUsers(usersData);
       }
       
-      // Set first page flag
       setIsFirstPage(currentPage === 1);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -117,16 +117,13 @@ export const useUsersFetching = () => {
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     console.log("useEffect triggered for fetchUsers");
     fetchUsers();
-  }, [currentPage]); // Only depend on currentPage to avoid unnecessary fetches
+  }, [currentPage]);
 
-  // Calculate total pages
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
   
-  // Check if there are more pages
   const hasMorePages = filteredUsers.length === USERS_PER_PAGE;
 
   return {

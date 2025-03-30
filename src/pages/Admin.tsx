@@ -41,6 +41,9 @@ const Admin: React.FC = () => {
       {/* DMI Coin Value Management */}
       <DmiCoinValueManagement />
       
+      {/* User Management Panel */}
+      <UserManagement />
+      
       {/* User Plan Management */}
       <UserPlanManagement />
       
@@ -52,9 +55,6 @@ const Admin: React.FC = () => {
       
       {/* Plan Management Panel */}
       <PlanManagement />
-      
-      {/* User Management Panel */}
-      <UserManagement />
       
       {/* Task Rewards Management Panel */}
       <TaskRewardsManagement />

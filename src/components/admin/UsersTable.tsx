@@ -9,6 +9,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; // Import Badge component
 import { Trash2 } from 'lucide-react';
 
 type UserData = {
@@ -23,6 +24,7 @@ type UserData = {
     expiresAt: string;
     boostMultiplier: number;
   }[];
+  isNew?: boolean; // Add isNew property
 };
 
 interface UsersTableProps {
@@ -46,7 +48,16 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, onDeleteUser }) => {
         <TableBody>
           {users.map((user) => (
             <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.fullName}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {user.fullName}
+                  {user.isNew && (
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                      New
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.balance.toFixed(2)}</TableCell>
               <TableCell>${user.usdtEarnings?.toFixed(2) || "0.00"}</TableCell>
