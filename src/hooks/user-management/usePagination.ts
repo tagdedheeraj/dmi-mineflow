@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 
-interface PaginationProps {
+interface UsePaginationProps {
   currentPage: number;
   setCurrentPage: (page: number) => void;
   fetchUsers: (isNextPage?: boolean, isPrevPage?: boolean, forceRefresh?: boolean) => Promise<void>;
@@ -11,28 +11,28 @@ export const usePagination = ({
   currentPage,
   setCurrentPage,
   fetchUsers
-}: PaginationProps) => {
-  // Refresh function
+}: UsePaginationProps) => {
+  // Refresh users list
   const refreshUsersList = useCallback(() => {
-    console.log("Manual refresh triggered");
-    setCurrentPage(1); // Reset to first page when refreshing
-    return fetchUsers(false, false, true); // Return the promise for chain calls
-  }, [fetchUsers, setCurrentPage]);
+    console.log("Refreshing users list");
+    fetchUsers(false, false, true);
+  }, [fetchUsers]);
 
-  // Pagination handlers
+  // Go to next page
   const nextPage = useCallback(() => {
     console.log("Moving to next page from", currentPage);
     setCurrentPage(currentPage + 1);
-    fetchUsers(true, false);
-  }, [currentPage, fetchUsers, setCurrentPage]);
+    fetchUsers(true, false, false);
+  }, [currentPage, setCurrentPage, fetchUsers]);
 
+  // Go to previous page
   const prevPage = useCallback(() => {
     if (currentPage > 1) {
       console.log("Moving to previous page from", currentPage);
       setCurrentPage(currentPage - 1);
-      fetchUsers(false, true);
+      fetchUsers(false, true, false);
     }
-  }, [currentPage, fetchUsers, setCurrentPage]);
+  }, [currentPage, setCurrentPage, fetchUsers]);
 
   return {
     refreshUsersList,

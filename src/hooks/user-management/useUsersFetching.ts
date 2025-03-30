@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { getDocs, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -97,7 +98,6 @@ export const useUsersFetching = () => {
             (user.email && user.email.toLowerCase().includes(term))
         );
         console.log("Filtered users by search term:", filtered.length, "results");
-        console.log("Filtered users emails:", filtered.map(u => u.email));
         setFilteredUsers(filtered);
       } else {
         console.log("No search term, setting filtered users to all users");
@@ -118,13 +118,13 @@ export const useUsersFetching = () => {
   };
 
   useEffect(() => {
-    console.log("useEffect triggered for fetchUsers");
+    console.log("useEffect triggered for fetchUsers with currentPage:", currentPage);
     fetchUsers();
   }, [currentPage]);
 
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
   
-  const hasMorePages = filteredUsers.length === USERS_PER_PAGE;
+  const hasMorePages = currentPage < totalPages;
 
   return {
     users: filteredUsers,

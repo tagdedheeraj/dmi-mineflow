@@ -35,16 +35,27 @@ export const createUserQuery = (
     return query(
       usersCollection,
       // Remove the orderBy to allow more flexible search
-      limit(100) // Increase limit to ensure we find matches
+      limit(USERS_PER_PAGE) // Use the constant for consistency
     );
   } 
   
-  // For initial load, force refresh, or page navigation, get all users
-  console.log("Getting all users with no search term");
+  // For pagination without search term
+  if (isNextPage && lastVisible) {
+    console.log("Creating next page query starting after:", lastVisible.id);
+    return query(
+      usersCollection,
+      orderBy('email'),
+      startAfter(lastVisible),
+      limit(USERS_PER_PAGE)
+    );
+  }
+  
+  // For initial load, force refresh, or page navigation
+  console.log("Getting users for page", currentPage);
   return query(
     usersCollection,
-    orderBy('email'), // Order by email to make it easier to find specific emails
-    limit(100) // Fetch more users to ensure we get all of them
+    orderBy('email'), 
+    limit(USERS_PER_PAGE)
   );
 };
 
