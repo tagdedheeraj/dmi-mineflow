@@ -4,6 +4,9 @@ import { useUsersFetching, UserData } from './user-management/useUsersFetching';
 import { useUserDeletion } from './user-management/useUserDeletion';
 import { usePagination } from './user-management/usePagination';
 import { useUserSearch } from './user-management/useUserSearch';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export const useUserManagement = () => {
   // Use the user fetching hook
@@ -19,6 +22,8 @@ export const useUserManagement = () => {
     setCurrentPage,
     fetchUsers
   } = useUsersFetching();
+
+  const { toast } = useToast();
 
   // Handle user deleted from the list
   const handleUserDeleted = useCallback((userId: string) => {
@@ -57,6 +62,65 @@ export const useUserManagement = () => {
     refreshUsersList
   });
 
+  // Export all user emails to a CSV file
+  const exportUserEmails = useCallback(async () => {
+    try {
+      toast({
+        title: "Starting export...",
+        description: "Fetching all user emails",
+      });
+
+      // Fetch all users from Firestore
+      const usersCollection = collection(db, 'users');
+      const querySnapshot = await getDocs(usersCollection);
+      
+      if (querySnapshot.empty) {
+        toast({
+          title: "No users found",
+          description: "There are no users to export",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Extract emails from the user data
+      const emails = querySnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return data.email || 'No email';
+        })
+        .filter(email => email !== 'No email' && email !== '');
+      
+      // Create CSV content
+      const csvContent = "data:text/csv;charset=utf-8," + 
+        "Email Address\n" + 
+        emails.join("\n");
+      
+      // Create download link
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `user_emails_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      
+      // Trigger download
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export complete",
+        description: `Successfully exported ${emails.length} user emails`,
+      });
+    } catch (error) {
+      console.error("Error exporting user emails:", error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting user emails",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   return {
     users,
     isLoading,
@@ -74,5 +138,6 @@ export const useUserManagement = () => {
     goToPage,
     setUserToDelete,
     handleDeleteUser,
+    exportUserEmails,
   };
 };

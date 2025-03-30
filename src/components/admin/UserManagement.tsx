@@ -7,7 +7,8 @@ import UserSearchBar from './UserSearchBar';
 import UsersTable from './UsersTable';
 import UsersPagination from './UsersPagination';
 import UserDeleteDialog from './UserDeleteDialog';
-import { Users } from 'lucide-react';
+import { Users, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const UserManagement: React.FC = () => {
   const {
@@ -26,6 +27,7 @@ const UserManagement: React.FC = () => {
     prevPage,
     setUserToDelete,
     handleDeleteUser,
+    exportUserEmails,
   } = useUserManagement();
 
   return (
@@ -35,6 +37,17 @@ const UserManagement: React.FC = () => {
           <Users className="h-6 w-6" />
           User Management
         </CardTitle>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={exportUserEmails}
+          className="flex items-center gap-2"
+          disabled={isLoading}
+        >
+          <Download className="h-4 w-4" />
+          Export Emails
+        </Button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all-users" className="w-full">
@@ -82,12 +95,15 @@ const UserManagement: React.FC = () => {
           <TabsContent value="new-users" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium">Recently Created Accounts</h3>
-              <button 
+              <Button 
                 onClick={refreshUsersList}
-                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
               >
-                Refresh
-              </button>
+                <Download className="h-4 w-4" />
+                Export New Users
+              </Button>
             </div>
             
             {isLoading ? (
