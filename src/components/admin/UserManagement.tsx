@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useUserManagement } from '@/hooks/useUserManagement';
@@ -7,8 +7,9 @@ import UserSearchBar from './UserSearchBar';
 import UsersTable from './UsersTable';
 import UsersPagination from './UsersPagination';
 import UserDeleteDialog from './UserDeleteDialog';
-import { Users, Download } from 'lucide-react';
+import { Users, Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const UserManagement: React.FC = () => {
   const {
@@ -29,9 +30,67 @@ const UserManagement: React.FC = () => {
     handleDeleteUser,
     exportUserEmails,
   } = useUserManagement();
+  
+  const { toast } = useToast();
 
   // Filter new users
   const newUsers = users.filter(user => user.isNew);
+  
+  // Debug information for new users
+  useEffect(() => {
+    console.log("Total users:", users.length);
+    console.log("New users count:", newUsers.length);
+    newUsers.forEach(user => {
+      console.log(`New user: ${user.email}, created: ${user.createdAt ? new Date(user.createdAt).toISOString() : 'unknown'}`);
+    });
+  }, [users, newUsers]);
+
+  // Function to export only new users' emails
+  const exportNewUserEmails = async () => {
+    try {
+      if (newUsers.length === 0) {
+        toast({
+          title: "No new users",
+          description: "There are no new users to export",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Extract emails from the new users data
+      const emails = newUsers
+        .map(user => user.email)
+        .filter(email => email !== 'Unknown' && email !== '');
+      
+      // Create CSV content
+      const csvContent = "data:text/csv;charset=utf-8," + 
+        "Email Address\n" + 
+        emails.join("\n");
+      
+      // Create download link
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `new_user_emails_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      
+      // Trigger download
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export complete",
+        description: `Successfully exported ${emails.length} new user emails`,
+      });
+    } catch (error) {
+      console.error("Error exporting new user emails:", error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting new user emails",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
@@ -98,15 +157,27 @@ const UserManagement: React.FC = () => {
           <TabsContent value="new-users" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium">Recently Created Accounts</h3>
-              <Button 
-                onClick={refreshUsersList}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export New Users
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={refreshUsersList}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
+                <Button 
+                  onClick={exportNewUserEmails}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={newUsers.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Export New Users
+                </Button>
+              </div>
             </div>
             
             {isLoading ? (

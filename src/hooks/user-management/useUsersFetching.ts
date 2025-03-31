@@ -75,13 +75,19 @@ export const useUsersFetching = () => {
         let createdAtTimestamp: number;
         if (data.createdAt instanceof Timestamp) {
           createdAtTimestamp = data.createdAt.toMillis();
+        } else if (typeof data.createdAt === 'number') {
+          createdAtTimestamp = data.createdAt;
         } else {
-          createdAtTimestamp = data.createdAt || Date.now();
+          // If createdAt is undefined or invalid, use current time
+          createdAtTimestamp = Date.now();
         }
         
         // Consider users created in the last 24 hours as new
         const oneDayInMs = 24 * 60 * 60 * 1000;
         const isNew = (Date.now() - createdAtTimestamp) < oneDayInMs;
+        
+        console.log(`User ${doc.id} created at:`, new Date(createdAtTimestamp).toISOString(), 
+          "isNew:", isNew, "time diff (hours):", (Date.now() - createdAtTimestamp) / (1000 * 60 * 60));
         
         return {
           id: doc.id,
