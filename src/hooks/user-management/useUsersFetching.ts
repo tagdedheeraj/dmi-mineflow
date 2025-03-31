@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { getDocs, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { createUserQuery, getUsersCount, USERS_PER_PAGE } from './userFirestoreQueries';
+import { createUserQuery, getUsersCount, getNewUsersCount, USERS_PER_PAGE, NEW_USER_WINDOW } from './userFirestoreQueries';
 
 export type UserPlan = {
   planId: string;
@@ -32,22 +32,28 @@ export const useUsersFetching = () => {
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [newUsersCount, setNewUsersCount] = useState(0);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [isFirstPage, setIsFirstPage] = useState(true);
+  const [viewingNewUsersOnly, setViewingNewUsersOnly] = useState(false);
 
-  const fetchUsers = async (isNextPage = false, isPrevPage = false, forceRefresh = false) => {
+  const fetchUsers = async (isNextPage = false, isPrevPage = false, forceRefresh = false, newUsersOnly = false) => {
     setIsLoading(true);
     try {
+      // Save the current view mode
+      setViewingNewUsersOnly(newUsersOnly);
+      
       const userQuery = createUserQuery(
         searchTerm,
         lastVisible,
         isNextPage,
         isPrevPage,
         currentPage,
-        forceRefresh
+        forceRefresh,
+        newUsersOnly
       );
       
-      console.log("Executing Firestore query...");
+      console.log(`Executing Firestore query for ${newUsersOnly ? 'new' : 'all'} users...`);
       const userSnapshot = await getDocs(userQuery);
       console.log(`Query returned ${userSnapshot.docs.length} users`);
       
@@ -58,8 +64,14 @@ export const useUsersFetching = () => {
       }
       
       if ((!isNextPage && !isPrevPage && !searchTerm) || forceRefresh) {
+        // Update counts
         const count = await getUsersCount();
         setTotalUsers(count);
+        
+        // Also update new users count
+        const newCount = await getNewUsersCount();
+        setNewUsersCount(newCount);
+        console.log("Updated new users count:", newCount);
       }
       
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
@@ -72,7 +84,7 @@ export const useUsersFetching = () => {
         };
         
         const createdAt = data.createdAt || Date.now();
-        const isNew = (Date.now() - createdAt) < (24 * 60 * 60 * 1000);
+        const isNew = (Date.now() - createdAt) < NEW_USER_WINDOW;
         
         return {
           id: doc.id,
@@ -119,8 +131,18 @@ export const useUsersFetching = () => {
 
   useEffect(() => {
     console.log("useEffect triggered for fetchUsers with currentPage:", currentPage);
-    fetchUsers();
+    fetchUsers(false, false, false, viewingNewUsersOnly);
   }, [currentPage]);
+
+  const fetchNewUsersOnly = async () => {
+    console.log("Fetching only new users");
+    await fetchUsers(false, false, true, true);
+  };
+
+  const fetchAllUsers = async () => {
+    console.log("Fetching all users");
+    await fetchUsers(false, false, true, false);
+  };
 
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
   
@@ -134,8 +156,12 @@ export const useUsersFetching = () => {
     totalPages,
     isFirstPage,
     hasMorePages,
+    newUsersCount,
+    viewingNewUsersOnly,
     setSearchTerm,
     setCurrentPage,
     fetchUsers,
+    fetchNewUsersOnly,
+    fetchAllUsers,
   };
 };

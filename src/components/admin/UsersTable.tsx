@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, UserCheck } from 'lucide-react';
+import { Trash2, Star } from 'lucide-react';
 
 type UserData = {
   id: string;
@@ -59,8 +59,9 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, onDeleteUser }) => {
                   <div className="flex items-center gap-2">
                     {user.fullName}
                     {user.isNew && (
-                      <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
-                        New
+                      <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs flex items-center gap-1">
+                        <Star className="h-3 w-3" />
+                        NEW
                       </Badge>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useUsersFetching, UserData } from './user-management/useUsersFetching';
 import { useUserDeletion } from './user-management/useUserDeletion';
 import { usePagination } from './user-management/usePagination';
@@ -18,19 +18,32 @@ export const useUserManagement = () => {
     totalPages,
     isFirstPage,
     hasMorePages,
+    newUsersCount,
+    viewingNewUsersOnly,
     setSearchTerm,
     setCurrentPage,
-    fetchUsers
+    fetchUsers,
+    fetchNewUsersOnly,
+    fetchAllUsers
   } = useUsersFetching();
 
   const { toast } = useToast();
+
+  // Load users when component mounts
+  useEffect(() => {
+    fetchUsers(false, false, true);
+  }, []);
 
   // Handle user deleted from the list
   const handleUserDeleted = useCallback((userId: string) => {
     // We don't need to manually update the users array here
     // Just refresh the list to get the latest data
-    fetchUsers(false, false, true);
-  }, [fetchUsers]);
+    if (viewingNewUsersOnly) {
+      fetchNewUsersOnly();
+    } else {
+      fetchUsers(false, false, true);
+    }
+  }, [fetchUsers, fetchNewUsersOnly, viewingNewUsersOnly]);
 
   // User deletion hook
   const {
@@ -121,6 +134,61 @@ export const useUserManagement = () => {
     }
   }, [toast]);
 
+  // Export new user emails to a CSV file
+  const exportNewUserEmails = useCallback(async () => {
+    try {
+      toast({
+        title: "Starting export...",
+        description: "Fetching new user emails",
+      });
+
+      // Only show new users that are displaying in the current view
+      const newUsers = users.filter(user => user.isNew);
+      
+      if (newUsers.length === 0) {
+        toast({
+          title: "No new users found",
+          description: "There are no new users to export",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Extract emails from the user data
+      const emails = newUsers
+        .map(user => user.email)
+        .filter(email => email !== 'Unknown' && email !== '');
+      
+      // Create CSV content
+      const csvContent = "data:text/csv;charset=utf-8," + 
+        "Email Address\n" + 
+        emails.join("\n");
+      
+      // Create download link
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `new_user_emails_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      
+      // Trigger download
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export complete",
+        description: `Successfully exported ${emails.length} new user emails`,
+      });
+    } catch (error) {
+      console.error("Error exporting new user emails:", error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting new user emails",
+        variant: "destructive",
+      });
+    }
+  }, [toast, users]);
+
   return {
     users,
     isLoading,
@@ -131,6 +199,8 @@ export const useUserManagement = () => {
     hasMorePages,
     userToDelete,
     isDeleting,
+    newUsersCount,
+    viewingNewUsersOnly,
     handleSearch,
     refreshUsersList,
     nextPage,
@@ -139,5 +209,8 @@ export const useUserManagement = () => {
     setUserToDelete,
     handleDeleteUser,
     exportUserEmails,
+    exportNewUserEmails,
+    fetchNewUsersOnly,
+    fetchAllUsers,
   };
 };
