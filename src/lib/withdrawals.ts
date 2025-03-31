@@ -1,4 +1,3 @@
-
 import { 
   collection,
   addDoc,
@@ -12,10 +11,11 @@ import {
   serverTimestamp,
   Timestamp
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "./firebase/config";
 import { WithdrawalRequest } from "./withdrawalTypes";
 import { User } from "./storage";
-import { updateUserBalance, updateUsdtEarnings, getUser, addUsdtTransaction } from "./firestore";
+import { updateUserBalance, updateUsdtEarnings, getUser } from "./firestore";
+import { addUsdtTransaction } from "./firebase/transactions";
 
 // Collection reference
 export const withdrawalRequestsCollection = collection(db, 'withdrawal_requests');

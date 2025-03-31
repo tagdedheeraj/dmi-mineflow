@@ -9,7 +9,7 @@ import {
   orderBy,
   Timestamp
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 
 export const USERS_PER_PAGE = 10;
 

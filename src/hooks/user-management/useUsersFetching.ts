@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { getDocs, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 import { createUserQuery, getUsersCount, USERS_PER_PAGE } from './userFirestoreQueries';
 
 export type UserPlan = {
@@ -65,26 +64,22 @@ export const useUsersFetching = () => {
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
         const data = doc.data();
         
-        // Handle createdAt from Firestore (could be Timestamp or number or serverTimestamp)
         let createdAtTimestamp: number;
         
         if (data.createdAt instanceof Timestamp) {
           createdAtTimestamp = data.createdAt.toMillis();
           console.log(`User ${doc.id} - Timestamp object converted to milliseconds:`, createdAtTimestamp);
         } else if (typeof data.createdAt === 'object' && data.createdAt !== null && 'seconds' in data.createdAt) {
-          // Handle serverTimestamp format
           createdAtTimestamp = data.createdAt.seconds * 1000;
           console.log(`User ${doc.id} - serverTimestamp converted to milliseconds:`, createdAtTimestamp);
         } else if (typeof data.createdAt === 'number') {
           createdAtTimestamp = data.createdAt;
           console.log(`User ${doc.id} - number timestamp:`, createdAtTimestamp);
         } else {
-          // If createdAt is undefined or invalid, use creation time from auth
           createdAtTimestamp = data.created_at ? new Date(data.created_at).getTime() : Date.now();
           console.log(`User ${doc.id} - fallback timestamp:`, createdAtTimestamp);
         }
         
-        // Consider users created in the last 24 hours as new
         const oneDayInMs = 24 * 60 * 60 * 1000;
         const isNew = (Date.now() - createdAtTimestamp) < oneDayInMs;
         
