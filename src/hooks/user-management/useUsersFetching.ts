@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
-import { getDocs, collection, Timestamp } from 'firebase/firestore';
+import { getDocs, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase/config';
+import { db } from '@/lib/firebase';
 import { createUserQuery, getUsersCount, USERS_PER_PAGE } from './userFirestoreQueries';
 
 export type UserPlan = {
@@ -62,29 +63,16 @@ export const useUsersFetching = () => {
       }
       
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as {
+          fullName?: string;
+          email?: string; 
+          balance?: number;
+          usdtEarnings?: number;
+          createdAt?: number;
+        };
         
-        let createdAtTimestamp: number;
-        
-        if (data.createdAt instanceof Timestamp) {
-          createdAtTimestamp = data.createdAt.toMillis();
-          console.log(`User ${doc.id} - Timestamp object converted to milliseconds:`, createdAtTimestamp);
-        } else if (typeof data.createdAt === 'object' && data.createdAt !== null && 'seconds' in data.createdAt) {
-          createdAtTimestamp = data.createdAt.seconds * 1000;
-          console.log(`User ${doc.id} - serverTimestamp converted to milliseconds:`, createdAtTimestamp);
-        } else if (typeof data.createdAt === 'number') {
-          createdAtTimestamp = data.createdAt;
-          console.log(`User ${doc.id} - number timestamp:`, createdAtTimestamp);
-        } else {
-          createdAtTimestamp = data.created_at ? new Date(data.created_at).getTime() : Date.now();
-          console.log(`User ${doc.id} - fallback timestamp:`, createdAtTimestamp);
-        }
-        
-        const oneDayInMs = 24 * 60 * 60 * 1000;
-        const isNew = (Date.now() - createdAtTimestamp) < oneDayInMs;
-        
-        console.log(`User ${doc.id} created at:`, new Date(createdAtTimestamp).toISOString(), 
-          "isNew:", isNew, "time diff (hours):", (Date.now() - createdAtTimestamp) / (1000 * 60 * 60));
+        const createdAt = data.createdAt || Date.now();
+        const isNew = (Date.now() - createdAt) < (24 * 60 * 60 * 1000);
         
         return {
           id: doc.id,
@@ -94,13 +82,12 @@ export const useUsersFetching = () => {
           usdtEarnings: data.usdtEarnings || 0,
           referralCount: 0,
           activePlans: [],
-          createdAt: createdAtTimestamp,
+          createdAt: createdAt,
           isNew: isNew
         };
       });
       
       console.log("Processed user data:", usersData.length, "users");
-      console.log("New users count:", usersData.filter(user => user.isNew).length);
       setUsers(usersData);
       
       if (searchTerm) {

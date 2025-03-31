@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserAccount } from '@/lib/firebase/user';
+import { deleteUserAccount } from '@/lib/firebase';
 import { UserData } from './useUsersFetching';
 
 export const useUserDeletion = (

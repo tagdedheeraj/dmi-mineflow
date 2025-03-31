@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useUsersFetching, UserData } from './user-management/useUsersFetching';
 import { useUserDeletion } from './user-management/useUserDeletion';
 import { usePagination } from './user-management/usePagination';
@@ -24,13 +24,6 @@ export const useUserManagement = () => {
   } = useUsersFetching();
 
   const { toast } = useToast();
-
-  // Force refresh on initial load
-  useEffect(() => {
-    // Initial data fetch when the component mounts
-    fetchUsers(false, false, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Handle user deleted from the list
   const handleUserDeleted = useCallback((userId: string) => {
