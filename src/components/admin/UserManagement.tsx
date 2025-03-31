@@ -30,6 +30,9 @@ const UserManagement: React.FC = () => {
     exportUserEmails,
   } = useUserManagement();
 
+  // Filter new users
+  const newUsers = users.filter(user => user.isNew);
+
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -111,10 +114,18 @@ const UserManagement: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-dmi"></div>
               </div>
             ) : (
-              <UsersTable 
-                users={users.filter(user => user.isNew)} 
-                onDeleteUser={setUserToDelete} 
-              />
+              <>
+                {newUsers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No new users found
+                  </div>
+                ) : (
+                  <UsersTable 
+                    users={newUsers} 
+                    onDeleteUser={setUserToDelete} 
+                  />
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>

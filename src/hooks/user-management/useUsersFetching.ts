@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getDocs, collection } from 'firebase/firestore';
+import { getDocs, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { createUserQuery, getUsersCount, USERS_PER_PAGE } from './userFirestoreQueries';
@@ -68,11 +68,20 @@ export const useUsersFetching = () => {
           email?: string; 
           balance?: number;
           usdtEarnings?: number;
-          createdAt?: number;
+          createdAt?: number | Timestamp;
         };
         
-        const createdAt = data.createdAt || Date.now();
-        const isNew = (Date.now() - createdAt) < (24 * 60 * 60 * 1000);
+        // Handle createdAt from Firestore (could be Timestamp or number)
+        let createdAtTimestamp: number;
+        if (data.createdAt instanceof Timestamp) {
+          createdAtTimestamp = data.createdAt.toMillis();
+        } else {
+          createdAtTimestamp = data.createdAt || Date.now();
+        }
+        
+        // Consider users created in the last 24 hours as new
+        const oneDayInMs = 24 * 60 * 60 * 1000;
+        const isNew = (Date.now() - createdAtTimestamp) < oneDayInMs;
         
         return {
           id: doc.id,
@@ -82,12 +91,13 @@ export const useUsersFetching = () => {
           usdtEarnings: data.usdtEarnings || 0,
           referralCount: 0,
           activePlans: [],
-          createdAt: createdAt,
+          createdAt: createdAtTimestamp,
           isNew: isNew
         };
       });
       
       console.log("Processed user data:", usersData.length, "users");
+      console.log("New users count:", usersData.filter(user => user.isNew).length);
       setUsers(usersData);
       
       if (searchTerm) {
