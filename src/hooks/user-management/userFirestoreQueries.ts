@@ -7,6 +7,7 @@ import {
   limit, 
   startAfter, 
   orderBy,
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -32,6 +33,7 @@ export const createUserQuery = (
     // Use a more flexible search that can match either email or fullName
     return query(
       usersCollection,
+      orderBy('created_at', 'desc'),
       limit(USERS_PER_PAGE)
     );
   } 
@@ -41,7 +43,7 @@ export const createUserQuery = (
     console.log("Creating next page query starting after:", lastVisible.id);
     return query(
       usersCollection,
-      orderBy('email'),
+      orderBy('created_at', 'desc'), // Order by creation date, most recent first
       startAfter(lastVisible),
       limit(USERS_PER_PAGE)
     );
@@ -51,7 +53,7 @@ export const createUserQuery = (
   console.log("Getting users for page", currentPage);
   return query(
     usersCollection,
-    orderBy('email'), 
+    orderBy('created_at', 'desc'), // Order by creation date, most recent first
     limit(USERS_PER_PAGE)
   );
 };
@@ -68,4 +70,11 @@ export const getUsersCount = async () => {
     console.error("Error getting users count:", error);
     return 0;
   }
+};
+
+// Helper function to create a timestamp for 24 hours ago (for new users)
+export const get24HoursAgoTimestamp = () => {
+  const oneDayAgo = new Date();
+  oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+  return Timestamp.fromDate(oneDayAgo);
 };

@@ -92,6 +92,12 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // Force initial refresh when component mounts
+  useEffect(() => {
+    refreshUsersList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Card className="bg-white rounded-lg shadow-sm mb-8">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -108,7 +114,7 @@ const UserManagement: React.FC = () => {
           disabled={isLoading}
         >
           <Download className="h-4 w-4" />
-          Export Emails
+          Export All Emails
         </Button>
       </CardHeader>
       <CardContent>
@@ -156,7 +162,7 @@ const UserManagement: React.FC = () => {
           
           <TabsContent value="new-users" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Recently Created Accounts</h3>
+              <h3 className="text-lg font-medium">Recently Created Accounts (Last 24h)</h3>
               <div className="flex gap-2">
                 <Button 
                   onClick={refreshUsersList}
@@ -164,8 +170,8 @@ const UserManagement: React.FC = () => {
                   size="sm"
                   className="flex items-center gap-2"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  {isLoading ? "Loading..." : "Refresh"}
                 </Button>
                 <Button 
                   onClick={exportNewUserEmails}

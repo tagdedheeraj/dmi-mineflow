@@ -63,23 +63,25 @@ export const useUsersFetching = () => {
       }
       
       const usersData: UserData[] = userSnapshot.docs.map(doc => {
-        const data = doc.data() as {
-          fullName?: string;
-          email?: string; 
-          balance?: number;
-          usdtEarnings?: number;
-          createdAt?: number | Timestamp;
-        };
+        const data = doc.data();
         
-        // Handle createdAt from Firestore (could be Timestamp or number)
+        // Handle createdAt from Firestore (could be Timestamp or number or serverTimestamp)
         let createdAtTimestamp: number;
+        
         if (data.createdAt instanceof Timestamp) {
           createdAtTimestamp = data.createdAt.toMillis();
+          console.log(`User ${doc.id} - Timestamp object converted to milliseconds:`, createdAtTimestamp);
+        } else if (typeof data.createdAt === 'object' && data.createdAt !== null && 'seconds' in data.createdAt) {
+          // Handle serverTimestamp format
+          createdAtTimestamp = data.createdAt.seconds * 1000;
+          console.log(`User ${doc.id} - serverTimestamp converted to milliseconds:`, createdAtTimestamp);
         } else if (typeof data.createdAt === 'number') {
           createdAtTimestamp = data.createdAt;
+          console.log(`User ${doc.id} - number timestamp:`, createdAtTimestamp);
         } else {
-          // If createdAt is undefined or invalid, use current time
-          createdAtTimestamp = Date.now();
+          // If createdAt is undefined or invalid, use creation time from auth
+          createdAtTimestamp = data.created_at ? new Date(data.created_at).getTime() : Date.now();
+          console.log(`User ${doc.id} - fallback timestamp:`, createdAtTimestamp);
         }
         
         // Consider users created in the last 24 hours as new
