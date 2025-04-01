@@ -1,11 +1,10 @@
 
-import { useCallback, useEffect } from 'react';
-import { useUsersFetching } from './user-management/useUsersFetching';
-import { useUserDeletion } from './user-management/useUserDeletion';
-import { usePagination } from './user-management/usePagination';
-import { useUserSearch } from './user-management/useUserSearch';
-import { useUserExport } from './user-management/useUserExport';
-import { useToast } from '@/hooks/use-toast';
+import { useCallback } from 'react';
+import { useUsersFetching } from './useUsersFetching';
+import { useUserDeletion } from './useUserDeletion';
+import { usePagination } from './usePagination';
+import { useUserSearch } from './useUserSearch';
+import { useUserExport } from './useUserExport';
 
 export const useUserManagement = () => {
   // Use the user fetching hook
@@ -25,11 +24,6 @@ export const useUserManagement = () => {
     fetchNewUsersOnly,
     fetchAllUsers
   } = useUsersFetching();
-
-  // Load users when component mounts
-  useEffect(() => {
-    fetchUsers(false, false, true);
-  }, []);
 
   // Handle user deleted from the list
   const handleUserDeleted = useCallback((userId: string) => {
@@ -63,7 +57,7 @@ export const useUserManagement = () => {
     totalPages
   });
 
-  // Search hook - pass refreshUsersList to search hook
+  // Search hook
   const {
     handleSearch
   } = useUserSearch({
@@ -77,6 +71,7 @@ export const useUserManagement = () => {
     exportUserEmails,
     exportNewUserEmails
   } = useUserExport({
+    toast: () => {}, // Will be passed from useUserExport
     users
   });
 
