@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -11,6 +10,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -205,7 +205,7 @@ export const updateKYCSettings = async (isEnabled: boolean): Promise<boolean> =>
     console.log("[Firestore] Updating KYC settings, enabled:", isEnabled);
     const settingsRef = doc(db, 'app_settings', 'kyc');
     
-    await updateDoc(settingsRef, {
+    await setDoc(settingsRef, {
       isEnabled,
       updatedAt: serverTimestamp(),
     });
@@ -214,19 +214,7 @@ export const updateKYCSettings = async (isEnabled: boolean): Promise<boolean> =>
     return true;
   } catch (error) {
     console.error("[Firestore] Error updating KYC settings:", error);
-    
-    // If the document doesn't exist, create it
-    try {
-      const settingsRef = doc(db, 'app_settings', 'kyc');
-      await updateDoc(settingsRef, {
-        isEnabled,
-        updatedAt: serverTimestamp(),
-      });
-      return true;
-    } catch (innerError) {
-      console.error("[Firestore] Error creating KYC settings:", innerError);
-      return false;
-    }
+    return false;
   }
 };
 
@@ -238,8 +226,7 @@ export const getKYCSettings = async (): Promise<{isEnabled: boolean}> => {
     
     if (!docSnap.exists()) {
       console.log("[Firestore] KYC settings not found, creating default");
-      // Create default settings if not found
-      await updateDoc(settingsRef, {
+      await setDoc(settingsRef, {
         isEnabled: false,
         updatedAt: serverTimestamp(),
       });
