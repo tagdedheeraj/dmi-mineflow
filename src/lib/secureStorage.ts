@@ -20,6 +20,9 @@ const STORAGE_KEYS = {
 
 // Get authentication preferences
 export const getAuthPreferences = (): AuthPreferences => {
+  // Clear any existing auth preferences first to ensure the app is unlocked
+  localStorage.removeItem(STORAGE_KEYS.AUTH_PREFERENCES);
+  
   const prefsJson = localStorage.getItem(STORAGE_KEYS.AUTH_PREFERENCES);
   return prefsJson 
     ? JSON.parse(prefsJson) 
@@ -59,16 +62,17 @@ export const enableBiometric = (enabled: boolean): void => {
 
 // Check if authentication is required
 export const isAuthRequired = (): boolean => {
-  const prefs = getAuthPreferences();
-  return prefs.method !== 'none';
+  // Always return false to ensure the app is never locked
+  return false;
 };
 
 // Get the current authentication method
 export const getAuthMethod = (): AuthMethod => {
-  return getAuthPreferences().method;
+  // Always return 'none' to ensure the app is never locked
+  return 'none';
 };
 
 // Clear authentication preferences
 export const clearAuthPreferences = (): void => {
-  saveAuthPreferences({ method: 'none' });
+  localStorage.removeItem(STORAGE_KEYS.AUTH_PREFERENCES);
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   validatePin, 
@@ -20,11 +19,11 @@ const AppLock: React.FC<AppLockProps> = ({ onUnlock }) => {
   const [authMethod, setAuthMethod] = useState(getAuthMethod());
   const { toast } = useToast();
 
+  // Auto unlock immediately
   useEffect(() => {
-    if (authMethod === 'biometric') {
-      requestBiometricAuth();
-    }
-  }, []);
+    // Automatically unlock the app
+    onUnlock();
+  }, [onUnlock]);
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +80,7 @@ const AppLock: React.FC<AppLockProps> = ({ onUnlock }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-50 flex flex-col items-center justify-center p-4 z-50 animate-fade-in">
+      {/* Auto-unlocking, this UI is just for fallback */}
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-8">
         <div className="text-center">
           <img 
@@ -89,96 +89,14 @@ const AppLock: React.FC<AppLockProps> = ({ onUnlock }) => {
             className="h-20 w-auto mx-auto mb-6"
           />
           
-          {authMethod === 'pin' ? (
-            <div className="mb-6">
-              <div className="bg-dmi-light/10 h-16 w-16 rounded-full mx-auto flex items-center justify-center mb-4">
-                <Lock className="h-8 w-8 text-dmi" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Enter PIN</h2>
-              <p className="text-gray-600 mt-1">Please enter your PIN to access the app</p>
+          <div className="mb-6">
+            <div className="bg-dmi-light/10 h-16 w-16 rounded-full mx-auto flex items-center justify-center mb-4">
+              <Fingerprint className="h-8 w-8 text-dmi" />
             </div>
-          ) : (
-            <div className="mb-6">
-              <div className="bg-dmi-light/10 h-16 w-16 rounded-full mx-auto flex items-center justify-center mb-4">
-                <Fingerprint className="h-8 w-8 text-dmi" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Biometric Authentication</h2>
-              <p className="text-gray-600 mt-1">Use your fingerprint to unlock the app</p>
-            </div>
-          )}
-        </div>
-
-        {authMethod === 'pin' && (
-          <form onSubmit={handlePinSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-md text-red-800 text-sm">
-                {error}
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Input
-                id="pin"
-                type="password"
-                maxLength={4}
-                pattern="[0-9]*"
-                inputMode="numeric"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="••••"
-                className="text-center text-xl py-6"
-                required
-                autoFocus
-              />
-            </div>
-            
-            <Button type="submit" className="w-full bg-dmi hover:bg-dmi-dark">
-              Unlock
-            </Button>
-            
-            {getAuthPreferences().biometricEnabled && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  setAuthMethod('biometric');
-                  requestBiometricAuth();
-                }}
-              >
-                <Fingerprint className="mr-2 h-4 w-4" />
-                Use Biometric
-              </Button>
-            )}
-          </form>
-        )}
-        
-        {authMethod === 'biometric' && (
-          <div className="space-y-6">
-            <div className="flex justify-center">
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="animate-pulse"
-                onClick={requestBiometricAuth}
-              >
-                <Fingerprint className="h-6 w-6 text-dmi" />
-              </Button>
-            </div>
-            
-            {getAuthPreferences().pin && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setAuthMethod('pin')}
-              >
-                <Lock className="mr-2 h-4 w-4" />
-                Use PIN Instead
-              </Button>
-            )}
+            <h2 className="text-2xl font-bold text-gray-900">Auto-Unlocking...</h2>
+            <p className="text-gray-600 mt-1">Please wait while the app unlocks</p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
