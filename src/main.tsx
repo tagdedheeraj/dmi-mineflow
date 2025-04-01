@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (node.nodeType === 1) { // Element node
             const element = node as Element;
             if (
-              element.hasAttribute('data-lovable-badge') || 
-              element.className.includes('lovable') ||
-              element.id.includes('lovable')
+              element.hasAttribute && element.hasAttribute('data-lovable-badge') || 
+              (element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
+              (element.id && element.id.includes('lovable'))
             ) {
               element.remove();
             }

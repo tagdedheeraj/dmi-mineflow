@@ -11,6 +11,7 @@ import MiningPlans from '@/components/MiningPlans';
 import CoinValueCard from '@/components/CoinValueCard';
 import LiveRatesCard from '@/components/LiveRatesCard';
 import CryptoNewsCard from '@/components/CryptoNewsCard';
+import BottomBar from '@/components/BottomBar';
 import { Clock, Sparkles, Trophy, Zap, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -199,6 +200,8 @@ const Mining: React.FC = () => {
           </div>
         </div>
       </main>
+      
+      <BottomBar />
     </div>
   );
 };

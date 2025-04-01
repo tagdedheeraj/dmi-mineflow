@@ -25,29 +25,22 @@ import './lovableBadgeControl.css';
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
-  // If auth is still loading, show nothing
   if (loading) return null;
   
-  // If not logged in, redirect to sign in
   if (!user) return <Navigate to="/signin" replace />;
   
-  // Otherwise, show the protected content
   return <>{children}</>;
 }
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, loading } = useAuth();
   
-  // If auth is still loading, show nothing
   if (loading) return null;
   
-  // If not logged in, redirect to sign in
   if (!user) return <Navigate to="/signin" replace />;
   
-  // If not admin, redirect to mining
   if (!isAdmin) return <Navigate to="/mining" replace />;
   
-  // Otherwise, show the admin content
   return <>{children}</>;
 }
 
@@ -55,16 +48,13 @@ function AppWithProviders() {
   const [isLocked, setIsLocked] = useState(false);
   
   useEffect(() => {
-    // Check if app should be locked on startup
     const shouldLock = localStorage.getItem('dmi_app_lock') === 'true';
     setIsLocked(shouldLock);
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        // When app goes to background
         localStorage.setItem('dmi_app_lock', 'true');
       } else if (document.visibilityState === 'visible') {
-        // When app comes to foreground
         setIsLocked(localStorage.getItem('dmi_app_lock') === 'true');
       }
     };
@@ -95,7 +85,6 @@ function AppWithProviders() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/download" element={<Download />} />
             
-            {/* Protected routes */}
             <Route 
               path="/mining" 
               element={
@@ -145,7 +134,6 @@ function AppWithProviders() {
               } 
             />
             
-            {/* Admin routes */}
             <Route 
               path="/admin" 
               element={
@@ -155,7 +143,6 @@ function AppWithProviders() {
               } 
             />
             
-            {/* 404 route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
