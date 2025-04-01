@@ -71,7 +71,6 @@ export const useUserManagement = () => {
     exportUserEmails,
     exportNewUserEmails
   } = useUserExport({
-    toast: () => {}, // Will be passed from useUserExport
     users
   });
 
