@@ -14,12 +14,14 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
+// Constants
 export const KYC_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
   REJECTED: 'rejected',
 };
 
+// Types
 export type KYCDocument = {
   id?: string;
   userId: string;
@@ -38,6 +40,7 @@ export type KYCDocument = {
   reviewedBy?: string;
 };
 
+// User-facing KYC functions
 export const submitKYCRequest = async (kycData: Omit<KYCDocument, 'status' | 'submittedAt' | 'id'>): Promise<string> => {
   try {
     console.log("[Firestore] Submitting KYC request for user:", kycData.userId);
@@ -96,6 +99,7 @@ export const getUserKYCStatus = async (userId: string): Promise<KYCDocument | nu
   }
 };
 
+// Admin KYC Management functions
 export const getAllKYCRequests = async (statusFilter?: string): Promise<KYCDocument[]> => {
   try {
     console.log("[Firestore] Getting all KYC requests with filter:", statusFilter);
@@ -131,6 +135,28 @@ export const getAllKYCRequests = async (statusFilter?: string): Promise<KYCDocum
   } catch (error) {
     console.error("[Firestore] Error getting KYC requests:", error);
     return [];
+  }
+};
+
+export const getKYCRequestById = async (kycId: string): Promise<KYCDocument | null> => {
+  try {
+    console.log("[Firestore] Getting KYC request by ID:", kycId);
+    const kycRef = doc(db, 'kyc_verifications', kycId);
+    const docSnap = await getDoc(kycRef);
+    
+    if (!docSnap.exists()) {
+      console.log("[Firestore] KYC request not found");
+      return null;
+    }
+    
+    const data = docSnap.data() as Omit<KYCDocument, 'id'>;
+    return {
+      ...data,
+      id: docSnap.id,
+    };
+  } catch (error) {
+    console.error("[Firestore] Error getting KYC request by ID:", error);
+    return null;
   }
 };
 
@@ -173,28 +199,7 @@ export const rejectKYCRequest = async (kycId: string, adminId: string, reason: s
   }
 };
 
-export const getKYCRequestById = async (kycId: string): Promise<KYCDocument | null> => {
-  try {
-    console.log("[Firestore] Getting KYC request by ID:", kycId);
-    const kycRef = doc(db, 'kyc_verifications', kycId);
-    const docSnap = await getDoc(kycRef);
-    
-    if (!docSnap.exists()) {
-      console.log("[Firestore] KYC request not found");
-      return null;
-    }
-    
-    const data = docSnap.data() as Omit<KYCDocument, 'id'>;
-    return {
-      ...data,
-      id: docSnap.id,
-    };
-  } catch (error) {
-    console.error("[Firestore] Error getting KYC request by ID:", error);
-    return null;
-  }
-};
-
+// KYC Settings Management
 export const updateKYCSettings = async (isEnabled: boolean): Promise<boolean> => {
   try {
     console.log("[Firestore] Updating KYC settings, enabled:", isEnabled);
