@@ -12,7 +12,7 @@ import ImageUpload from './ImageUpload';
 
 interface KYCFormProps {
   isLoading: boolean;
-  onSubmit: (formData: any) => Promise<void>;
+  onSubmit: (formData: any) => Promise<boolean>;
 }
 
 const KYCForm: React.FC<KYCFormProps> = ({ isLoading, onSubmit }) => {
