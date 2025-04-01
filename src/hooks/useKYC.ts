@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +13,7 @@ export const useKYC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCDocument | null>(null);
-  const [isKYCEnabled, setIsKYCEnabled] = useState(false);
+  const [isKYCEnabled, setIsKYCEnabled] = useState<boolean | null>(null);
   
   // Load KYC status for the current user
   const loadKycStatus = useCallback(async () => {
@@ -35,9 +34,11 @@ export const useKYC = () => {
   const loadKycSettings = useCallback(async () => {
     try {
       const settings = await getKYCSettings();
+      console.log("KYC settings loaded:", settings);
       setIsKYCEnabled(settings.isEnabled);
     } catch (error) {
       console.error("Error loading KYC settings:", error);
+      // Don't set to false on error, keep as null
     }
   }, []);
   
@@ -88,6 +89,9 @@ export const useKYC = () => {
   
   // Determine if the user needs to complete KYC
   const needsKYC = useCallback(() => {
+    // If KYC settings are still loading (null), assume no verification needed yet
+    if (isKYCEnabled === null) return false;
+    
     // If KYC is not enabled globally, user doesn't need to complete it
     if (!isKYCEnabled) return false;
     

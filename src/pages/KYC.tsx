@@ -7,6 +7,7 @@ import KYCVerificationForm from '@/components/KYCVerificationForm';
 import { useKYC } from '@/hooks/useKYC';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import BottomBar from '@/components/BottomBar';
 
 const KYC: React.FC = () => {
   const { user } = useAuth();
@@ -20,9 +21,11 @@ const KYC: React.FC = () => {
     }
   }, [user, navigate]);
   
-  // Redirect to wallet if KYC is not enabled
+  // Only redirect to wallet if KYC is explicitly disabled
+  // This prevents automatic redirects during the verification process
   useEffect(() => {
-    if (user && !isKYCEnabled) {
+    if (user && isKYCEnabled === false) { // Only redirect if explicitly false, not undefined
+      console.log("KYC is disabled, redirecting to wallet");
       navigate('/wallet');
     }
   }, [user, isKYCEnabled, navigate]);
@@ -47,6 +50,8 @@ const KYC: React.FC = () => {
         
         <KYCVerificationForm />
       </main>
+      
+      <BottomBar />
     </div>
   );
 };
