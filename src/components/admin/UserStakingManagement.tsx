@@ -73,7 +73,7 @@ const manualStakingSchema = z.object({
     const num = parseFloat(val);
     return !isNaN(num) && num >= 250 && num <= 5000;
   }, { message: "Amount must be between 250 and 5000 USDT" }),
-  transactionId: z.string().min(10, { message: "Transaction ID must be at least 10 characters" }),
+  transactionId: z.string().min(3, { message: "Transaction ID must be at least 3 characters" }),
 });
 
 const UserStakingManagement: React.FC = () => {
@@ -102,10 +102,10 @@ const UserStakingManagement: React.FC = () => {
     setActionSuccess(false);
     try {
       // Get all staking records
-      const stakingRef = collection(db, 'staking_records');
+      const stakingRef = collection(db, 'staking_transactions');
       const stakingQuery = query(
         stakingRef,
-        orderBy('stakingDate', 'desc')
+        orderBy('createdAt', 'desc')
       );
       const stakingSnapshot = await getDocs(stakingQuery);
       
@@ -116,23 +116,24 @@ const UserStakingManagement: React.FC = () => {
         const stakingData = stakingDoc.data();
         
         // Get user details
-        const userDoc = await getDocs(query(collection(db, 'users'), where('id', '==', stakingData.userId)));
+        const userQuery = query(collection(db, 'users'), where('id', '==', stakingData.userId));
+        const userSnapshot = await getDocs(userQuery);
         
-        if (!userDoc.empty) {
-          const userData = userDoc.docs[0].data();
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
           
           records.push({
             id: stakingDoc.id,
             userId: stakingData.userId,
-            userName: userData.full_name || 'Unknown',
+            userName: userData.fullName || 'Unknown',
             userEmail: userData.email || 'No email',
             amount: stakingData.amount || 0,
             dailyEarnings: stakingData.amount * 0.01 || 0, // 1% daily earnings
-            stakingDate: stakingData.stakingDate.toDate(),
-            lockedUntil: stakingData.lockedUntil?.toDate() || new Date('2025-08-25'),
-            isActive: stakingData.isActive || true,
-            totalEarned: stakingData.totalEarned || 0,
-            transactionId: stakingData.transactionId || ''
+            stakingDate: stakingData.createdAt?.toDate() || new Date(),
+            lockedUntil: new Date(new Date().setDate(new Date().getDate() + 90)), // 90 days lock
+            isActive: stakingData.status === 'active' || true,
+            totalEarned: userData.stakingData?.totalEarned || 0,
+            transactionId: stakingData.txId || ''
           });
         }
       }
@@ -185,14 +186,25 @@ const UserStakingManagement: React.FC = () => {
 
   // Handle manual staking form submission
   const onSubmitManualStaking = async (values: z.infer<typeof manualStakingSchema>) => {
+    console.log("Manual staking form submitted with values:", values);
     setIsSubmitting(true);
     try {
       const amount = parseFloat(values.amount);
+      const txId = values.transactionId || `admin-${randomUUID().slice(0, 8)}`;
+      
+      console.log("Calling saveAdminStakingTransaction with:", {
+        userEmail: values.userEmail,
+        amount,
+        txId
+      });
+      
       const result = await saveAdminStakingTransaction(
         values.userEmail,
         amount,
-        values.transactionId || `admin-${randomUUID().slice(0, 8)}`
+        txId
       );
+      
+      console.log("saveAdminStakingTransaction result:", result);
       
       if (result.success) {
         toast({
