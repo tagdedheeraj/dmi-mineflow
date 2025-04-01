@@ -39,14 +39,14 @@ const Admin: React.FC = () => {
         onSettingsUpdated={handleSettingsUpdated}
       />
       
+      {/* KYC Management - Moved to the top for better visibility */}
+      <KYCManagement />
+      
       {/* DMI Coin Value Management */}
       <DmiCoinValueManagement />
       
       {/* User Management Panel */}
       <UserManagement />
-      
-      {/* KYC Management */}
-      <KYCManagement />
       
       {/* User Plan Management */}
       <UserPlanManagement />
