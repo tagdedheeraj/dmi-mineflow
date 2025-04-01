@@ -18,6 +18,7 @@ import WithdrawalRequestsManagement from '@/components/admin/WithdrawalRequestsM
 import UserPlanManagement from '@/components/admin/UserPlanManagement';
 import UserStakingManagement from '@/components/admin/UserStakingManagement';
 import DmiCoinValueManagement from '@/components/admin/DmiCoinValueManagement';
+import KYCManagement from '@/components/admin/KYCManagement';
 
 const Admin: React.FC = () => {
   const { appSettings } = useAuth();
@@ -43,6 +44,9 @@ const Admin: React.FC = () => {
       
       {/* User Management Panel */}
       <UserManagement />
+      
+      {/* KYC Management */}
+      <KYCManagement />
       
       {/* User Plan Management */}
       <UserPlanManagement />

@@ -1,161 +1,172 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { MiningProvider } from './contexts/MiningContext';
+import { Toaster } from './components/ui/toaster';
+import AppLock from './components/AppLock';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
+// Page imports
+import Index from './pages/Index';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import Mining from './pages/Mining';
+import Profile from './pages/Profile';
+import Plans from './pages/Plans';
+import Admin from './pages/Admin';
+import Download from './pages/Download';
+import Wallet from './pages/Wallet';
+import Rewards from './pages/Rewards';
+import NotFound from './pages/NotFound';
+import KYC from './pages/KYC';
 
-// Import all route components
-import Index from "./pages/Index";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import Download from "./pages/Download";
-import Mining from "./pages/Mining";
-import Profile from "./pages/Profile";
-import Wallet from "./pages/Wallet";
-import Plans from "./pages/Plans";
-import Admin from "./pages/Admin";
-import Rewards from "./pages/Rewards";
-import NotFound from "./pages/NotFound";
-import BottomBar from "./components/BottomBar";
+import './App.css';
+import './lovableBadgeControl.css';
 
-import { AuthProvider } from "./contexts/AuthContext";
-import { MiningProvider } from "./contexts/MiningContext";
-import { isAuthRequired } from "./lib/secureStorage";
-import AppLock from "./components/AppLock";
-import { getAppSettings } from "./lib/firestore";
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  // If auth is still loading, show nothing
+  if (loading) return null;
+  
+  // If not logged in, redirect to sign in
+  if (!user) return <Navigate to="/signin" replace />;
+  
+  // Otherwise, show the protected content
+  return <>{children}</>;
+}
 
-const queryClient = new QueryClient();
+function AdminGuard({ children }: { children: React.ReactNode }) {
+  const { user, isAdmin, loading } = useAuth();
+  
+  // If auth is still loading, show nothing
+  if (loading) return null;
+  
+  // If not logged in, redirect to sign in
+  if (!user) return <Navigate to="/signin" replace />;
+  
+  // If not admin, redirect to mining
+  if (!isAdmin) return <Navigate to="/mining" replace />;
+  
+  // Otherwise, show the admin content
+  return <>{children}</>;
+}
 
-const App = () => {
+function AppWithProviders() {
   const [isLocked, setIsLocked] = useState(false);
-  const [appReady, setAppReady] = useState(false);
-
+  
   useEffect(() => {
-    // Check if authentication is required
-    const authRequired = isAuthRequired();
-    setIsLocked(authRequired);
+    // Check if app should be locked on startup
+    const shouldLock = localStorage.getItem('dmi_app_lock') === 'true';
+    setIsLocked(shouldLock);
     
-    // Force hide Lovable badge
-    window.HIDE_LOVABLE_BADGE = true;
-    document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
-    localStorage.setItem('showLovableBadge', 'false');
-    
-    // Continuously remove any badges that might appear
-    const badgeRemovalInterval = setInterval(() => {
-      const badges = document.querySelectorAll('[data-lovable-badge]');
-      badges.forEach(badge => badge.remove());
-    }, 500);
-    
-    // Fetch app settings to initialize app version
-    const fetchAppSettings = async () => {
-      try {
-        const settings = await getAppSettings();
-        if (settings) {
-          // Initialize app version in localStorage if it doesn't exist
-          if (!localStorage.getItem('appVersion')) {
-            localStorage.setItem('appVersion', settings.version || '0.0.0');
-          }
-          
-          // Force badge hiding regardless of settings
-          localStorage.setItem('showLovableBadge', 'false');
-          window.HIDE_LOVABLE_BADGE = true;
-          document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
-        }
-        setAppReady(true);
-      } catch (error) {
-        console.error("Error fetching app settings:", error);
-        setAppReady(true);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // When app goes to background
+        localStorage.setItem('dmi_app_lock', 'true');
+      } else if (document.visibilityState === 'visible') {
+        // When app comes to foreground
+        setIsLocked(localStorage.getItem('dmi_app_lock') === 'true');
       }
     };
     
-    fetchAppSettings();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      clearInterval(badgeRemovalInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
-
+  
   const handleUnlock = () => {
+    localStorage.removeItem('dmi_app_lock');
     setIsLocked(false);
   };
-
-  if (!appReady) {
-    return <div className="min-h-screen bg-gray-50"></div>; // Loading state
+  
+  if (isLocked) {
+    return <AppLock onUnlock={handleUnlock} />;
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        {isLocked ? (
-          <AppLock onUnlock={handleUnlock} />
-        ) : (
-          <BrowserRouter>
-            <AuthProvider>
-              <MiningProvider>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/signin" element={<SignIn />} />
-                  <Route path="/signup" element={<SignUp />} />
-                  <Route path="/download" element={<Download />} />
-                  <Route 
-                    path="/mining" 
-                    element={
-                      <>
-                        <Mining />
-                        <BottomBar />
-                      </>
-                    } 
-                  />
-                  <Route 
-                    path="/profile" 
-                    element={
-                      <>
-                        <Profile />
-                        <BottomBar />
-                      </>
-                    } 
-                  />
-                  <Route 
-                    path="/wallet" 
-                    element={
-                      <>
-                        <Wallet />
-                        <BottomBar />
-                      </>
-                    } 
-                  />
-                  <Route 
-                    path="/plans" 
-                    element={
-                      <>
-                        <Plans />
-                        <BottomBar />
-                      </>
-                    } 
-                  />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route 
-                    path="/rewards" 
-                    element={
-                      <>
-                        <Rewards />
-                        <BottomBar />
-                      </>
-                    } 
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </MiningProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        )}
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Router>
+      <AuthProvider>
+        <MiningProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/download" element={<Download />} />
+            
+            {/* Protected routes */}
+            <Route 
+              path="/mining" 
+              element={
+                <AuthGuard>
+                  <Mining />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <AuthGuard>
+                  <Profile />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/plans" 
+              element={
+                <AuthGuard>
+                  <Plans />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/wallet" 
+              element={
+                <AuthGuard>
+                  <Wallet />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/rewards" 
+              element={
+                <AuthGuard>
+                  <Rewards />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/kyc" 
+              element={
+                <AuthGuard>
+                  <KYC />
+                </AuthGuard>
+              } 
+            />
+            
+            {/* Admin routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <AdminGuard>
+                  <Admin />
+                </AdminGuard>
+              } 
+            />
+            
+            {/* 404 route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </MiningProvider>
+      </AuthProvider>
+    </Router>
   );
-};
+}
+
+function App() {
+  return <AppWithProviders />;
+}
 
 export default App;
