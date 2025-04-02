@@ -13,8 +13,8 @@ const KYCVerificationForm: React.FC = () => {
   // Load KYC status once on mount
   useEffect(() => {
     loadKycStatus();
-    // No dependency array to avoid re-running
-  }, []);
+    // Make sure we're actually loading the latest status
+  }, [loadKycStatus]);
   
   // Handle resetting/resubmitting KYC after rejection
   const handleResubmit = () => {
@@ -32,6 +32,7 @@ const KYCVerificationForm: React.FC = () => {
   
   // Render based on KYC status
   if (kycStatus && !resubmitting) {
+    // Make sure we're correctly checking the status
     if (kycStatus.status === 'pending') {
       return <KYCPendingStatus kycStatus={kycStatus} />;
     } else if (kycStatus.status === 'approved') {

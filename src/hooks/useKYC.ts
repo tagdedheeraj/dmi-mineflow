@@ -66,7 +66,7 @@ export const useKYC = () => {
         description: "Your KYC verification request has been submitted and is pending review",
       });
       
-      // Refresh KYC status
+      // Refresh KYC status immediately after submission
       await loadKycStatus();
       return true;
     } catch (error: any) {
@@ -86,11 +86,9 @@ export const useKYC = () => {
   useEffect(() => {
     if (!user) return;
     
-    // Initial load only, no auto-refresh
+    // Initial load
     loadKycStatus();
     loadKycSettings();
-    
-    // No refresh interval setup
     
   }, [loadKycStatus, loadKycSettings, user]);
   
@@ -106,7 +104,7 @@ export const useKYC = () => {
     if (!kycStatus) return true;
     
     // If the user has a pending or approved KYC, they don't need to complete it
-    return false;
+    return kycStatus.status === 'rejected';
   }, [kycStatus, isKYCEnabled]);
   
   return {

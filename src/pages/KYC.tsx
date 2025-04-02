@@ -11,17 +11,20 @@ import BottomBar from '@/components/BottomBar';
 
 const KYC: React.FC = () => {
   const { user } = useAuth();
-  const { isKYCEnabled } = useKYC();
+  const { isKYCEnabled, loadKycStatus } = useKYC();
   const navigate = useNavigate();
   
-  // Redirect to signin if not logged in (only once)
+  // Redirect to signin if not logged in
   useEffect(() => {
     if (!user) {
       navigate('/signin');
+    } else {
+      // Ensure we load the latest KYC status when the page is visited
+      loadKycStatus();
     }
-  }, [user, navigate]);
+  }, [user, navigate, loadKycStatus]);
   
-  // Only redirect to wallet if KYC is explicitly disabled, but don't check too frequently
+  // Only redirect to wallet if KYC is explicitly disabled
   useEffect(() => {
     if (user && isKYCEnabled === false) { // Only redirect if explicitly false, not undefined
       console.log("KYC is disabled, redirecting to wallet");
