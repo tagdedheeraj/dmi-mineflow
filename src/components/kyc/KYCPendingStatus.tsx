@@ -23,12 +23,19 @@ const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Alert className="bg-yellow-50 border-yellow-200">
+        <Alert className="bg-yellow-50 border-yellow-200 mb-4">
           <Clock className="h-4 w-4 text-yellow-500" />
           <AlertTitle>Verification In Progress</AlertTitle>
           <AlertDescription>
             Your KYC verification request has been submitted and is currently under review. 
-            This process typically takes 1-2 business days. We'll notify you once the verification is complete.
+            This process typically takes 3-5 business days. We'll notify you once the verification is complete.
+          </AlertDescription>
+        </Alert>
+        
+        <Alert className="bg-blue-50 border-blue-200 mb-6">
+          <AlertDescription className="text-blue-800">
+            Due to high volume of verification requests, there might be a slight delay in the review process. 
+            We appreciate your patience and understanding.
           </AlertDescription>
         </Alert>
         

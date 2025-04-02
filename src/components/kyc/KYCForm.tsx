@@ -55,7 +55,7 @@ const KYCForm: React.FC<KYCFormProps> = ({ isLoading, onSubmit }) => {
     }
     
     // Submit the form data
-    await onSubmit({
+    const success = await onSubmit({
       fullName,
       idNumber,
       address,
