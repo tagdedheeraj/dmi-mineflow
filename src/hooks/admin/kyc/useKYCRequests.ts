@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getAllKYCRequests, KYCDocument } from '@/lib/firestore';
+import { getAllKYCRequests, KYCDocument } from '@/lib/firestore/kyc';
 
 export const useKYCRequests = () => {
   const { toast } = useToast();

@@ -18,7 +18,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { KYCDocument } from '@/lib/firestore';
+import { KYCDocument } from '@/lib/firestore/kyc';
 import KYCStatusBadge from './KYCStatusBadge';
 import { format } from 'date-fns';
 
@@ -51,11 +51,32 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
     
     return 'N/A';
   };
+  
+  // Safe close handler
+  const handleSafeClose = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
+  
+  // Safe approve handler
+  const handleSafeApprove = () => {
+    if (!isLoading && kycRequest?.id) {
+      onApprove(kycRequest.id);
+    }
+  };
+  
+  // Safe reject handler
+  const handleSafeReject = () => {
+    if (!isLoading) {
+      onShowRejectionDialog();
+    }
+  };
 
   if (!kycRequest) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={handleSafeClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -179,7 +200,8 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={onClose}
+                onClick={handleSafeClose}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
@@ -187,7 +209,7 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
               <Button 
                 type="button" 
                 variant="destructive"
-                onClick={onShowRejectionDialog}
+                onClick={handleSafeReject}
                 disabled={isLoading}
               >
                 <XCircle className="h-4 w-4 mr-1" />
@@ -197,7 +219,7 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
               <Button 
                 type="button"
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => kycRequest.id && onApprove(kycRequest.id)}
+                onClick={handleSafeApprove}
                 disabled={isLoading}
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
@@ -210,7 +232,8 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={onClose}
+              onClick={handleSafeClose}
+              disabled={isLoading}
             >
               Close
             </Button>

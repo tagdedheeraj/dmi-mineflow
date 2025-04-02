@@ -29,8 +29,22 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
   onClose,
   onReject
 }) => {
+  // Handle safe closure
+  const handleSafeClose = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
+  
+  // Handle safe rejection
+  const handleSafeReject = () => {
+    if (!isLoading && rejectionReason.trim()) {
+      onReject();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleSafeClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject KYC Verification</DialogTitle>
@@ -48,14 +62,19 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
             onChange={(e) => onRejectionReasonChange(e.target.value)}
             className="mt-1"
             rows={4}
+            disabled={isLoading}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            This reason will be visible to the user to help them fix their submission.
+          </p>
         </div>
         
         <DialogFooter className="mt-4">
           <Button 
             type="button" 
             variant="outline" 
-            onClick={onClose}
+            onClick={handleSafeClose}
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -63,10 +82,10 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
           <Button 
             type="button" 
             variant="destructive"
-            onClick={onReject}
+            onClick={handleSafeReject}
             disabled={isLoading || !rejectionReason.trim()}
           >
-            Reject Verification
+            {isLoading ? "Rejecting..." : "Reject Verification"}
           </Button>
         </DialogFooter>
       </DialogContent>

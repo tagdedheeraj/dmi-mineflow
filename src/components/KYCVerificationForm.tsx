@@ -9,6 +9,15 @@ import KYCForm from './kyc/KYCForm';
 const KYCVerificationForm: React.FC = () => {
   const { isLoading, kycStatus, submitKYC } = useKYC();
   
+  // Show loading state
+  if (isLoading && !kycStatus) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
   // Render based on KYC status
   if (kycStatus) {
     if (kycStatus.status === 'pending') {

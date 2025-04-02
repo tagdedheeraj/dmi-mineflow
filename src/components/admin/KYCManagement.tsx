@@ -3,37 +3,62 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Shield, RefreshCw } from 'lucide-react';
-import { useKYCManagement } from '@/hooks/admin/useKYCManagement';
+import { useKYCRequests } from '@/hooks/admin/kyc/useKYCRequests';
+import { useKYCRequestDetail } from '@/hooks/admin/kyc/useKYCRequestDetail';
+import { useKYCProcessing } from '@/hooks/admin/kyc/useKYCProcessing';
+import { useKYCSettings } from '@/hooks/admin/kyc/useKYCSettings';
 
-// Import all the small components we created
+// Import the smaller component parts
 import KYCSettings from './kyc/KYCSettings';
 import KYCTabs from './kyc/KYCTabs';
 import KYCDetailsDialog from './kyc/KYCDetailsDialog';
 import RejectionDialog from './kyc/RejectionDialog';
 
 const KYCManagement: React.FC = () => {
+  // Get KYC requests data
   const {
-    isLoading,
+    isLoading: isLoadingRequests,
     kycRequests,
-    selectedRequest,
     statusFilter,
-    isKYCEnabled,
     setStatusFilter,
-    setSelectedRequest,
     loadKYCRequests,
+  } = useKYCRequests();
+
+  // Get KYC settings
+  const {
+    isLoading: isLoadingSettings,
+    isKYCEnabled,
+    toggleKYCEnabled,
+  } = useKYCSettings();
+
+  // Request detail management
+  const {
+    isLoading: isLoadingDetails,
+    selectedRequest,
+    setSelectedRequest,
+    viewKYCDetails,
+  } = useKYCRequestDetail();
+
+  // Processing functions
+  const {
+    isLoading: isLoadingProcessing,
     handleApproveKYC,
     handleRejectKYC,
-    viewKYCDetails,
-    toggleKYCEnabled,
-  } = useKYCManagement();
+  } = useKYCProcessing(loadKYCRequests);
+
+  // Combined loading state
+  const isLoading = isLoadingRequests || isLoadingSettings || isLoadingDetails || isLoadingProcessing;
   
+  // State for rejection dialog
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   
+  // Handle refresh button
   const handleRefresh = () => {
     loadKYCRequests();
   };
   
+  // Handle reject confirmation
   const handleReject = () => {
     if (selectedRequest?.id) {
       handleRejectKYC(selectedRequest.id, rejectionReason)
@@ -90,7 +115,7 @@ const KYCManagement: React.FC = () => {
       {/* KYC Details Dialog */}
       <KYCDetailsDialog
         kycRequest={selectedRequest}
-        isOpen={!!selectedRequest}
+        isOpen={!!selectedRequest && !showRejectionDialog}
         isLoading={isLoading}
         onClose={() => setSelectedRequest(null)}
         onApprove={handleApproveKYC}

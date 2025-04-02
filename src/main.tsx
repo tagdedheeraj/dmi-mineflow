@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.setAttribute('data-hide-lovable-badge', 'true');
   
   // Safely remove badges with proper parent node checks
-  const removeBadgeIfExists = (element) => {
+  const removeBadgeIfExists = (element: Element) => {
     try {
       if (element && element.parentNode) {
         element.parentNode.removeChild(element);
@@ -34,12 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === 1) { // Element node
               try {
-                const element = node;
+                const element = node as Element;
                 // Only check elements added directly to body, not within the React app
                 if (element.parentNode === document.body && (
-                  (element.hasAttribute && element.hasAttribute('data-lovable-badge')) || 
-                  (element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
-                  (element.id && element.id.includes('lovable'))
+                  element.hasAttribute('data-lovable-badge') || 
+                  (element instanceof HTMLElement && element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
+                  (element instanceof HTMLElement && element.id && element.id.includes('lovable'))
                 )) {
                   removeBadgeIfExists(element);
                 }
