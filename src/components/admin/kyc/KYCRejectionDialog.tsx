@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-interface RejectionDialogProps {
+interface KYCRejectionDialogProps {
   isOpen: boolean;
   isLoading: boolean;
   rejectionReason: string;
@@ -21,7 +21,7 @@ interface RejectionDialogProps {
   onReject: () => void;
 }
 
-const RejectionDialog: React.FC<RejectionDialogProps> = ({
+const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
   isOpen,
   isLoading,
   rejectionReason,
@@ -74,4 +74,4 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
   );
 };
 
-export default RejectionDialog;
+export default KYCRejectionDialog;

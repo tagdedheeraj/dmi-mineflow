@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +74,7 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          
           <div>
             <h4 className="font-medium flex items-center gap-1 mb-2">
               <User className="h-4 w-4" />

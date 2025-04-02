@@ -44,14 +44,28 @@ export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
   
   // Handle rejecting a KYC request
   const handleRejectKYC = useCallback(async (kycId: string, reason: string) => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to reject KYC requests",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!reason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Rejection reason is required",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     setIsLoading(true);
+    
     try {
-      if (!reason.trim()) {
-        throw new Error("Rejection reason is required");
-      }
-      
+      console.log(`Attempting to reject KYC ID: ${kycId} with reason: ${reason}`);
       const success = await rejectKYCRequest(kycId, user.id, reason);
       
       if (success) {

@@ -9,7 +9,7 @@ import { useKYCManagement } from '@/hooks/admin/useKYCManagement';
 import KYCSettings from './kyc/KYCSettings';
 import KYCTabs from './kyc/KYCTabs';
 import KYCDetailsDialog from './kyc/KYCDetailsDialog';
-import RejectionDialog from './kyc/RejectionDialog';
+import KYCRejectionDialog from './kyc/KYCRejectionDialog';
 
 const KYCManagement: React.FC = () => {
   const {
@@ -90,7 +90,7 @@ const KYCManagement: React.FC = () => {
       {/* KYC Details Dialog */}
       <KYCDetailsDialog
         kycRequest={selectedRequest}
-        isOpen={!!selectedRequest}
+        isOpen={!!selectedRequest && !showRejectionDialog}
         isLoading={isLoading}
         onClose={() => setSelectedRequest(null)}
         onApprove={handleApproveKYC}
@@ -98,7 +98,7 @@ const KYCManagement: React.FC = () => {
       />
       
       {/* Rejection Reason Dialog */}
-      <RejectionDialog
+      <KYCRejectionDialog
         isOpen={showRejectionDialog}
         isLoading={isLoading}
         rejectionReason={rejectionReason}
