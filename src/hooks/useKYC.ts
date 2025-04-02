@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -14,6 +15,7 @@ export const useKYC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCDocument | null>(null);
   const [isKYCEnabled, setIsKYCEnabled] = useState<boolean | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Load KYC status for the current user
   const loadKycStatus = useCallback(async () => {
@@ -90,14 +92,23 @@ export const useKYC = () => {
     loadKycStatus();
     loadKycSettings();
     
-    // Set up more frequent refresh (every 5 seconds) for better responsiveness
-    // This ensures users see status updates quickly after admin actions
-    const refreshInterval = setInterval(() => {
+    // Clear existing interval if it exists
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+    
+    // Set up refresh interval with a reasonable timeout (30 seconds instead of 5)
+    refreshIntervalRef.current = setInterval(() => {
       console.log("Auto-refreshing KYC status...");
       loadKycStatus();
-    }, 5000); // Check every 5 seconds (instead of 30 seconds)
+    }, 30000); // Check every 30 seconds
     
-    return () => clearInterval(refreshInterval);
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+    };
   }, [loadKycStatus, loadKycSettings, user]);
   
   // Determine if the user needs to complete KYC

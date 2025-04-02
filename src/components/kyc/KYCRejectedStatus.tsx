@@ -12,12 +12,10 @@ interface KYCRejectedStatusProps {
 }
 
 const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus, onReset }) => {
-  const handleTryAgain = () => {
+  const handleTryAgain = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default to avoid page reload
     if (onReset) {
       onReset();
-    } else {
-      // Fallback: reload the page if no reset handler provided
-      window.location.reload();
     }
   };
 
@@ -68,6 +66,7 @@ const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus, onRese
           <Button 
             onClick={handleTryAgain}
             className="w-full md:w-auto"
+            type="button"
           >
             Submit New Verification
           </Button>
