@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { approveKYCRequest, rejectKYCRequest } from '@/lib/firestore/kyc/adminKycService';
+import { approveKYCRequest, rejectKYCRequest } from '@/lib/firestore';
 
 export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
   const { user } = useAuth();
@@ -44,37 +44,17 @@ export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
   
   // Handle rejecting a KYC request
   const handleRejectKYC = useCallback(async (kycId: string, reason: string) => {
+    if (!user) return false;
+    
+    setIsLoading(true);
     try {
-      // Validate user is logged in
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to reject KYC requests",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      // Validate reason
       if (!reason.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Rejection reason is required",
-          variant: "destructive",
-        });
-        return false;
+        throw new Error("Rejection reason is required");
       }
       
-      // Set loading state
-      setIsLoading(true);
-      console.log(`Attempting to reject KYC ID: ${kycId} with reason: "${reason}"`);
-      console.log(`Admin ID: ${user.id}`);
-      
-      // Call the firestore function
       const success = await rejectKYCRequest(kycId, user.id, reason);
       
       if (success) {
-        console.log("KYC rejection successful");
         toast({
           title: "KYC Rejected",
           description: "The KYC verification request has been rejected",
@@ -84,7 +64,6 @@ export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
         await onSuccess();
         return true;
       } else {
-        console.error("KYC rejection returned false");
         throw new Error("Failed to reject KYC request");
       }
     } catch (error: any) {

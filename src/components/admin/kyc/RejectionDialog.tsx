@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-interface KYCRejectionDialogProps {
+interface RejectionDialogProps {
   isOpen: boolean;
   isLoading: boolean;
   rejectionReason: string;
@@ -21,7 +21,7 @@ interface KYCRejectionDialogProps {
   onReject: () => void;
 }
 
-const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
+const RejectionDialog: React.FC<RejectionDialogProps> = ({
   isOpen,
   isLoading,
   rejectionReason,
@@ -29,28 +29,8 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
   onClose,
   onReject
 }) => {
-  // Add error state to track validation errors
-  const [error, setError] = useState<string | null>(null);
-  
-  // Validate before submitting
-  const handleReject = () => {
-    if (!rejectionReason.trim()) {
-      setError("Please provide a reason for rejection");
-      return;
-    }
-    
-    setError(null);
-    onReject();
-  };
-
-  // Close handler that also clears errors
-  const handleClose = () => {
-    setError(null);
-    onClose();
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject KYC Verification</DialogTitle>
@@ -65,24 +45,17 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
             id="rejection-reason"
             placeholder="Enter the reason for rejection..."
             value={rejectionReason}
-            onChange={(e) => {
-              setError(null);
-              onRejectionReasonChange(e.target.value);
-            }}
-            className={`mt-1 ${error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+            onChange={(e) => onRejectionReasonChange(e.target.value)}
+            className="mt-1"
             rows={4}
           />
-          {error && (
-            <p className="text-sm text-red-500 mt-1">{error}</p>
-          )}
         </div>
         
         <DialogFooter className="mt-4">
           <Button 
             type="button" 
             variant="outline" 
-            onClick={handleClose}
-            disabled={isLoading}
+            onClick={onClose}
           >
             Cancel
           </Button>
@@ -90,10 +63,10 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
           <Button 
             type="button" 
             variant="destructive"
-            onClick={handleReject}
-            disabled={isLoading}
+            onClick={onReject}
+            disabled={isLoading || !rejectionReason.trim()}
           >
-            {isLoading ? 'Rejecting...' : 'Reject Verification'}
+            Reject Verification
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -101,4 +74,4 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
   );
 };
 
-export default KYCRejectionDialog;
+export default RejectionDialog;

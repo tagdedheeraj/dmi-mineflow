@@ -36,9 +36,16 @@ a[class*="lovable"] {
   pointer-events: none !important;
 }
 
-/* Prevent fixed positioned elements from showing up */
-#root ~ div:not([id]):not([class])[style*="position: fixed"],
-#root ~ div:not([id]):not([class])[style*="position:fixed"] {
+/* Hide all fixed positioned elements that could be the badge */
+#root ~ div[style*="fixed"],
+body > div[style*="fixed"]:not(#root *),
+div[style*="position:fixed"]:not(#root *),
+div[style*="position: fixed"]:not(#root *) {
   display: none !important;
   visibility: hidden !important;
+}
+
+/* Additional coverage for shadow DOM elements */
+:host {
+  display: none !important;
 }

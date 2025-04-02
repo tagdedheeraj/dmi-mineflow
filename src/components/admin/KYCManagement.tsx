@@ -9,7 +9,7 @@ import { useKYCManagement } from '@/hooks/admin/useKYCManagement';
 import KYCSettings from './kyc/KYCSettings';
 import KYCTabs from './kyc/KYCTabs';
 import KYCDetailsDialog from './kyc/KYCDetailsDialog';
-import KYCRejectionDialog from './kyc/KYCRejectionDialog';
+import RejectionDialog from './kyc/RejectionDialog';
 
 const KYCManagement: React.FC = () => {
   const {
@@ -36,32 +36,14 @@ const KYCManagement: React.FC = () => {
   
   const handleReject = () => {
     if (selectedRequest?.id) {
-      console.log(`Initiating rejection for KYC ID: ${selectedRequest.id}`);
       handleRejectKYC(selectedRequest.id, rejectionReason)
         .then(success => {
-          console.log(`Rejection result: ${success ? 'success' : 'failed'}`);
           if (success) {
             setRejectionReason('');
             setShowRejectionDialog(false);
-            setSelectedRequest(null); // Clear the selected request after successful rejection
           }
-        })
-        .catch(error => {
-          console.error("Error in KYC rejection flow:", error);
         });
-    } else {
-      console.error("Cannot reject: No KYC request selected");
     }
-  };
-  
-  const openRejectionDialog = (kycId: string) => {
-    viewKYCDetails(kycId);
-    setRejectionReason(''); // Clear previous rejection reason
-    setShowRejectionDialog(true);
-  };
-  
-  const closeRejectionDialog = () => {
-    setShowRejectionDialog(false);
   };
 
   return (
@@ -98,14 +80,17 @@ const KYCManagement: React.FC = () => {
           onStatusFilterChange={setStatusFilter}
           onViewDetails={viewKYCDetails}
           onApprove={handleApproveKYC}
-          onReject={openRejectionDialog}
+          onReject={(kycId) => {
+            viewKYCDetails(kycId);
+            setShowRejectionDialog(true);
+          }}
         />
       </CardContent>
       
       {/* KYC Details Dialog */}
       <KYCDetailsDialog
         kycRequest={selectedRequest}
-        isOpen={!!selectedRequest && !showRejectionDialog}
+        isOpen={!!selectedRequest}
         isLoading={isLoading}
         onClose={() => setSelectedRequest(null)}
         onApprove={handleApproveKYC}
@@ -113,12 +98,12 @@ const KYCManagement: React.FC = () => {
       />
       
       {/* Rejection Reason Dialog */}
-      <KYCRejectionDialog
+      <RejectionDialog
         isOpen={showRejectionDialog}
         isLoading={isLoading}
         rejectionReason={rejectionReason}
         onRejectionReasonChange={setRejectionReason}
-        onClose={closeRejectionDialog}
+        onClose={() => setShowRejectionDialog(false)}
         onReject={handleReject}
       />
     </Card>

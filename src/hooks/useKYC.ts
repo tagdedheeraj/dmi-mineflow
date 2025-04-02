@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +6,7 @@ import {
   getUserKYCStatus, 
   KYCDocument,
   getKYCSettings,
-} from '@/lib/firestore/kyc';
+} from '@/lib/firestore';
 
 export const useKYC = () => {
   const { user } = useAuth();
