@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../firebase";
 import { KYC_STATUS, KYCDocument } from "./types";
 
 // User-facing KYC functions

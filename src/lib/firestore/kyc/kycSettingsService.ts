@@ -5,7 +5,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../firebase";
 
 // KYC Settings Management
 export const updateKYCSettings = async (isEnabled: boolean): Promise<boolean> => {
