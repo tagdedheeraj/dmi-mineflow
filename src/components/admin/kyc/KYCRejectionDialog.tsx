@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,8 +29,28 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
   onClose,
   onReject
 }) => {
+  // Add error state to track validation errors
+  const [error, setError] = useState<string | null>(null);
+  
+  // Validate before submitting
+  const handleReject = () => {
+    if (!rejectionReason.trim()) {
+      setError("Please provide a reason for rejection");
+      return;
+    }
+    
+    setError(null);
+    onReject();
+  };
+
+  // Close handler that also clears errors
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject KYC Verification</DialogTitle>
@@ -45,17 +65,24 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
             id="rejection-reason"
             placeholder="Enter the reason for rejection..."
             value={rejectionReason}
-            onChange={(e) => onRejectionReasonChange(e.target.value)}
-            className="mt-1"
+            onChange={(e) => {
+              setError(null);
+              onRejectionReasonChange(e.target.value);
+            }}
+            className={`mt-1 ${error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             rows={4}
           />
+          {error && (
+            <p className="text-sm text-red-500 mt-1">{error}</p>
+          )}
         </div>
         
         <DialogFooter className="mt-4">
           <Button 
             type="button" 
             variant="outline" 
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -63,10 +90,10 @@ const KYCRejectionDialog: React.FC<KYCRejectionDialogProps> = ({
           <Button 
             type="button" 
             variant="destructive"
-            onClick={onReject}
-            disabled={isLoading || !rejectionReason.trim()}
+            onClick={handleReject}
+            disabled={isLoading}
           >
-            Reject Verification
+            {isLoading ? 'Rejecting...' : 'Reject Verification'}
           </Button>
         </DialogFooter>
       </DialogContent>
