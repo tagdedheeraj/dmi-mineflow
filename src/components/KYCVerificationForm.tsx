@@ -5,6 +5,7 @@ import KYCPendingStatus from './kyc/KYCPendingStatus';
 import KYCApprovedStatus from './kyc/KYCApprovedStatus';
 import KYCRejectedStatus from './kyc/KYCRejectedStatus';
 import KYCForm from './kyc/KYCForm';
+import { KYCDocument } from '@/lib/firestore/kyc';
 
 const KYCVerificationForm: React.FC = () => {
   const { isLoading, kycStatus, submitKYC, loadKycStatus } = useKYC();
