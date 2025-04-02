@@ -45,7 +45,14 @@ const KYCVerificationForm: React.FC = () => {
   
   // Show pending status even during submission to avoid flickering back to the form
   if ((kycStatus && kycStatus.status === 'pending') || submissionInProgress) {
-    return <KYCPendingStatus kycStatus={kycStatus || { status: 'pending' }} />;
+    // Fix the type issue by ensuring we pass an object with status: 'pending'
+    return <KYCPendingStatus 
+      kycStatus={
+        kycStatus && kycStatus.status === 'pending'
+          ? kycStatus as Partial<KYCDocument> & { status: 'pending' }
+          : { status: 'pending' }
+      } 
+    />;
   }
   
   // Render based on KYC status
