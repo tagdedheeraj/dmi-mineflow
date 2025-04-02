@@ -16,8 +16,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const badges = document.querySelectorAll('[data-lovable-badge], [class*="lovable"], [id*="lovable"]');
       badges.forEach(badge => {
-        if (badge.parentNode && badge.parentElement) {
-          badge.parentNode.removeChild(badge);
+        if (badge && badge.parentNode) {
+          try {
+            badge.parentNode.removeChild(badge);
+          } catch (e) {
+            // If removal fails, just hide it with CSS
+            if (badge instanceof HTMLElement) {
+              badge.style.display = 'none';
+              badge.style.visibility = 'hidden';
+            }
+          }
         }
       });
     } catch (error) {
