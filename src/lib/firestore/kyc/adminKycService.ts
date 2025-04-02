@@ -1,10 +1,10 @@
 
 import { collection, doc, getDocs, query, where, updateDoc, getDoc, orderBy, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
-import { KYC_STATUS } from "./types";
+import { KYC_STATUS, KYCDocument } from "./types";
 
 // Admin KYC Management functions
-export const getAllKYCRequests = async (statusFilter?: string): Promise<any[]> => {
+export const getAllKYCRequests = async (statusFilter?: string): Promise<KYCDocument[]> => {
   try {
     console.log("[Firestore] Getting all KYC requests with filter:", statusFilter);
     const kycCollection = collection(db, 'kyc_verifications');
@@ -24,10 +24,10 @@ export const getAllKYCRequests = async (statusFilter?: string): Promise<any[]> =
     }
     
     const querySnapshot = await getDocs(q);
-    const requests: any[] = [];
+    const requests: KYCDocument[] = [];
     
     querySnapshot.forEach(doc => {
-      const data = doc.data();
+      const data = doc.data() as Omit<KYCDocument, 'id'>;
       requests.push({
         ...data,
         id: doc.id,
@@ -42,7 +42,7 @@ export const getAllKYCRequests = async (statusFilter?: string): Promise<any[]> =
   }
 };
 
-export const getKYCRequestById = async (kycId: string): Promise<any | null> => {
+export const getKYCRequestById = async (kycId: string): Promise<KYCDocument | null> => {
   try {
     console.log("[Firestore] Getting KYC request by ID:", kycId);
     const kycRef = doc(db, 'kyc_verifications', kycId);
@@ -53,7 +53,7 @@ export const getKYCRequestById = async (kycId: string): Promise<any | null> => {
       return null;
     }
     
-    const data = docSnap.data();
+    const data = docSnap.data() as Omit<KYCDocument, 'id'>;
     return {
       ...data,
       id: docSnap.id,

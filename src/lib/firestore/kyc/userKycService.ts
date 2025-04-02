@@ -1,10 +1,10 @@
 
 import { collection, getDocs, query, where, addDoc, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
-import { KYC_STATUS } from "./types";
+import { KYC_STATUS, KYCDocument } from "./types";
 
 // User-facing KYC functions
-export const submitKYCRequest = async (kycData: Omit<any, 'status' | 'submittedAt' | 'id'>): Promise<string> => {
+export const submitKYCRequest = async (kycData: Omit<KYCDocument, 'status' | 'submittedAt' | 'id'>): Promise<string> => {
   try {
     console.log("[Firestore] Submitting KYC request for user:", kycData.userId);
     
@@ -34,7 +34,7 @@ export const submitKYCRequest = async (kycData: Omit<any, 'status' | 'submittedA
   }
 };
 
-export const getUserKYCStatus = async (userId: string): Promise<any | null> => {
+export const getUserKYCStatus = async (userId: string): Promise<KYCDocument | null> => {
   try {
     console.log("[Firestore] Getting KYC status for user:", userId);
     const kycCollection = collection(db, 'kyc_verifications');
@@ -51,7 +51,7 @@ export const getUserKYCStatus = async (userId: string): Promise<any | null> => {
       return null;
     }
     
-    const docData = querySnapshot.docs[0].data();
+    const docData = querySnapshot.docs[0].data() as Omit<KYCDocument, 'id'>;
     return {
       ...docData,
       id: querySnapshot.docs[0].id,

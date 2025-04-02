@@ -4,7 +4,7 @@ import { KYCDocument } from '@/lib/firestore/kyc';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 
 interface KYCRejectedStatusProps {
   kycStatus: KYCDocument;
@@ -29,7 +29,7 @@ const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus }) => {
       </CardHeader>
       <CardContent>
         <Alert className="bg-red-50 border-red-200">
-          <X className="h-4 w-4 text-red-500" />
+          <AlertTriangle className="h-4 w-4 text-red-500" />
           <AlertTitle>Verification Failed</AlertTitle>
           <AlertDescription>
             {kycStatus.rejectionReason || 'Your KYC verification was not approved. Please submit a new verification request with the correct information.'}
@@ -37,6 +37,11 @@ const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus }) => {
         </Alert>
         
         <div className="mt-6">
+          <h4 className="text-sm font-medium mb-2">Issues with Submitted Documents</h4>
+          <div className="bg-gray-50 p-3 rounded-md mb-4 text-gray-700">
+            <p>{kycStatus.rejectionReason || 'The documents you provided did not meet our verification requirements.'}</p>
+          </div>
+          
           <h4 className="text-sm font-medium mb-2">Submitted Information</h4>
           <div className="bg-gray-50 p-3 rounded-md mb-5">
             <div className="font-medium">{kycStatus.fullName}</div>
@@ -50,7 +55,7 @@ const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus }) => {
           </div>
           
           <div className="text-sm text-gray-600 mb-5">
-            <p>Please correct the issues mentioned above and submit your verification again.</p>
+            <p>Please correct the issues mentioned above and submit your verification again with clear, high-quality images of your documents.</p>
           </div>
         </div>
         

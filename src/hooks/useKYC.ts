@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +23,7 @@ export const useKYC = () => {
     try {
       const status = await getUserKYCStatus(user.id);
       setKycStatus(status);
+      console.log("KYC status loaded:", status);
     } catch (error) {
       console.error("Error loading KYC status:", error);
     } finally {
@@ -82,11 +82,25 @@ export const useKYC = () => {
     }
   }, [user, toast, loadKycStatus]);
   
-  // Load KYC status and settings on component mount
+  // Set up periodic refresh to check for KYC status changes
   useEffect(() => {
+    if (!user) return;
+    
+    // Initial load
     loadKycStatus();
     loadKycSettings();
-  }, [loadKycStatus, loadKycSettings]);
+    
+    // Set up periodic refresh every 30 seconds if status is pending
+    // This will ensure the user sees updates without having to refresh the page
+    const refreshInterval = setInterval(() => {
+      if (kycStatus?.status === 'pending') {
+        console.log("Auto-refreshing KYC status...");
+        loadKycStatus();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [loadKycStatus, loadKycSettings, user, kycStatus?.status]);
   
   // Determine if the user needs to complete KYC
   const needsKYC = useCallback(() => {

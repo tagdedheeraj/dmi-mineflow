@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { KYCDocument } from '@/lib/firestore';
+import { KYCDocument } from '@/lib/firestore/kyc';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-yellow-500" />
-          KYC Verification Pending
+          KYC Verification In Review
         </CardTitle>
         <CardDescription>
           Your KYC verification is being reviewed by our team.
