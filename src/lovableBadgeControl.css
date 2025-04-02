@@ -1,5 +1,5 @@
 
-/* Complete CSS solution to hide the Lovable badge */
+/* Complete CSS solution to hide the Lovable badge - with defensive approach */
 [data-lovable-badge],
 [data-hide-lovable-badge="true"] [data-lovable-badge],
 html[data-hide-lovable-badge="true"] [data-lovable-badge],
@@ -23,29 +23,20 @@ a[data-lovable-badge],
   max-width: 0 !important;
 }
 
-/* More aggressive global selector to target any elements containing "lovable" in attributes */
-[class*="lovable"],
-[id*="lovable"],
-[data-*="lovable"],
-[aria-*="lovable"],
-div[class*="lovable"],
-span[class*="lovable"],
-a[class*="lovable"] {
+/* More selective selectors to avoid conflicts with React DOM */
+[class*="lovable"]:not(#root *),
+[id*="lovable"]:not(#root *),
+[data-*="lovable"]:not(#root *),
+[aria-*="lovable"]:not(#root *) {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
-/* Hide all fixed positioned elements that could be the badge */
-#root ~ div[style*="fixed"],
-body > div[style*="fixed"]:not(#root *),
-div[style*="position:fixed"]:not(#root *),
-div[style*="position: fixed"]:not(#root *) {
+/* Only target fixed elements outside the application root */
+body > div[style*="fixed"]:not(#root):not(#root *),
+body > div[style*="position:fixed"]:not(#root):not(#root *),
+body > div[style*="position: fixed"]:not(#root):not(#root *) {
   display: none !important;
   visibility: hidden !important;
-}
-
-/* Additional coverage for shadow DOM elements */
-:host {
-  display: none !important;
 }

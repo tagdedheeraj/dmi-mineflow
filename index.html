@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" data-hide-lovable-badge="true">
   <head>
@@ -13,23 +14,19 @@
     <!-- For Android -->
     <link rel="manifest" href="/manifest.json">
     <style>
-      /* Immediate badge hiding on page load */
+      /* Immediate but safe badge hiding on page load */
       [data-lovable-badge],
-      div[data-lovable-badge],
       *[data-lovable-badge],
-      [class*="lovable"],
-      [id*="lovable"],
-      body > div[style*="fixed"]:not(#root *) {
+      body > div[class*="lovable"]:not(#root),
+      body > div[id*="lovable"]:not(#root) {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
-        max-height: 0 !important;
-        max-width: 0 !important;
       }
     </style>
     <script>
-      // Force badge to be hidden immediately
+      // Force badge to be hidden immediately but safely
       window.HIDE_LOVABLE_BADGE = true;
       document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
       document.body && document.body.setAttribute('data-hide-lovable-badge', 'true');
@@ -37,43 +34,51 @@
       // Store setting permanently
       localStorage.setItem('showLovableBadge', 'false');
       
-      // Aggressive script to continuously hide and remove badges
+      // Safer script to hide badges with proper parent checks
       (function() {
+        function safeRemoveElement(el) {
+          try {
+            if (el && el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          } catch(e) {
+            console.error('Safe remove failed:', e);
+          }
+        }
+        
         function hideBadges() {
-          // Find and remove any badge elements
+          // Find and safely hide any badge elements directly on body
           const selectors = [
-            '[data-lovable-badge]',
-            '[class*="lovable"]',
-            '[id*="lovable"]',
-            'div[style*="position: fixed"]',
-            'div[style*="position:fixed"]',
-            'body > div:not(#root)'
+            'body > [data-lovable-badge]',
+            'body > [class*="lovable"]',
+            'body > [id*="lovable"]',
+            'body > div[style*="position: fixed"]:not(#root)',
+            'body > div[style*="position:fixed"]:not(#root)'
           ];
           
           selectors.forEach(selector => {
             const elements = document.querySelectorAll(selector);
             elements.forEach(el => {
-              if (el.id !== 'root' && !el.closest('#root')) {
+              if (el && el.id !== 'root' && el.parentNode === document.body) {
                 el.style.display = 'none';
                 el.style.visibility = 'hidden';
                 el.style.opacity = '0';
                 el.style.pointerEvents = 'none';
                 el.setAttribute('aria-hidden', 'true');
-                try { el.remove(); } catch(e) {}
               }
             });
           });
           
-          // Keep checking for badges more frequently
-          setTimeout(hideBadges, 100);
+          // Check less frequently to reduce potential DOM conflicts
+          setTimeout(hideBadges, 1000);
         }
         
         // Start hiding badges
-        hideBadges();
-        
-        // Also run on DOMContentLoaded and load events
-        document.addEventListener('DOMContentLoaded', hideBadges);
-        window.addEventListener('load', hideBadges);
+        if (document.readyState === "loading") {
+          document.addEventListener('DOMContentLoaded', hideBadges);
+        } else {
+          hideBadges();
+        }
       })();
     </script>
   </head>

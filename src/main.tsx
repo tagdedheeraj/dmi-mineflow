@@ -5,43 +5,43 @@ import './lovableBadgeControl.css' // Load this first to ensure badge hiding
 import App from './App.tsx'
 import './index.css'
 
-// More robust badge control implementation
+// More robust badge control implementation with defensive checks
 document.addEventListener('DOMContentLoaded', () => {
   // Force hide any badges
   document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
   document.body.setAttribute('data-hide-lovable-badge', 'true');
   
-  // Safely remove any existing badges
-  const badges = document.querySelectorAll('[data-lovable-badge], [class*="lovable"], [id*="lovable"]');
-  badges.forEach(badge => {
+  // Safely remove badges with proper parent node checks
+  const removeBadgeIfExists = (element) => {
     try {
-      // Check if the element is actually in the DOM before removing
-      if (badge.parentNode) {
-        badge.parentNode.removeChild(badge);
+      if (element && element.parentNode) {
+        element.parentNode.removeChild(element);
       }
     } catch (error) {
       console.log('Failed to remove badge element:', error);
     }
-  });
+  };
   
-  // Setup mutation observer with error handling
+  // Only target elements outside the application root
+  const badges = document.querySelectorAll('body > [data-lovable-badge], body > [class*="lovable"], body > [id*="lovable"]');
+  badges.forEach(removeBadgeIfExists);
+  
+  // Setup mutation observer with error handling and defensive approach
   try {
     const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
+      mutations.forEach((mutation) => {
         if (mutation.type === 'childList' && mutation.addedNodes.length) {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === 1) { // Element node
               try {
-                const element = node as Element;
-                if (
+                const element = node;
+                // Only check elements added directly to body, not within the React app
+                if (element.parentNode === document.body && (
                   (element.hasAttribute && element.hasAttribute('data-lovable-badge')) || 
                   (element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
                   (element.id && element.id.includes('lovable'))
-                ) {
-                  // Only remove if element has a parent
-                  if (element.parentNode) {
-                    element.parentNode.removeChild(element);
-                  }
+                )) {
+                  removeBadgeIfExists(element);
                 }
               } catch (error) {
                 console.log('Error processing mutation node:', error);
@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           });
         }
-      }
+      });
     });
     
-    // Start observing with error catching
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Only observe the body element for direct children
+    observer.observe(document.body, { childList: true, subtree: false });
   } catch (error) {
     console.log('Failed to setup mutation observer:', error);
   }

@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAppSettings } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 
 interface AppSettingsProps {
   currentVersion: string;
@@ -26,6 +26,7 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   const { toast } = useToast();
   
   useEffect(() => {
+    // Safely ensure badge is hidden
     setDisplayLovableBadge(false);
     localStorage.setItem('showLovableBadge', 'false');
     
@@ -35,13 +36,21 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
     
     document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
     
+    // More defensive badge removal
     try {
-      const badges = document.querySelectorAll('[data-lovable-badge]');
-      badges.forEach(badge => {
-        if (badge.parentNode) {
-          badge.parentNode.removeChild(badge);
+      const safeRemoveBadge = (element: Element) => {
+        try {
+          if (element && element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
+        } catch (err) {
+          console.error('Error safely removing badge:', err);
         }
-      });
+      };
+      
+      // Only target direct children of body
+      const badges = document.querySelectorAll('body > [data-lovable-badge]');
+      badges.forEach(safeRemoveBadge);
     } catch (error) {
       console.error('Error removing badges:', error);
     }
@@ -81,10 +90,11 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       
       document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
       
+      // More defensive badge removal
       try {
-        const badges = document.querySelectorAll('[data-lovable-badge]');
+        const badges = document.querySelectorAll('body > [data-lovable-badge]');
         badges.forEach(badge => {
-          if (badge.parentNode) {
+          if (badge && badge.parentNode) {
             badge.parentNode.removeChild(badge);
           }
         });
