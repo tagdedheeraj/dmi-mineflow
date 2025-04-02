@@ -1,10 +1,15 @@
 
 import React from 'react';
+import { KYCDocument } from '@/lib/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Clock } from 'lucide-react';
 
-const KYCPendingStatus: React.FC = () => {
+interface KYCPendingStatusProps {
+  kycStatus?: KYCDocument;
+}
+
+const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
   return (
     <Card className="max-w-3xl mx-auto">
       <CardHeader>
