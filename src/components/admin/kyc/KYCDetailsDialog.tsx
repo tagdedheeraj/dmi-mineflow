@@ -54,9 +54,16 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
 
   if (!kycRequest) return null;
 
+  // Log the image URLs to help with debugging
+  console.log("KYC Document Images:", {
+    frontImage: kycRequest.frontImageUrl,
+    backImage: kycRequest.backImageUrl,
+    selfieImage: kycRequest.selfieImageUrl
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -110,37 +117,61 @@ const KYCDetailsDialog: React.FC<KYCDetailsDialogProps> = ({
               Document Images
             </h4>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <Label className="text-xs text-gray-500">ID Front</Label>
-                <div className="mt-1 h-32 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={kycRequest.frontImageUrl} 
-                    alt="ID Front" 
-                    className="max-h-full object-contain"
-                  />
+                <Label className="text-xs text-gray-500 block mb-1">ID Front</Label>
+                <div className="h-48 bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-300">
+                  {kycRequest.frontImageUrl ? (
+                    <img 
+                      src={kycRequest.frontImageUrl} 
+                      alt="ID Front" 
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        console.error("Failed to load front image:", kycRequest.frontImageUrl);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  ) : (
+                    <div className="text-gray-400">No image available</div>
+                  )}
                 </div>
               </div>
               
               <div>
-                <Label className="text-xs text-gray-500">ID Back</Label>
-                <div className="mt-1 h-32 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={kycRequest.backImageUrl} 
-                    alt="ID Back" 
-                    className="max-h-full object-contain"
-                  />
+                <Label className="text-xs text-gray-500 block mb-1">ID Back</Label>
+                <div className="h-48 bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-300">
+                  {kycRequest.backImageUrl ? (
+                    <img 
+                      src={kycRequest.backImageUrl} 
+                      alt="ID Back" 
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        console.error("Failed to load back image:", kycRequest.backImageUrl);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  ) : (
+                    <div className="text-gray-400">No image available</div>
+                  )}
                 </div>
               </div>
               
               <div>
-                <Label className="text-xs text-gray-500">Selfie</Label>
-                <div className="mt-1 h-32 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={kycRequest.selfieImageUrl} 
-                    alt="Selfie" 
-                    className="max-h-full object-contain"
-                  />
+                <Label className="text-xs text-gray-500 block mb-1">Selfie with ID</Label>
+                <div className="h-48 bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-300">
+                  {kycRequest.selfieImageUrl ? (
+                    <img 
+                      src={kycRequest.selfieImageUrl} 
+                      alt="Selfie" 
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        console.error("Failed to load selfie image:", kycRequest.selfieImageUrl);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  ) : (
+                    <div className="text-gray-400">No image available</div>
+                  )}
                 </div>
               </div>
             </div>

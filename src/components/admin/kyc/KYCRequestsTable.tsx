@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react';
 import KYCStatusBadge from './KYCStatusBadge';
 import { format } from 'date-fns';
 import { KYCDocument } from '@/lib/firestore';
@@ -37,7 +37,7 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-dmi"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -68,7 +68,10 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
             <tr key={request.id} className="border-b border-gray-200 hover:bg-gray-50">
               <td className="px-4 py-3">{request.fullName}</td>
               <td className="px-4 py-3">
-                {request.documentType === 'government_id' ? 'Government ID' : 'Passport'}
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                  {request.documentType === 'government_id' ? 'Government ID' : 'Passport'}
+                </div>
               </td>
               <td className="px-4 py-3">
                 {formatDate(request.submittedAt)}
@@ -76,11 +79,12 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
               <td className="px-4 py-3">
                 <KYCStatusBadge status={request.status} />
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-right space-x-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => request.id && onViewDetails(request.id)}
+                  title="View Details"
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   View
@@ -93,6 +97,7 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
                       size="sm"
                       className="text-green-600"
                       onClick={() => request.id && onApprove(request.id)}
+                      title="Approve KYC"
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
                       Approve
@@ -103,6 +108,7 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
                       size="sm"
                       className="text-red-600"
                       onClick={() => request.id && onReject(request.id)}
+                      title="Reject KYC"
                     >
                       <XCircle className="h-4 w-4 mr-1" />
                       Reject
