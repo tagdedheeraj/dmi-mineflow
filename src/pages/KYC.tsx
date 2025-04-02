@@ -43,6 +43,7 @@ const KYC: React.FC = () => {
         setIsLoading(true);
         try {
           const status = await getUserKYCStatus(user.id);
+          console.log("Current KYC status:", status);
           setKycStatus(status);
         } catch (error) {
           console.error("Error fetching KYC status:", error);
@@ -53,6 +54,13 @@ const KYC: React.FC = () => {
     };
 
     fetchKYCStatus();
+    
+    // Set up an interval to periodically check for KYC status updates
+    const statusCheckInterval = setInterval(fetchKYCStatus, 30000); // Check every 30 seconds
+    
+    return () => {
+      clearInterval(statusCheckInterval);
+    };
   }, [user]);
   
   if (!user) {
@@ -78,7 +86,7 @@ const KYC: React.FC = () => {
       case 'rejected':
         return <KYCRejectedStatus kycStatus={kycStatus} />;
       case 'pending':
-        return <KYCPendingStatus />;
+        return <KYCPendingStatus kycStatus={kycStatus} />;
       default:
         return <KYCVerificationForm />;
     }

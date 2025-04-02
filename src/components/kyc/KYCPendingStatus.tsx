@@ -15,10 +15,10 @@ const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-yellow-500" />
-          KYC Verification Pending
+          KYC Verification In Review
         </CardTitle>
         <CardDescription>
-          Your verification is currently under review.
+          Your verification is currently being reviewed by our team.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -31,6 +31,34 @@ const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
           </AlertDescription>
         </Alert>
         
+        <div className="mt-6 space-y-4">
+          <h4 className="text-sm font-medium mb-2">Submitted Information</h4>
+          <div className="bg-gray-50 p-4 rounded-md space-y-2">
+            {kycStatus && (
+              <>
+                <div>
+                  <span className="text-sm text-gray-500">Name:</span>
+                  <div className="font-medium">{kycStatus.fullName}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Document Type:</span>
+                  <div className="font-medium">
+                    {kycStatus.documentType === 'government_id' ? 'Government ID' : 'Passport'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Submitted On:</span>
+                  <div className="font-medium">
+                    {kycStatus.submittedAt && kycStatus.submittedAt.toDate ? 
+                      new Date(kycStatus.submittedAt.toDate()).toLocaleDateString() : 
+                      'Recently'}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         <div className="mt-6 text-sm text-gray-500">
           <p>Please wait while we verify your documents. You'll receive a notification once the process is complete.</p>
         </div>
