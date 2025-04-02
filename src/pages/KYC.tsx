@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -8,11 +8,17 @@ import { useKYC } from '@/hooks/useKYC';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import BottomBar from '@/components/BottomBar';
+import KYCApprovedStatus from '@/components/kyc/KYCApprovedStatus';
+import KYCRejectedStatus from '@/components/kyc/KYCRejectedStatus';
+import KYCPendingStatus from '@/components/kyc/KYCPendingStatus';
+import { getUserKYCStatus, KYCDocument } from '@/lib/firestore';
 
 const KYC: React.FC = () => {
   const { user } = useAuth();
   const { isKYCEnabled } = useKYC();
   const navigate = useNavigate();
+  const [kycStatus, setKycStatus] = useState<KYCDocument | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Redirect to signin if not logged in
   useEffect(() => {
@@ -29,10 +35,54 @@ const KYC: React.FC = () => {
       navigate('/wallet');
     }
   }, [user, isKYCEnabled, navigate]);
+
+  // Fetch KYC status when user is available
+  useEffect(() => {
+    const fetchKYCStatus = async () => {
+      if (user) {
+        setIsLoading(true);
+        try {
+          const status = await getUserKYCStatus(user.id);
+          setKycStatus(status);
+        } catch (error) {
+          console.error("Error fetching KYC status:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchKYCStatus();
+  }, [user]);
   
   if (!user) {
     return null;
   }
+  
+  const renderKYCContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
+    if (!kycStatus) {
+      return <KYCVerificationForm />;
+    }
+
+    switch (kycStatus.status) {
+      case 'approved':
+        return <KYCApprovedStatus kycStatus={kycStatus} />;
+      case 'rejected':
+        return <KYCRejectedStatus kycStatus={kycStatus} />;
+      case 'pending':
+        return <KYCPendingStatus />;
+      default:
+        return <KYCVerificationForm />;
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
@@ -48,7 +98,7 @@ const KYC: React.FC = () => {
           Back to Profile
         </Button>
         
-        <KYCVerificationForm />
+        {renderKYCContent()}
       </main>
       
       <BottomBar />
