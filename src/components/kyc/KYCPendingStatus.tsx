@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Clock } from 'lucide-react';
 
 interface KYCPendingStatusProps {
-  kycStatus: KYCDocument;
+  kycStatus: Partial<KYCDocument> & { status: 'pending' };
 }
 
 const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
@@ -39,41 +39,55 @@ const KYCPendingStatus: React.FC<KYCPendingStatusProps> = ({ kycStatus }) => {
           </AlertDescription>
         </Alert>
         
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-sm font-medium mb-2">Personal Information</h4>
-            <div className="bg-gray-50 p-3 rounded-md space-y-2">
-              <div>
-                <Label className="text-xs text-gray-500">Full Name</Label>
-                <div className="font-medium">{kycStatus.fullName}</div>
+        {kycStatus.fullName && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">Personal Information</h4>
+              <div className="bg-gray-50 p-3 rounded-md space-y-2">
+                <div>
+                  <Label className="text-xs text-gray-500">Full Name</Label>
+                  <div className="font-medium">{kycStatus.fullName}</div>
+                </div>
+                {kycStatus.documentType && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Document Type</Label>
+                    <div className="font-medium">
+                      {kycStatus.documentType === 'government_id' ? 'Government ID' : 'Passport'}
+                    </div>
+                  </div>
+                )}
+                {kycStatus.idNumber && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Document Number</Label>
+                    <div className="font-medium">{kycStatus.idNumber}</div>
+                  </div>
+                )}
               </div>
+            </div>
+            {kycStatus.submittedAt && (
               <div>
-                <Label className="text-xs text-gray-500">Document Type</Label>
-                <div className="font-medium">
-                  {kycStatus.documentType === 'government_id' ? 'Government ID' : 'Passport'}
+                <h4 className="text-sm font-medium mb-2">Submission Date</h4>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <div className="font-medium">
+                    {kycStatus.submittedAt && kycStatus.submittedAt.toDate
+                      ? kycStatus.submittedAt.toDate().toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : typeof kycStatus.submittedAt === 'object' && kycStatus.submittedAt instanceof Date
+                        ? kycStatus.submittedAt.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })
+                        : 'Processing'}
+                  </div>
                 </div>
               </div>
-              <div>
-                <Label className="text-xs text-gray-500">Document Number</Label>
-                <div className="font-medium">{kycStatus.idNumber}</div>
-              </div>
-            </div>
+            )}
           </div>
-          <div>
-            <h4 className="text-sm font-medium mb-2">Submission Date</h4>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <div className="font-medium">
-                {kycStatus.submittedAt && kycStatus.submittedAt.toDate
-                  ? kycStatus.submittedAt.toDate().toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })
-                  : 'Processing'}
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

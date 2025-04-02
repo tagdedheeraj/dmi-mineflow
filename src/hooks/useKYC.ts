@@ -56,7 +56,7 @@ export const useKYC = () => {
     
     setIsLoading(true);
     try {
-      await submitKYCRequest({
+      const kycId = await submitKYCRequest({
         ...formData,
         userId: user.id,
       });
@@ -66,8 +66,15 @@ export const useKYC = () => {
         description: "Your KYC verification request has been submitted and is pending review",
       });
       
-      // Refresh KYC status immediately after submission
-      await loadKycStatus();
+      // Create a temporary KYC status until a fresh one is loaded
+      setKycStatus({
+        id: kycId,
+        userId: user.id,
+        status: 'pending',
+        submittedAt: new Date(),
+        ...formData
+      });
+      
       return true;
     } catch (error: any) {
       console.error("Error submitting KYC:", error);
@@ -80,7 +87,7 @@ export const useKYC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast, loadKycStatus]);
+  }, [user, toast]);
   
   // Load initial data once on component mount
   useEffect(() => {

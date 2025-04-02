@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { PersonalInfoSection, DocumentUploadSection, PrivacyNotice } from './form-sections';
 import { useImageHandling } from './hooks/useImageHandling';
+import { useToast } from '@/hooks/use-toast';
 
 interface KYCFormProps {
   isLoading: boolean;
@@ -12,6 +13,9 @@ interface KYCFormProps {
 }
 
 const KYCForm: React.FC<KYCFormProps> = ({ isLoading, onSubmit }) => {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  
   // Personal information state
   const [fullName, setFullName] = useState('');
   const [idNumber, setIdNumber] = useState('');
@@ -50,21 +54,41 @@ const KYCForm: React.FC<KYCFormProps> = ({ isLoading, onSubmit }) => {
     
     // Basic validation
     if (!fullName || !idNumber || !address || !documentExpiryDate || !frontImage || !backImage || !selfieImage) {
-      alert('Please fill all fields and upload all required images');
+      toast({
+        title: "Missing Information",
+        description: "Please fill all fields and upload all required images",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Submit the form data
-    const success = await onSubmit({
-      fullName,
-      idNumber,
-      address,
-      documentType,
-      documentExpiryDate,
-      frontImageUrl: frontImagePreview || '',
-      backImageUrl: backImagePreview || '',
-      selfieImageUrl: selfieImagePreview || '',
-    });
+    setSubmitting(true);
+    
+    try {
+      // Submit the form data
+      const success = await onSubmit({
+        fullName,
+        idNumber,
+        address,
+        documentType,
+        documentExpiryDate,
+        frontImageUrl: frontImagePreview || '',
+        backImageUrl: backImagePreview || '',
+        selfieImageUrl: selfieImagePreview || '',
+      });
+      
+      if (!success) {
+        setSubmitting(false);
+      }
+    } catch (error) {
+      console.error("Error during KYC submission:", error);
+      setSubmitting(false);
+      toast({
+        title: "Submission Error",
+        description: "An error occurred while submitting your verification. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -115,10 +139,10 @@ const KYCForm: React.FC<KYCFormProps> = ({ isLoading, onSubmit }) => {
         <CardFooter>
           <Button 
             type="submit" 
-            disabled={isLoading}
+            disabled={isLoading || submitting}
             className="w-full"
           >
-            {isLoading ? 'Processing...' : 'Submit Verification'}
+            {submitting ? 'Submitting...' : isLoading ? 'Processing...' : 'Submit Verification'}
           </Button>
         </CardFooter>
       </form>
