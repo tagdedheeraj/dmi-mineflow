@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { approveKYCRequest, rejectKYCRequest } from '@/lib/firestore';
+import { approveKYCRequest, rejectKYCRequest } from '@/lib/firestore/kyc/adminKycService';
 
 export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
   const { user } = useAuth();

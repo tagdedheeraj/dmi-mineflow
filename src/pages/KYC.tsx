@@ -11,7 +11,7 @@ import BottomBar from '@/components/BottomBar';
 import KYCApprovedStatus from '@/components/kyc/KYCApprovedStatus';
 import KYCRejectedStatus from '@/components/kyc/KYCRejectedStatus';
 import KYCPendingStatus from '@/components/kyc/KYCPendingStatus';
-import { getUserKYCStatus, KYCDocument } from '@/lib/firestore';
+import { getUserKYCStatus, KYCDocument } from '@/lib/firestore/kyc';
 
 const KYC: React.FC = () => {
   const { user } = useAuth();
