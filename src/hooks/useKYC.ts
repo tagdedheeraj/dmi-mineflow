@@ -90,15 +90,17 @@ export const useKYC = () => {
     loadKycStatus();
     loadKycSettings();
     
-    // Set up periodic refresh every 15 seconds to check for status changes
+    // Set up periodic refresh every 30 seconds if status is pending
     // This will ensure the user sees updates without having to refresh the page
     const refreshInterval = setInterval(() => {
-      console.log("Auto-refreshing KYC status...");
-      loadKycStatus();
-    }, 15000); // Check every 15 seconds
+      if (kycStatus?.status === 'pending') {
+        console.log("Auto-refreshing KYC status...");
+        loadKycStatus();
+      }
+    }, 30000); // Check every 30 seconds
     
     return () => clearInterval(refreshInterval);
-  }, [loadKycStatus, loadKycSettings, user]);
+  }, [loadKycStatus, loadKycSettings, user, kycStatus?.status]);
   
   // Determine if the user needs to complete KYC
   const needsKYC = useCallback(() => {

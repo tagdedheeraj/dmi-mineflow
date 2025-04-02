@@ -5,20 +5,14 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { X, AlertTriangle } from 'lucide-react';
-import { useKYC } from '@/hooks/useKYC';
 
 interface KYCRejectedStatusProps {
   kycStatus: KYCDocument;
 }
 
 const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus }) => {
-  const { loadKycStatus } = useKYC();
-  
-  // Start a new verification
+  // Safe reload handler
   const handleTryAgain = () => {
-    // Force reload the KYC status - this will reset the form
-    loadKycStatus();
-    // Reload the page to reset all the state
     window.location.reload();
   };
 

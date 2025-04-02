@@ -52,7 +52,6 @@ export const useKYCProcessing = (onSuccess: () => Promise<void>) => {
         throw new Error("Rejection reason is required");
       }
       
-      console.log("Rejecting KYC:", kycId, "with reason:", reason);
       const success = await rejectKYCRequest(kycId, user.id, reason);
       
       if (success) {
