@@ -1,5 +1,5 @@
 
-import { collection, getDocs, query, where, addDoc, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, orderBy, limit, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { KYC_STATUS, KYCDocument } from "./types";
 
@@ -12,13 +12,31 @@ export const submitKYCRequest = async (kycData: Omit<KYCDocument, 'status' | 'su
     const existingRequest = await getUserKYCStatus(kycData.userId);
     if (existingRequest) {
       console.log("[Firestore] User already has a KYC request:", existingRequest.status);
-      if (existingRequest.status === KYC_STATUS.PENDING) {
+      
+      // If status is 'rejected', update the existing KYC document instead of creating a new one
+      if (existingRequest.status === KYC_STATUS.REJECTED) {
+        console.log("[Firestore] Updating rejected KYC request to resubmitted");
+        
+        const kycRef = doc(db, 'kyc_verifications', existingRequest.id);
+        await updateDoc(kycRef, {
+          ...kycData,
+          status: KYC_STATUS.PENDING,
+          submittedAt: serverTimestamp(),
+          // Clear the rejection data
+          rejectionReason: null,
+          reviewedAt: null,
+          reviewedBy: null
+        });
+        
+        return existingRequest.id;
+      } else if (existingRequest.status === KYC_STATUS.PENDING) {
         throw new Error("You already have a pending KYC verification request");
       } else if (existingRequest.status === KYC_STATUS.APPROVED) {
         throw new Error("You are already KYC verified");
       }
     }
     
+    // Create a new KYC document if there's no existing one or if it's not in a rejected state
     const kycCollection = collection(db, 'kyc_verifications');
     const docRef = await addDoc(kycCollection, {
       ...kycData,

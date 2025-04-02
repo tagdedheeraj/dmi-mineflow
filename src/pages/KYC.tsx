@@ -14,21 +14,20 @@ const KYC: React.FC = () => {
   const { isKYCEnabled } = useKYC();
   const navigate = useNavigate();
   
-  // Redirect to signin if not logged in
+  // Redirect to signin if not logged in (only once)
   useEffect(() => {
     if (!user) {
       navigate('/signin');
     }
   }, [user, navigate]);
   
-  // Only redirect to wallet if KYC is explicitly disabled
-  // This prevents automatic redirects during the verification process
+  // Only redirect to wallet if KYC is explicitly disabled, but don't check too frequently
   useEffect(() => {
     if (user && isKYCEnabled === false) { // Only redirect if explicitly false, not undefined
       console.log("KYC is disabled, redirecting to wallet");
       navigate('/wallet');
     }
-  }, [user, isKYCEnabled, navigate]);
+  }, [isKYCEnabled, navigate, user]);
   
   if (!user) {
     return null;
@@ -43,6 +42,7 @@ const KYC: React.FC = () => {
           variant="ghost"
           className="mb-6 flex items-center text-gray-600"
           onClick={() => navigate('/profile')}
+          type="button"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Profile

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useKYC } from '@/hooks/useKYC';
 import KYCPendingStatus from './kyc/KYCPendingStatus';
 import KYCApprovedStatus from './kyc/KYCApprovedStatus';
@@ -9,6 +9,12 @@ import KYCForm from './kyc/KYCForm';
 const KYCVerificationForm: React.FC = () => {
   const { isLoading, kycStatus, submitKYC, loadKycStatus } = useKYC();
   const [resubmitting, setResubmitting] = useState(false);
+  
+  // Load KYC status once on mount
+  useEffect(() => {
+    loadKycStatus();
+    // No dependency array to avoid re-running
+  }, []);
   
   // Handle resetting/resubmitting KYC after rejection
   const handleResubmit = () => {
