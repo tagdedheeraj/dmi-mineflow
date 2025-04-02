@@ -5,38 +5,58 @@ import './lovableBadgeControl.css' // Load this first to ensure badge hiding
 import App from './App.tsx'
 import './index.css'
 
-// Additional runtime check for the lovable badge
+// More robust badge control implementation
 document.addEventListener('DOMContentLoaded', () => {
   // Force hide any badges
   document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
   document.body.setAttribute('data-hide-lovable-badge', 'true');
   
-  // Remove any existing badges
+  // Safely remove any existing badges
   const badges = document.querySelectorAll('[data-lovable-badge], [class*="lovable"], [id*="lovable"]');
-  badges.forEach(badge => badge.remove());
-  
-  // Setup mutation observer to catch any dynamically added badges
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList' && mutation.addedNodes.length) {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1) { // Element node
-            const element = node as Element;
-            if (
-              element.hasAttribute && element.hasAttribute('data-lovable-badge') || 
-              (element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
-              (element.id && element.id.includes('lovable'))
-            ) {
-              element.remove();
-            }
-          }
-        });
+  badges.forEach(badge => {
+    try {
+      // Check if the element is actually in the DOM before removing
+      if (badge.parentNode) {
+        badge.parentNode.removeChild(badge);
       }
+    } catch (error) {
+      console.log('Failed to remove badge element:', error);
     }
   });
   
-  // Start observing
-  observer.observe(document.body, { childList: true, subtree: true });
+  // Setup mutation observer with error handling
+  try {
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) { // Element node
+              try {
+                const element = node as Element;
+                if (
+                  (element.hasAttribute && element.hasAttribute('data-lovable-badge')) || 
+                  (element.className && typeof element.className === 'string' && element.className.includes('lovable')) ||
+                  (element.id && element.id.includes('lovable'))
+                ) {
+                  // Only remove if element has a parent
+                  if (element.parentNode) {
+                    element.parentNode.removeChild(element);
+                  }
+                }
+              } catch (error) {
+                console.log('Error processing mutation node:', error);
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    // Start observing with error catching
+    observer.observe(document.body, { childList: true, subtree: true });
+  } catch (error) {
+    console.log('Failed to setup mutation observer:', error);
+  }
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

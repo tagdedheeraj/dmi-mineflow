@@ -23,17 +23,29 @@ a[data-lovable-badge],
   max-width: 0 !important;
 }
 
-/* Global selector to target any elements containing "lovable" in attributes */
+/* More aggressive global selector to target any elements containing "lovable" in attributes */
 [class*="lovable"],
 [id*="lovable"],
-[data-*="lovable"] {
+[data-*="lovable"],
+[aria-*="lovable"],
+div[class*="lovable"],
+span[class*="lovable"],
+a[class*="lovable"] {
   display: none !important;
   visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Hide all fixed positioned elements that could be the badge */
 #root ~ div[style*="fixed"],
-body > div[style*="fixed"]:not(#root *) {
+body > div[style*="fixed"]:not(#root *),
+div[style*="position:fixed"]:not(#root *),
+div[style*="position: fixed"]:not(#root *) {
   display: none !important;
   visibility: hidden !important;
+}
+
+/* Additional coverage for shadow DOM elements */
+:host {
+  display: none !important;
 }

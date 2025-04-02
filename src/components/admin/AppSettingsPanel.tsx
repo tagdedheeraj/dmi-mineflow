@@ -28,11 +28,23 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
   useEffect(() => {
     setDisplayLovableBadge(false);
     localStorage.setItem('showLovableBadge', 'false');
-    window.HIDE_LOVABLE_BADGE = true;
+    
+    if (typeof window !== 'undefined') {
+      (window as any).HIDE_LOVABLE_BADGE = true;
+    }
+    
     document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
     
-    const badges = document.querySelectorAll('[data-lovable-badge]');
-    badges.forEach(badge => badge.remove());
+    try {
+      const badges = document.querySelectorAll('[data-lovable-badge]');
+      badges.forEach(badge => {
+        if (badge.parentNode) {
+          badge.parentNode.removeChild(badge);
+        }
+      });
+    } catch (error) {
+      console.error('Error removing badges:', error);
+    }
   }, []);
 
   const handleSaveSettings = async () => {
@@ -63,11 +75,22 @@ const AppSettingsPanel: React.FC<AppSettingsProps> = ({
       localStorage.setItem('appVersion', version);
       localStorage.setItem('showLovableBadge', 'false');
       
-      window.HIDE_LOVABLE_BADGE = true;
+      if (typeof window !== 'undefined') {
+        (window as any).HIDE_LOVABLE_BADGE = true;
+      }
+      
       document.documentElement.setAttribute('data-hide-lovable-badge', 'true');
       
-      const badges = document.querySelectorAll('[data-lovable-badge]');
-      badges.forEach(badge => badge.remove());
+      try {
+        const badges = document.querySelectorAll('[data-lovable-badge]');
+        badges.forEach(badge => {
+          if (badge.parentNode) {
+            badge.parentNode.removeChild(badge);
+          }
+        });
+      } catch (error) {
+        console.error('Error removing badges after update:', error);
+      }
       
       toast({
         title: "Settings Updated",
