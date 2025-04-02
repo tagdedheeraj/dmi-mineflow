@@ -1,19 +1,18 @@
 
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from '@/components/ui/badge';
-import { KYCDocument } from '@/lib/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import KYCRequestsTable from './KYCRequestsTable';
-import { AlertTriangle } from 'lucide-react';
+import { KYCDocument } from '@/lib/firestore/kyc';
 
 interface KYCTabsProps {
   statusFilter: string;
   kycRequests: KYCDocument[];
   isLoading: boolean;
-  onStatusFilterChange: (value: string) => void;
+  onStatusFilterChange: (status: string) => void;
   onViewDetails: (kycId: string) => void;
   onApprove: (kycId: string) => void;
   onReject: (kycId: string) => void;
+  onReset: (kycId: string) => void;
 }
 
 const KYCTabs: React.FC<KYCTabsProps> = ({
@@ -23,35 +22,63 @@ const KYCTabs: React.FC<KYCTabsProps> = ({
   onStatusFilterChange,
   onViewDetails,
   onApprove,
-  onReject
+  onReject,
+  onReset
 }) => {
-  const pendingCount = kycRequests.filter(req => req.status === 'pending').length;
-
   return (
-    <Tabs defaultValue="pending" onValueChange={onStatusFilterChange} value={statusFilter}>
+    <Tabs
+      defaultValue={statusFilter}
+      onValueChange={onStatusFilterChange}
+      className="w-full"
+    >
       <TabsList className="mb-4">
-        <TabsTrigger value="pending" className="relative">
-          Pending
-          {pendingCount > 0 && (
-            <Badge
-              className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px] bg-yellow-500"
-            >
-              {pendingCount}
-            </Badge>
-          )}
-        </TabsTrigger>
+        <TabsTrigger value="pending">Pending Verification</TabsTrigger>
         <TabsTrigger value="approved">Approved</TabsTrigger>
         <TabsTrigger value="rejected">Rejected</TabsTrigger>
         <TabsTrigger value="all">All Requests</TabsTrigger>
       </TabsList>
       
-      <TabsContent value={statusFilter} className="space-y-4">
+      <TabsContent value="pending" className="mt-0">
         <KYCRequestsTable
           isLoading={isLoading}
           kycRequests={kycRequests}
           onViewDetails={onViewDetails}
           onApprove={onApprove}
           onReject={onReject}
+          onReset={onReset}
+        />
+      </TabsContent>
+      
+      <TabsContent value="approved" className="mt-0">
+        <KYCRequestsTable
+          isLoading={isLoading}
+          kycRequests={kycRequests}
+          onViewDetails={onViewDetails}
+          onApprove={onApprove}
+          onReject={onReject}
+          onReset={onReset}
+        />
+      </TabsContent>
+      
+      <TabsContent value="rejected" className="mt-0">
+        <KYCRequestsTable
+          isLoading={isLoading}
+          kycRequests={kycRequests}
+          onViewDetails={onViewDetails}
+          onApprove={onApprove}
+          onReject={onReject}
+          onReset={onReset}
+        />
+      </TabsContent>
+      
+      <TabsContent value="all" className="mt-0">
+        <KYCRequestsTable
+          isLoading={isLoading}
+          kycRequests={kycRequests}
+          onViewDetails={onViewDetails}
+          onApprove={onApprove}
+          onReject={onReject}
+          onReset={onReset}
         />
       </TabsContent>
     </Tabs>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import KYCStatusBadge from './KYCStatusBadge';
 import { format } from 'date-fns';
 import { KYCDocument } from '@/lib/firestore';
@@ -12,6 +12,7 @@ interface KYCRequestsTableProps {
   onViewDetails: (kycId: string) => void;
   onApprove: (kycId: string) => void;
   onReject: (kycId: string) => void;
+  onReset: (kycId: string) => void;
 }
 
 const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
@@ -20,6 +21,7 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
   onViewDetails,
   onApprove,
   onReject,
+  onReset,
 }) => {
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
@@ -76,7 +78,7 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
               <td className="px-4 py-3">
                 <KYCStatusBadge status={request.status} />
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-right space-x-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -108,6 +110,18 @@ const KYCRequestsTable: React.FC<KYCRequestsTableProps> = ({
                       Reject
                     </Button>
                   </>
+                )}
+                
+                {request.status === 'rejected' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600"
+                    onClick={() => request.id && onReset(request.id)}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Reset
+                  </Button>
                 )}
               </td>
             </tr>

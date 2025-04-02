@@ -44,6 +44,7 @@ const KYCManagement: React.FC = () => {
     isLoading: isLoadingProcessing,
     handleApproveKYC,
     handleRejectKYC,
+    handleResetKYC,
   } = useKYCProcessing(loadKYCRequests);
 
   // Combined loading state
@@ -109,6 +110,7 @@ const KYCManagement: React.FC = () => {
             viewKYCDetails(kycId);
             setShowRejectionDialog(true);
           }}
+          onReset={handleResetKYC}
         />
       </CardContent>
       

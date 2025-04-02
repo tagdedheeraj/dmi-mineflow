@@ -8,12 +8,17 @@ import { X, AlertTriangle } from 'lucide-react';
 
 interface KYCRejectedStatusProps {
   kycStatus: KYCDocument;
+  onReset?: () => void;
 }
 
-const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus }) => {
-  // Safe reload handler
+const KYCRejectedStatus: React.FC<KYCRejectedStatusProps> = ({ kycStatus, onReset }) => {
   const handleTryAgain = () => {
-    window.location.reload();
+    if (onReset) {
+      onReset();
+    } else {
+      // Fallback: reload the page if no reset handler provided
+      window.location.reload();
+    }
   };
 
   return (

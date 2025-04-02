@@ -102,3 +102,23 @@ export const rejectKYCRequest = async (kycId: string, adminId: string, reason: s
     return false;
   }
 };
+
+export const resetKYCRequest = async (kycId: string): Promise<boolean> => {
+  try {
+    console.log("[Firestore] Resetting KYC request:", kycId);
+    const kycRef = doc(db, 'kyc_verifications', kycId);
+    
+    // Delete the document to allow the user to submit a fresh KYC
+    // Another approach would be to flag it as 'reset' and allow resubmission
+    await updateDoc(kycRef, {
+      status: 'reset',
+      resetAt: serverTimestamp(),
+    });
+    
+    console.log("[Firestore] KYC request reset successfully");
+    return true;
+  } catch (error) {
+    console.error("[Firestore] Error resetting KYC request:", error);
+    return false;
+  }
+};
