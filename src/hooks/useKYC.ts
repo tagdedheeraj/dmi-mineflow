@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +8,8 @@ import {
   KYCDocument,
 } from '@/lib/firestore/kyc';
 
+const KYC_SUBMISSION_KEY = 'kyc_submission_status';
+
 export const useKYC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -18,11 +19,28 @@ export const useKYC = () => {
   const lastLoadTime = useRef<number>(0);
   const pendingKYCRef = useRef<boolean>(false); // Track if we have a pending KYC submission
   
-  // Load KYC status for the current user - with debounce
+  useEffect(() => {
+    if (user) {
+      const storedSubmission = localStorage.getItem(`${KYC_SUBMISSION_KEY}_${user.id}`);
+      if (storedSubmission) {
+        try {
+          const parsedData = JSON.parse(storedSubmission);
+          pendingKYCRef.current = true;
+          
+          if (!kycStatus) {
+            setKycStatus(parsedData);
+          }
+        } catch (error) {
+          console.error("Error parsing stored KYC data:", error);
+          localStorage.removeItem(`${KYC_SUBMISSION_KEY}_${user.id}`);
+        }
+      }
+    }
+  }, [user]);
+  
   const loadKycStatus = useCallback(async () => {
     if (!user) return;
     
-    // Don't reload if it's been less than 5 seconds since the last load
     const now = Date.now();
     if (now - lastLoadTime.current < 5000) {
       console.log("Skipping KYC status load - too soon since last load");
@@ -32,12 +50,19 @@ export const useKYC = () => {
     setIsLoading(true);
     try {
       const status = await getUserKYCStatus(user.id);
-      setKycStatus(status);
       console.log("KYC status loaded:", status);
       
-      // If we got a real status back that's not pending anymore, reset our pending flag
-      if (status && (status.status === 'approved' || status.status === 'rejected')) {
-        pendingKYCRef.current = false;
+      if (status) {
+        setKycStatus(status);
+        
+        if (status.status === 'approved' || status.status === 'rejected') {
+          pendingKYCRef.current = false;
+          localStorage.removeItem(`${KYC_SUBMISSION_KEY}_${user.id}`);
+        }
+      } else if (pendingKYCRef.current) {
+        console.log("Maintaining pending status - no status from Firestore yet");
+      } else {
+        setKycStatus(null);
       }
       
       lastLoadTime.current = now;
@@ -48,7 +73,6 @@ export const useKYC = () => {
     }
   }, [user]);
   
-  // Load KYC global settings
   const loadKycSettings = useCallback(async () => {
     try {
       const settings = await getKYCSettings();
@@ -60,7 +84,6 @@ export const useKYC = () => {
     }
   }, []);
   
-  // Submit a new KYC verification request
   const submitKYC = useCallback(async (formData: Omit<KYCDocument, 'status' | 'submittedAt' | 'id' | 'userId'>) => {
     if (!user) {
       toast({
@@ -83,7 +106,6 @@ export const useKYC = () => {
         description: "Your KYC verification request has been submitted and is pending review",
       });
       
-      // Create a temporary KYC status until a fresh one is loaded
       const tempKycStatus = {
         id: kycId,
         userId: user.id,
@@ -93,7 +115,12 @@ export const useKYC = () => {
       };
       
       setKycStatus(tempKycStatus);
-      pendingKYCRef.current = true; // Mark that we have a pending submission
+      pendingKYCRef.current = true;
+      
+      localStorage.setItem(
+        `${KYC_SUBMISSION_KEY}_${user.id}`, 
+        JSON.stringify(tempKycStatus)
+      );
       
       return true;
     } catch (error: any) {
@@ -109,31 +136,22 @@ export const useKYC = () => {
     }
   }, [user, toast]);
   
-  // Load initial data once on component mount
   useEffect(() => {
     if (!user) return;
     
-    // Initial load
     loadKycStatus();
     loadKycSettings();
-    
   }, [loadKycStatus, loadKycSettings, user]);
   
-  // Determine if the user needs to complete KYC
   const needsKYC = useCallback(() => {
-    // If KYC settings are still loading (null), assume no verification needed yet
     if (isKYCEnabled === null) return false;
     
-    // If KYC is not enabled globally, user doesn't need to complete it
     if (!isKYCEnabled) return false;
     
-    // If we have a pending submission that hasn't been refreshed yet
     if (pendingKYCRef.current) return false;
     
-    // If the user has no KYC status or it was rejected, they need to complete it
     if (!kycStatus) return true;
     
-    // If the user has a pending or approved KYC, they don't need to complete it
     return kycStatus.status === 'rejected';
   }, [kycStatus, isKYCEnabled]);
   

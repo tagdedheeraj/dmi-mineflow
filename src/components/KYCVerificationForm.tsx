@@ -24,7 +24,7 @@ const KYCVerificationForm: React.FC = () => {
   useEffect(() => {
     let intervalId: number | null = null;
     
-    // Only start polling if the status is pending or if submission is in progress
+    // Poll for status updates when submission is in progress or status is pending
     if ((kycStatus && kycStatus.status === 'pending') || submissionInProgress) {
       intervalId = window.setInterval(() => {
         loadKycStatus();
@@ -48,11 +48,9 @@ const KYCVerificationForm: React.FC = () => {
   const handleSubmitKYC = async (formData: any) => {
     setSubmissionInProgress(true);
     const success = await submitKYC(formData);
-    if (success) {
-      // Keep the submission in progress state true - don't reset it
-      // The polling will take care of updating the status
-      await loadKycStatus();
-    } else {
+    // Never reset submissionInProgress to false after successful submission
+    // This ensures we keep showing the pending status
+    if (!success) {
       setSubmissionInProgress(false);
     }
     return success;
