@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useKYC } from '@/hooks/useKYC';
 import KYCPendingStatus from './kyc/KYCPendingStatus';
 import KYCApprovedStatus from './kyc/KYCApprovedStatus';
@@ -11,19 +11,34 @@ const KYCVerificationForm: React.FC = () => {
   const { isLoading, kycStatus, submitKYC, loadKycStatus } = useKYC();
   const [resubmitting, setResubmitting] = useState(false);
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
+  const initialLoadDone = useRef(false);
   
-  // Load KYC status once on mount and every 30 seconds to check for status updates
+  // Load KYC status once on mount
   useEffect(() => {
-    loadKycStatus();
-    
-    // Set up polling to check for status updates from admin
-    const intervalId = setInterval(() => {
+    if (!initialLoadDone.current) {
       loadKycStatus();
-    }, 30000); // Check every 30 seconds
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
+      initialLoadDone.current = true;
+    }
   }, [loadKycStatus]);
+  
+  // Set up polling only after submission or when status is pending
+  useEffect(() => {
+    let intervalId: number | null = null;
+    
+    // Only start polling if the status is pending or if submission is in progress
+    if ((kycStatus && kycStatus.status === 'pending') || submissionInProgress) {
+      intervalId = window.setInterval(() => {
+        loadKycStatus();
+      }, 30000); // Check every 30 seconds
+    }
+    
+    // Cleanup interval on unmount or when pending status changes
+    return () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [kycStatus, submissionInProgress, loadKycStatus]);
   
   // Handle resetting/resubmitting KYC after rejection
   const handleResubmit = () => {

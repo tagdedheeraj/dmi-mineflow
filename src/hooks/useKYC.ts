@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,16 +15,25 @@ export const useKYC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCDocument | null>(null);
   const [isKYCEnabled, setIsKYCEnabled] = useState<boolean | null>(null);
+  const lastLoadTime = useRef<number>(0);
   
-  // Load KYC status for the current user
+  // Load KYC status for the current user - with debounce
   const loadKycStatus = useCallback(async () => {
     if (!user) return;
+    
+    // Don't reload if it's been less than 5 seconds since the last load
+    const now = Date.now();
+    if (now - lastLoadTime.current < 5000) {
+      console.log("Skipping KYC status load - too soon since last load");
+      return;
+    }
     
     setIsLoading(true);
     try {
       const status = await getUserKYCStatus(user.id);
       setKycStatus(status);
       console.log("KYC status loaded:", status);
+      lastLoadTime.current = now;
     } catch (error) {
       console.error("Error loading KYC status:", error);
     } finally {
