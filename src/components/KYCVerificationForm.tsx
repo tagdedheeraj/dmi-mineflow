@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useKYC } from '@/hooks/useKYC';
 import KYCPendingStatus from './kyc/KYCPendingStatus';
@@ -50,10 +49,12 @@ const KYCVerificationForm: React.FC = () => {
     setSubmissionInProgress(true);
     const success = await submitKYC(formData);
     if (success) {
-      // Reload the KYC status after successful submission
+      // Keep the submission in progress state true - don't reset it
+      // The polling will take care of updating the status
       await loadKycStatus();
+    } else {
+      setSubmissionInProgress(false);
     }
-    setSubmissionInProgress(false);
     return success;
   };
   
@@ -77,7 +78,7 @@ const KYCVerificationForm: React.FC = () => {
   }
   
   // Render based on KYC status
-  if (kycStatus && !resubmitting && !submissionInProgress) {
+  if (kycStatus && !resubmitting) {
     // Make sure we're correctly checking the status
     if (kycStatus.status === 'approved') {
       return <KYCApprovedStatus kycStatus={kycStatus} />;

@@ -16,6 +16,7 @@ export const useKYC = () => {
   const [kycStatus, setKycStatus] = useState<KYCDocument | null>(null);
   const [isKYCEnabled, setIsKYCEnabled] = useState<boolean | null>(null);
   const lastLoadTime = useRef<number>(0);
+  const pendingKYCRef = useRef<boolean>(false); // Track if we have a pending KYC submission
   
   // Load KYC status for the current user - with debounce
   const loadKycStatus = useCallback(async () => {
@@ -33,6 +34,12 @@ export const useKYC = () => {
       const status = await getUserKYCStatus(user.id);
       setKycStatus(status);
       console.log("KYC status loaded:", status);
+      
+      // If we got a real status back that's not pending anymore, reset our pending flag
+      if (status && (status.status === 'approved' || status.status === 'rejected')) {
+        pendingKYCRef.current = false;
+      }
+      
       lastLoadTime.current = now;
     } catch (error) {
       console.error("Error loading KYC status:", error);
@@ -77,13 +84,16 @@ export const useKYC = () => {
       });
       
       // Create a temporary KYC status until a fresh one is loaded
-      setKycStatus({
+      const tempKycStatus = {
         id: kycId,
         userId: user.id,
-        status: 'pending',
+        status: 'pending' as const,
         submittedAt: new Date(),
         ...formData
-      });
+      };
+      
+      setKycStatus(tempKycStatus);
+      pendingKYCRef.current = true; // Mark that we have a pending submission
       
       return true;
     } catch (error: any) {
@@ -116,6 +126,9 @@ export const useKYC = () => {
     
     // If KYC is not enabled globally, user doesn't need to complete it
     if (!isKYCEnabled) return false;
+    
+    // If we have a pending submission that hasn't been refreshed yet
+    if (pendingKYCRef.current) return false;
     
     // If the user has no KYC status or it was rejected, they need to complete it
     if (!kycStatus) return true;
