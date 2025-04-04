@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import AnnouncementPopup from '@/components/AnnouncementPopup';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -47,6 +48,8 @@ const Index: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <AnnouncementPopup />
     </div>
   );
 };
