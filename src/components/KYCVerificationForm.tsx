@@ -12,10 +12,17 @@ const KYCVerificationForm: React.FC = () => {
   const [resubmitting, setResubmitting] = useState(false);
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
   
-  // Load KYC status once on mount
+  // Load KYC status once on mount and every 30 seconds to check for status updates
   useEffect(() => {
     loadKycStatus();
-    // Make sure we're actually loading the latest status
+    
+    // Set up polling to check for status updates from admin
+    const intervalId = setInterval(() => {
+      loadKycStatus();
+    }, 30000); // Check every 30 seconds
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, [loadKycStatus]);
   
   // Handle resetting/resubmitting KYC after rejection
@@ -44,16 +51,14 @@ const KYCVerificationForm: React.FC = () => {
     );
   }
   
-  // Show pending status even during submission to avoid flickering back to the form
+  // Show pending status when KYC is pending OR when submission was just completed
   if ((kycStatus && kycStatus.status === 'pending') || submissionInProgress) {
-    // Fix the type issue by ensuring we pass an object with status: 'pending'
-    return <KYCPendingStatus 
-      kycStatus={
-        kycStatus && kycStatus.status === 'pending'
-          ? kycStatus as Partial<KYCDocument> & { status: 'pending' }
-          : { status: 'pending' }
-      } 
-    />;
+    // Make sure we pass the correct type to KYCPendingStatus
+    const pendingData = kycStatus && kycStatus.status === 'pending' 
+      ? kycStatus as Partial<KYCDocument> & { status: 'pending' }
+      : { status: 'pending' as const } as Partial<KYCDocument> & { status: 'pending' };
+    
+    return <KYCPendingStatus kycStatus={pendingData} />;
   }
   
   // Render based on KYC status
